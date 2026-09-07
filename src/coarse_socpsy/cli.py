@@ -26,6 +26,8 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="max")
     review.add_argument("--verifier-backend", choices=["codex", "claude"], help="Optional independent verification backend")
     review.add_argument("--verifier-model")
+    review.add_argument("--verifier-effort", choices=["low", "medium", "high", "xhigh", "max"],
+                        help="verification reasoning effort (defaults to --effort)")
     review.add_argument("--timeout", type=int, default=1800, help="per-model-call timeout in seconds (default: 1800)")
     review.add_argument("--out", default="review-run")
     review.add_argument("--quiet", action="store_true")
@@ -49,10 +51,11 @@ def _review_command(args: argparse.Namespace) -> int:
     else:
         backend = CodexBackend(args.model or "gpt-5.6-luna", args.timeout, args.effort)
     verifier = None
+    verifier_effort = args.verifier_effort or args.effort
     if args.verifier_backend == "claude":
-        verifier = ClaudeBackend(args.verifier_model, args.timeout, args.effort)
+        verifier = ClaudeBackend(args.verifier_model, args.timeout, verifier_effort)
     elif args.verifier_backend == "codex":
-        verifier = CodexBackend(args.verifier_model or "gpt-5.6-luna", args.timeout, args.effort)
+        verifier = CodexBackend(args.verifier_model or "gpt-5.6-luna", args.timeout, verifier_effort)
     try:
         output_dir = Path(args.out).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)

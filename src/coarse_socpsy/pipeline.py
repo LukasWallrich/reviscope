@@ -40,8 +40,15 @@ class EditorialDecision(BaseModel):
     target_id: str | None = None
 
 
+class ReconciledOverview(BaseModel):
+    design_summary: str | None
+    contribution_summary: str | None
+    strengths: list[str]
+
+
 class EditorialResponse(BaseModel):
     decisions: list[EditorialDecision]
+    reconciled_overview: ReconciledOverview | None = None
 
 
 def _canonical(value: object) -> str:
@@ -147,6 +154,7 @@ class ReviewPipeline:
             study_instruction = "Extract the research question, claimed contribution, overall design, distinct studies, and concrete evidence-based strengths. Do not make external novelty claims. Anchor claims in exact quotations with valid SOURCE_ID values. This is descriptive synthesis, not fault-finding."
             result, stage = self._cached(out, "study_map", {"sources": input_hash, "instruction_hash": _hash(SYSTEM_GUARD + study_instruction)}, StudyMap, lambda: self.backend.generate(study_instruction, evidence, StudyMap))
             run.study_map = result  # type: ignore[assignment]
+            run.preliminary_study_map = result.model_copy(deep=True)  # type: ignore[union-attr]
             run.stages.append(stage)
         except Exception as exc:
             self.progress(f"study_map: failed ({type(exc).__name__})")
@@ -261,17 +269,25 @@ class ReviewPipeline:
             editorial_input = [f.model_dump() for f in run.findings]
             if insufficient:
                 self.progress("editorial: skipped (insufficient material)")
-                decisions = EditorialResponse(decisions=[])
+                decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="skipped", error="Insufficient manuscript material")
             elif self.backend.name == "fixture":
                 self.progress("editorial: started")
-                decisions = EditorialResponse(decisions=[])
+                decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="completed")
             else:
-                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. Apply the profile's severity guidance when selecting findings; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Do not change verification status, finding IDs, or substantive text.\nFINDINGS\n" + _canonical(editorial_input)
+                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. Apply the profile's severity guidance when selecting findings; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input), "instruction_hash": _hash(SYSTEM_GUARD + instruction)}, EditorialResponse, lambda: self.backend.generate(instruction, "No additional manuscript evidence is supplied at editorial stage.", EditorialResponse))
                 editorial_artifact = stage.artifact
             editorial_rows = decisions.decisions  # type: ignore[attr-defined]
+            if not insufficient and self.backend.name != "fixture" and decisions.reconciled_overview is None:  # type: ignore[union-attr]
+                raise ValueError("Editorial stage omitted the reconciled overview")
+            if decisions.reconciled_overview is not None:  # type: ignore[union-attr]
+                reconciled = decisions.reconciled_overview  # type: ignore[union-attr]
+                if run.study_map.design_summary is not None and reconciled.design_summary is None:
+                    raise ValueError("Editorial stage erased the preliminary design summary")
+                if run.study_map.contribution_summary is not None and reconciled.contribution_summary is None:
+                    raise ValueError("Editorial stage erased the preliminary contribution summary")
             finding_ids = {f.id for f in run.findings}
             if len({d.finding_id for d in editorial_rows}) != len(editorial_rows) or any(d.finding_id not in finding_ids for d in editorial_rows):
                 raise ValueError("Editorial stage returned duplicate or unknown finding IDs")
@@ -317,7 +333,14 @@ class ReviewPipeline:
                         if decision.disposition == "needs_review":
                             disposition = "needs_review"
                 edited.append(finding.model_copy(update={"editorial_disposition": disposition, "editorial_reason": reason, "merged_into": merged_into}))
-            run.findings = [finding.model_copy(update={"editorial_disposition": "rejected", "editorial_reason": "Claim was contradicted during verification.", "merged_into": None}) if finding.status == "contradicted" else finding for finding in edited]
+            quarantined: list[Finding] = []
+            for finding in edited:
+                if finding.status == "contradicted":
+                    finding = finding.model_copy(update={"editorial_disposition": "rejected", "editorial_reason": "Claim was contradicted during verification.", "merged_into": None})
+                elif finding.status in {"candidate", "unverified"}:
+                    finding = finding.model_copy(update={"editorial_disposition": "needs_review", "editorial_reason": "Claim lacks a completed verification decision.", "merged_into": None})
+                quarantined.append(finding)
+            run.findings = quarantined
             rank = {"critical": 0, "major": 1, "minor": 2}
             protected_targets = {f.merged_into for f in run.findings if f.editorial_disposition == "merged" and f.merged_into}
             publishable = sorted((f for f in run.findings if f.editorial_disposition == "publish" and f.status != "contradicted"), key=lambda f: (0 if f.id in protected_targets else 1, -epistemic_rank.get(f.status, 0), rank[f.severity.value], f.id))
@@ -340,6 +363,11 @@ class ReviewPipeline:
             if merge_repair_needed:
                 run.partial = True
                 run.coverage.append("editorial: invalid merge target was retained as needs_review")
+            if decisions.reconciled_overview is not None:  # type: ignore[union-attr]
+                overview = decisions.reconciled_overview  # type: ignore[union-attr]
+                run.study_map = run.study_map.model_copy(update={"design_summary": overview.design_summary,
+                                                                  "contribution_summary": overview.contribution_summary,
+                                                                  "strengths": overview.strengths})
             run.stages.append(stage)
             if self.backend.name == "fixture":
                 self.progress("editorial: completed in 0.0s")

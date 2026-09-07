@@ -9,16 +9,21 @@ from coarse_socpsy.profiles import load_profile
 from coarse_socpsy.schemas import Evidence, Finding, Profile, StudyMap
 
 
+_DEFAULT_OVERVIEW = object()
+
+
 class QualityBackend(Backend):
     name = "quality"
 
     def __init__(self, *, model="generator", findings=(), verification=None, editorial=None,
-                 fail_verification=False, fail_editorial=False):
+                 fail_verification=False, fail_editorial=False, reconciled_overview=_DEFAULT_OVERVIEW):
         self.model, self.effort = model, "high"
         self.findings = list(findings)
         self.verification = verification
         self.editorial = editorial
         self.fail_verification, self.fail_editorial = fail_verification, fail_editorial
+        self.reconciled_overview = ({"design_summary": "d", "contribution_summary": "c", "strengths": []}
+                                    if reconciled_overview is _DEFAULT_OVERVIEW else reconciled_overview)
         self.instructions = []
 
     def generate(self, instruction, evidence, response_model):
@@ -46,7 +51,7 @@ class QualityBackend(Backend):
                 raise RuntimeError("editor unavailable")
             findings = json.loads(instruction.split("FINDINGS\n", 1)[1])
             rows = self.editorial(findings) if callable(self.editorial) else self.editorial
-            return response_model.model_validate({"decisions": rows or []})
+            return response_model.model_validate({"decisions": rows or [], "reconciled_overview": self.reconciled_overview})
         raise AssertionError(name)
 
 
@@ -89,6 +94,8 @@ def test_verifier_exception_yields_rendered_partial_audit(tmp_path):
     assert run.partial and (tmp_path / "out" / "review.json").is_file()
     assert next(stage for stage in run.stages if stage.name == "verification").status == "failed"
     assert run.metadata.verification_relationship == "not_run"
+    assert all(item.editorial_disposition == "needs_review" for item in run.findings)
+    assert "### Major:" not in (tmp_path / "out" / "review.md").read_text()
 
 
 def test_editorial_exception_never_publishes_uncapped_unfiltered_findings(tmp_path):
@@ -145,3 +152,36 @@ def test_uncertain_statistical_screening_lead_is_not_automatically_major(tmp_pat
         manuscript, output_dir=tmp_path / "out")
     lead = next(item for item in run.candidates if item.module == "statistical_check")
     assert lead.severity.value == "minor"
+
+
+def test_editorial_reconciles_overview_while_preserving_preliminary_map(tmp_path):
+    generator = QualityBackend(findings=[candidate("a")], editorial=keep_all,
+                               reconciled_overview={"design_summary": "Qualified design account.",
+                                                    "contribution_summary": "Contribution after assessment.",
+                                                    "strengths": ["A supported strength."]})
+    verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
+    run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
+    assert run.preliminary_study_map is not None
+    assert run.preliminary_study_map.design_summary == "d"
+    assert run.study_map.design_summary == "Qualified design account."
+    assert run.study_map.strengths == ["A supported strength."]
+
+
+def test_nonfixture_editor_must_return_reconciled_overview(tmp_path):
+    generator = QualityBackend(findings=[candidate("a")], editorial=keep_all, reconciled_overview=None)
+    verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
+    run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
+    assert run.partial
+    assert next(item for item in run.stages if item.name == "editorial").status == "failed"
+    assert all(item.editorial_disposition == "needs_review" for item in run.findings)
+
+
+def test_reconciliation_cannot_erase_preliminary_nonnull_summary(tmp_path):
+    generator = QualityBackend(findings=[candidate("a")], editorial=keep_all,
+                               reconciled_overview={"design_summary": None,
+                                                    "contribution_summary": "c",
+                                                    "strengths": []})
+    verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
+    run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
+    assert run.partial
+    assert next(item for item in run.stages if item.name == "editorial").status == "failed"

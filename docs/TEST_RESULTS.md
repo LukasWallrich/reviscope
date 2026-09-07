@@ -1,30 +1,50 @@
 # Observed alpha checks
 
-Date: 7 September 2026. This records engineering tests, not scientific performance validation.
+Date: 7 September 2026. Engineering acceptance and a small model-judged pilot are separate results. The compact evaluation record is in `eval/results/alpha-pilot.v1.json`; interpretation and provenance are in `PILOT_EVALUATION.md`.
 
-## Implementation and independent review
+## Implementation and review
 
-Implementation was delegated to GPT-5.6 Sol subagents. Three authenticated `claude -p --model fable --effort high` reviews examined architecture, evidence/statistical verification, and integration. Requests, responses, and dispositions are retained in `docs/design_reviews`; the service reported Claude Fable 5.1. Initial manuscript review runs use Codex CLI `gpt-5.6-luna` with `model_reasoning_effort=max`, as requested.
+GPT-5.6 Sol subagents implemented the independent pipeline, discipline profiles, and evaluation harness. Authenticated `claude -p --model fable` requests reviewed architecture, numerical/evidence checks, integration, scientific restraint, and concrete failure contracts. Prompts, responses, and dispositions are retained in `design_reviews`. These bounded checks found defects and informed fixes; they are not certification of scientific review quality.
 
-## Deterministic acceptance
+All initial manuscript generation used authenticated Codex CLI `gpt-5.6-luna`, reasoning effort `max`. The final methods case uses Fable for product verification; the empirical case uses Luna in a separate call. Reports distinguish these relationships. CLI model aliases/settings are recorded, without treating an alias as proof of an immutable model version.
 
-- 45 tests passed after the final core integrity fixes. Tests cover extraction order/coverage, profile inheritance, numerical assumptions and rounding, original-source quotation offsets, forged finding status, finding joins, cache invalidation, editorial target integrity, HTML escaping, blinded order swaps, per-paper aggregation, and audit strata.
-- Fixture review completed with bundled social-psychology criteria and with the external education profile. Fixture reports visibly identify themselves as demonstrations.
-- Source distribution and wheel builds succeeded; bundled profile/rubric resources and both license/credit files were included. An isolated wheel installation, invoked outside the repository, listed all three profiles and completed a fixture review.
-- Corpus validation admitted 2 of 5 records. The four manuscript/review artifacts for eligible records downloaded successfully and matched recorded SHA-256 hashes.
+## Real-paper execution
 
-## Live CLI checks
+The first implementation was called complete prematurely after a tiny demonstration and an incomplete methods-paper run. Those are historical diagnostics, not acceptance evidence. The revised alpha uses a 1,800-second deadline per model call and records progress and durations. Full max-effort reviews took tens of minutes; one baseline verification pass took 852.6 seconds. The methods V2 Fable-max verification took 1,269.3 seconds. After evidence-anchoring corrections invalidated its inputs, the final refresh used Fable high while retaining cached Luna-max generation.
 
-Both authenticated Codex and Claude backends returned schema-valid smoke responses. Codex tool and web capabilities were disabled, and output was read from its final-message artifact. The first short Luna review completed generation and verification but its editorial pass exceeded the initial 180-second per-call limit, producing an explicitly partial report. Inspection exposed insufficient verifier evidence; the final typed schema and prompt now require usable source identifiers and quotations for supported findings. A fresh run uses a 600-second limit.
+Three development baselines completed with `partial=false`:
 
-The live Fable evaluator smoke completed both presentation orders with no invalid judgments. Its comparator was an explicitly synthetic, locally written baseline, and the candidate was the earlier partial Luna demonstration. The artifact records this as ineligible for scientific validation. A separate Fable pass assessed two generated findings, returned two supported decisions, and passed deterministic quotation checks. These are integration outcomes, not precision estimates.
+| Input | Profile | Candidates | Published | Published model-supported / unresolved | Local output |
+|---|---|---:|---:|---:|---|
+| Original Zcurve manuscript | quantitative_social_science v1 | 23 | 12 | 8 / 4 | `runs/luna-zcurve-complete` |
+| Zcurve2 original submission | quantitative_social_science v1 | 25 | 12 | 6 / 6 | `runs/luna-zcurve2-complete` |
+| Empirical psychology, benchmark paper 8 | social_psychology v1 | 30 | 12 | 9 / 3 | `runs/luna-known-error-08` |
 
-The final six-module social-psychology Luna run completed with `partial=false`. It generated 23 candidates; all received source-anchored independent model support, and editorial selection published 12, merged 8, and capped 3. Verification took 171.2 seconds and editorial selection took 262.3 seconds. A repeat invocation completed successfully with cache hits for all nine model stages and no new model calls. Output: `runs/live-luna-final/review.{json,md,html}`. The content remains a reporting-gap-heavy response to a 50-word demonstration, not evidence of good real-paper reviewing.
+These retained development outputs predate the final V2 engine and profiles. They are not mislabeled as V2 results. Both final V2 acceptance runs completed with `partial=false`:
 
-The longer original Z-curve manuscript trial was started during development. It completed the study map and three specialist modules, then statistical assessment exceeded its 600-second limit. The older process was stopped; completed artifacts were transparently recovered as `runs/luna-zcurve-partial/review.{json,md,html}`. Its 15 findings are all unverified, and the report records the timeout, interruption, skipped stages, and development-snapshot provenance. It is not a completed test of the final pipeline on that paper. `recover.py` records the recovery procedure. No genuine-human-review comparison was run against this incomplete trial.
+| Input | Verification | Candidates | Published | Other dispositions | Local output |
+|---|---|---:|---:|---|---|
+| Zcurve2 | Fable high, different family | 21 | 5: 3 Major, 2 Minor | 8 merged, 8 needs review | `runs/luna-zcurve2-v2-fable` |
+| Empirical benchmark paper 8 | Luna max, same model separate call | 22 | 5: 4 Major, 1 Minor | 17 merged | `runs/luna-known-error-08-v2` |
 
-Local outputs under `runs/` are intentionally excluded from version control.
+All ten published findings were model-supported with supported remedies. This is the product verifier's assessment, not ten ground-truth correct claims. The methods refresh used cached Luna generation, 337.5 seconds for Fable verification, and 314.1 seconds for final editorial synthesis. Empirical generation and verification remained cached during its 165-second editorial reconciliation repair. Detailed evaluations are recorded in the pilot summary.
 
-## Interpretation limits
+The two methods manuscripts match the original public human-review versions, with binary and extracted-text hashes. The empirical manuscript is the modified DOCX from Dawes benchmark commit `3d9188343eebd4312d3bfbde6822cfa4eaf32fb4`. Review subprocesses received only manuscript sources and frozen profiles, not human reviews or planted-error annotations. Public benchmark contamination cannot be excluded.
 
-The tiny demonstration manuscript is deliberately incomplete. It tests orchestration and evidence handling, not the quality of substantive peer review. The two eligible public manuscript/review pairs are Meta-Psychology methods papers, and do not constitute a representative validation corpus. Communications Psychology records remain ineligible until the original reviewed manuscripts are located. No human-equivalence result or measured false-claim rate is established. Model verification is recorded as model support, not ground truth.
+## Integrity checks
+
+The regression suite covers extraction order/coverage, profile inheritance, numerical assumptions and rounding, original-source quotation offsets, forged finding status, cache invalidation, editorial target integrity, publication quarantine, remedy withholding, HTML escaping, input triage, blinded order swaps, per-paper aggregation, and audit strata. Packaging checks install the wheel outside the repository and exercise bundled profile resources and a fixture review. The current suite passes 70 tests. Source distribution and wheel builds succeeded, and an isolated installation outside the repository completed the bundled V2 fixture review (`runs/wheel-release-demo`).
+
+A fresh model-backed run of the insufficient demonstration manuscript produces one Minor intake limitation, skips substantive reviewing, exits partial, and records verification as `not_run`: `runs/luna-insufficient-material-v2`. Fixture outputs are explicitly demonstrations. A final empirical rerun reused all generation and verification stages; the editorial-only repair reconciles overview/strengths with supported findings while preserving the preliminary study map.
+
+Candidate/unverified findings cannot publish even when the editor selects them. Contradicted findings are rejected. A failed editorial stage quarantines findings rather than publishing an uncapped fallback. Supported criticisms and proposed remedies are assessed separately; overreaching or unresolved remedies are withheld. Semantic consolidation preserves the original candidates and merge targets.
+
+The conservative quote normalizer has a known safe failure mode: a PDF line-wrap hyphen can fail to match a model quotation retaining a lexical hyphen (for example, `p-` followed by a newline and `curve`). Four evidence occurrences in the methods V2 case lost earlier anchors after numeric-integrity fixes. This changed the actual verification inputs and correctly invalidated the old cache; those findings require unresolved treatment unless adequate evidence is supplied. Structured PDF table reconstruction and comprehensive typography repair remain outside this alpha.
+
+## What the pilot can establish
+
+The two human-comparison papers are related statistical-methods cases. Presentation orders, judge families, and pipeline variants are repeated measurements, not additional papers. The empirical known-error case measures detection of ten planted errors, separately before and after publication selection; it does not estimate false-positive rates.
+
+Fable finding assessments and deterministic quotation checks are recorded separately. An exact quotation establishes source provenance, not truth. Unresolved judgments and failed calls are not counted as supported. No representative human-equivalence result or measured low false-claim rate is established. Broader discipline testing and sampled human adjudication remain necessary before such claims.
+
+Downloaded sources and full reports remain local under ignored `runs/` and `eval/corpus/cache/`; compact non-source results and provenance are committed.

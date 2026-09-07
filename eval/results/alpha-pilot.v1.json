@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-07",
+  "status": "observed-results-only",
+  "paper_counts": {
+    "open_review_comparison_papers": 2,
+    "open_review_profile_variants_recorded": 3,
+    "manuscript_label_separated_planted_error_papers": 1
+  },
+  "comparison_protocol": {
+    "prompt_version": "pairwise-v6",
+    "seed": 0,
+    "order_swaps_per_paper_judge": 2,
+    "aggregation": "Resolve the two order swaps within judge, then judges within paper; only unanimous non-tie outcomes are wins.",
+    "judges": [
+      {
+        "identity": "claude:Fable:high",
+        "family": "Claude"
+      },
+      {
+        "identity": "codex:gpt-5.6-sol:high",
+        "family": "OpenAI"
+      }
+    ]
+  },
+  "open_review_comparisons": [
+    {
+      "paper_id": "metapsych-brunner-schimmack-2020-round1-williams",
+      "source_manuscript_sha256": "9f48edb62117e69594b378bbc018a635e65815ad831984fa9237225afd1843a8",
+      "source_review_sha256": "fa9c159b13dac5f86dd83d3ed0731d062c4e97fee4a42c75abd348f6720bd369",
+      "variant": "development-baseline-v1",
+      "generator": {
+        "model": "gpt-5.6-luna",
+        "effort": "max",
+        "profile": "quantitative_social_science",
+        "profile_hash": "53b783430cf24d1bcccecc25d9155c58ae46ecb0204e875582865a4e188c1a22"
+      },
+      "candidate_review_sha256": "d4edf940753c69ab8f3c0dcb644b363df85b5602c31b4072fb5c89f9e37ac5b6",
+      "candidate_counts": {
+        "all_findings": 23,
+        "published_findings": 12
+      },
+      "judge_results": [
+        {
+          "judge": "claude:Fable:high",
+          "outcome": "candidate",
+          "order_outcomes": [
+            "candidate",
+            "candidate"
+          ],
+          "order_confidences": [
+            0.75,
+            0.78
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve1-compare-fable.json",
+          "artifact_sha256": "6c9c611db80a4bf4519747121e310cad9e64c34cae5a4f3e3e98aa9c4af8374b"
+        },
+        {
+          "judge": "codex:gpt-5.6-sol:high",
+          "outcome": "candidate",
+          "order_outcomes": [
+            "candidate",
+            "candidate"
+          ],
+          "order_confidences": [
+            0.99,
+            0.99
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve1-compare-sol.json",
+          "artifact_sha256": "fd99484a6222e0afe8132c75538e4d1c68a635ecd005c953fc58dd86af3d26c1"
+        }
+      ],
+      "published_finding_audit": {
+        "assessor": "claude:Fable:high",
+        "assessment_count": 12,
+        "raw_model_verdicts": {
+          "supported": 12
+        },
+        "strict_final_verdicts": {
+          "supported": 6,
+          "unresolved": 6,
+          "contradicted": 0
+        },
+        "invalid": 0,
+        "deterministic_quote_revalidation": "current verification.verify_quote",
+        "artifact": "runs/eval/real/zcurve1-published-findings-fable-verification.json",
+        "artifact_sha256": "6b9eff1ba7cf250613ec206f9fc9153a55cf61b200bec30acb781a0972912abd"
+      }
+    },
+    {
+      "paper_id": "metapsych-bartos-schimmack-2022-round1",
+      "source_manuscript_sha256": "0f7d081d3d7d572a4b9669ddd4b00a53e923e9476b5a132db2befbfd96de7392",
+      "source_review_sha256": "2f36403c718aad528c4fdfd18296a5ab22c8aeaee11e6caa0e36992ed50d86bc",
+      "variant": "development-baseline-v1",
+      "generator": {
+        "model": "gpt-5.6-luna",
+        "effort": "max",
+        "profile": "quantitative_social_science",
+        "profile_hash": "53b783430cf24d1bcccecc25d9155c58ae46ecb0204e875582865a4e188c1a22"
+      },
+      "candidate_review_sha256": "d476f762197a193c411e2f3074a12df70a7a246b9169fd62c11862b589f47cef",
+      "candidate_counts": {
+        "all_findings": 25,
+        "published_findings": 12
+      },
+      "judge_results": [
+        {
+          "judge": "claude:Fable:high",
+          "outcome": "candidate",
+          "order_outcomes": [
+            "candidate",
+            "candidate"
+          ],
+          "order_confidences": [
+            0.58,
+            0.62
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve2-v1-compare-fable.json",
+          "artifact_sha256": "4c1062ae3729b8d59553dacbb9c0822a4d69bcf2763f0775641038b79a01f1bd"
+        },
+        {
+          "judge": "codex:gpt-5.6-sol:high",
+          "outcome": "candidate",
+          "order_outcomes": [
+            "candidate",
+            "candidate"
+          ],
+          "order_confidences": [
+            0.96,
+            0.98
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve2-v1-compare-sol.json",
+          "artifact_sha256": "d548eed7846937c211cc61271b2916c561ce28e6e375dff195d8362d21518eb2"
+        }
+      ],
+      "published_finding_audit": {
+        "assessor": "claude:Fable:high",
+        "assessment_count": 12,
+        "raw_model_verdicts": {
+          "supported": 12
+        },
+        "strict_final_verdicts": {
+          "supported": 11,
+          "unresolved": 1,
+          "contradicted": 0
+        },
+        "invalid": 0,
+        "deterministic_quote_revalidation": "current verification.verify_quote",
+        "artifact": "runs/eval/real/zcurve2-v1-published-findings-fable-verification.json",
+        "artifact_sha256": "a3a4887bc4541798d0d354251e965ce994bcbb4c5a2ca5d3c6030b6865b5f96c"
+      }
+    },
+    {
+      "paper_id": "metapsych-bartos-schimmack-2022-round1",
+      "source_manuscript_sha256": "0f7d081d3d7d572a4b9669ddd4b00a53e923e9476b5a132db2befbfd96de7392",
+      "source_review_sha256": "2f36403c718aad528c4fdfd18296a5ab22c8aeaee11e6caa0e36992ed50d86bc",
+      "variant": "alpha-v2-cross-family-verification",
+      "generator": {
+        "model": "gpt-5.6-luna",
+        "effort": "max",
+        "profile": "quantitative_social_science_v2",
+        "profile_hash": "43ddf19678fd74f3791dd2705d9422a4d15c52303284b7ed0e90ef536ab4ed78"
+      },
+      "product_verifier": {
+        "model": "claude:fable",
+        "effort": "high",
+        "relationship": "different_model_family"
+      },
+      "candidate_review_sha256": "227e8853ce845af27fdbff66ea3e612e8d8fa34ff77aadc588067f218fc9d775",
+      "candidate_counts": {
+        "all_findings": 21,
+        "published_findings": 5,
+        "merged": 8,
+        "needs_review": 8,
+        "published_severity": {
+          "major": 3,
+          "minor": 2
+        }
+      },
+      "comparison_seed": 20260907,
+      "judge_results": [
+        {
+          "judge": "claude:fable:high",
+          "outcome": "reference",
+          "order_outcomes": [
+            "reference",
+            "reference"
+          ],
+          "order_confidences": [
+            0.6,
+            0.55
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve2-v2-compare-fable.json",
+          "artifact_sha256": "d2bb26b890b10b1616a2d82ca65621882c5a5e559f12f57a82c8374cba00f7a0"
+        },
+        {
+          "judge": "codex:gpt-5.6-sol:high",
+          "outcome": "candidate",
+          "order_outcomes": [
+            "candidate",
+            "candidate"
+          ],
+          "order_confidences": [
+            0.91,
+            0.86
+          ],
+          "invalid": 0,
+          "artifact": "runs/eval/real/zcurve2-v2-compare-sol.json",
+          "artifact_sha256": "16fab6b18cf926fff2759ae343377748521cfc4fb4ec853fb70546e52c5a1ca7"
+        }
+      ],
+      "cross_judge_outcome": "tie",
+      "runtime_provenance": {
+        "generation_stage_seconds": {
+          "study_map": 184.8,
+          "contribution": 223.6,
+          "design": 367.9,
+          "measurement": 255.6,
+          "statistical_inference": 641.8,
+          "interpretation": 384.2
+        },
+        "final_verification_seconds": 337.5,
+        "final_reconciled_editorial_seconds": 314.1,
+        "source": "runs/luna-zcurve2-v2-fable/run.log; generation stages were cache hits in the final refresh"
+      }
+    }
+  ],
+  "manuscript_label_separated_planted_error": {
+    "paper_id": "dawes-paper-08",
+    "gold_error_count": 10,
+    "judge": "claude:Fable:high",
+    "development_baseline_v1": {
+      "candidate_findings": 30,
+      "published_findings": 12,
+      "candidate_strict_recall": {
+        "matched": 4,
+        "total": 10
+      },
+      "published_strict_recall": {
+        "matched": 4,
+        "total": 10
+      },
+      "matched_error_ids": [
+        "8-02",
+        "8-03",
+        "8-04",
+        "8-09"
+      ],
+      "uncertain_error_ids": [
+        "8-10"
+      ],
+      "artifact": "runs/luna-known-error-08/planted-error-adjudication.fable.json",
+      "artifact_sha256": "ed6024c69336bed25d4e25472a46990598c12ed4d14c479d7a95443279548163"
+    },
+    "alpha_v2": {
+      "candidate_findings": 22,
+      "published_findings": 5,
+      "candidate_strict_recall": {
+        "matched": 4,
+        "total": 10
+      },
+      "published_strict_recall": {
+        "matched": 4,
+        "total": 10
+      },
+      "matched_error_ids": [
+        "8-02",
+        "8-03",
+        "8-04",
+        "8-09"
+      ],
+      "uncertain_error_ids": [],
+      "artifact": "runs/luna-known-error-08-v2/planted-error-adjudication.fable.json",
+      "artifact_sha256": "6641b7aea00947166181540d989a5fc4d307298f11148120334fe6dca5ab0a71",
+      "scored_review_sha256": "ca89f1ba037a9d9e9839871593b3bb5db9c46ea9fcfa696eb426f0ea66bbfd2a",
+      "refreshed_report_sha256": "2b303b17bad8291a3bc4a2c34bf03a290d5a1d9e476e77792850f2a6f892b02f",
+      "refresh_note": "All model stages were cache hits; refreshed metadata/render used the final code with unchanged substantive findings and dispositions."
+    }
+  },
+  "synthetic_controls": {
+    "included_in_prevalence_or_recall": false,
+    "description": "Two authored verifier stress controls against the real Z-curve 1 manuscript; retained only as plumbing and fail-closed evidence tests.",
+    "artifact": "runs/eval/real/fable-zcurve1-synthetic-controls-verification.json"
+  },
+  "eligibility": {
+    "claim_supported": "Two methods-heavy, version-matched Meta-Psychology development papers were preferred to one public human review each by both configured model judges in both orders. On the final alpha-v2 variant of the second paper, the two judge families disagreed, producing a cross-judge tie.",
+    "claims_not_supported": [
+      "human-level peer review",
+      "general social-science performance",
+      "a population false-claim rate"
+    ],
+    "limitations": [
+      "n=2 open-review papers",
+      "both concern z-curve and share an author",
+      "one human review per paper",
+      "model judges may favor model-generated style",
+      "two development-baseline comparisons plus one final-profile variant of the second paper"
+    ]
+  },
+  "resume_provenance": "Early partial audit files without verification_config were resumed once only after manual confirmation that manuscript, finding set, prompt, and backend were unchanged; current code rejects legacy or mismatched partial outputs."
+}

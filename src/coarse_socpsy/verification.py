@@ -27,15 +27,17 @@ def _normalize_with_offsets(text: str) -> tuple[str, list[int]]:
     pos = 0
     while pos < len(text):
         original = text[pos]
-        if original == "-" and pos > 0 and text[pos - 1].isalnum():
-            line_end = re.match(r"-\s*\n\s*(?=\w)", text[pos:])
+        if original == "-" and pos > 0 and text[pos - 1].isalpha():
+            line_end = re.match(r"-\s*\n\s*(?=[^\W\d_])", text[pos:], re.UNICODE)
             if line_end:
                 pos += len(line_end.group(0))
                 continue
-        replacement = unicodedata.normalize("NFKC", replacements.get(original, original))
+        replacement = replacements.get(original, original)
+        # NFKC repairs compatibility glyphs but would silently turn superscript
+        # numbers (for example 10³) into different ordinary numeric values.
+        if unicodedata.category(original) != "No":
+            replacement = unicodedata.normalize("NFKC", replacement)
         for char in replacement:
-            if char == "-" and pos > 0 and pos + 1 < len(text) and text[pos - 1].isalnum() and text[pos + 1].isalnum():
-                continue
             if char.isspace():
                 pending_space = bool(chars)
             else:
@@ -49,8 +51,21 @@ def _normalize_with_offsets(text: str) -> tuple[str, list[int]]:
     return "".join(chars), offsets
 
 
-def _numbers(text: str) -> tuple[str, ...]:
-    return tuple(re.findall(r"(?<![\w.])-?(?:\d+(?:\.\d*)?|\.\d+)(?![\w.])", text))
+def _numeric_boundaries_ok(text: str, start: int, needle: str) -> bool:
+    """Reject a substring match that cuts through a larger numeric token."""
+    end = start + len(needle)
+    def numeric_part(char: str) -> bool:
+        return char.isnumeric() or char in ".,+-eE×^%‰"
+
+    if needle and start:
+        left = (text[start - 1], needle[0])
+        if all(numeric_part(char) for char in left) and any(char.isnumeric() for char in left):
+            return False
+    if needle and end < len(text):
+        right = (needle[-1], text[end])
+        if all(numeric_part(char) for char in right) and any(char.isnumeric() for char in right):
+            return False
+    return True
 
 
 def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_id: str | None = None) -> QuoteVerification:
@@ -64,10 +79,12 @@ def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_
         if source_id is not None and sid != str(source_id):
             continue
         normalized, offsets = _normalize_with_offsets(text)
-        start = normalized.find(needle)
-        if start >= 0 and _numbers(normalized[start:start + len(needle)]) == _numbers(needle):
-            end_index = start + len(needle) - 1
-            return QuoteVerification("supported", sid, offsets[start], offsets[end_index] + 1, "Quotation matched the cited source modulo whitespace.")
+        search_from = 0
+        while (start := normalized.find(needle, search_from)) >= 0:
+            if _numeric_boundaries_ok(normalized, start, needle):
+                end_index = start + len(needle) - 1
+                return QuoteVerification("supported", sid, offsets[start], offsets[end_index] + 1, "Quotation matched the cited source modulo whitespace.")
+            search_from = start + 1
     reason = "Quotation was not found in the specified source." if source_id else "Quotation was not found in any supplied source."
     return QuoteVerification("unanchored", None, None, None, reason)
 

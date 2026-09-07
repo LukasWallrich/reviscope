@@ -137,7 +137,7 @@ def strip_review_metadata(text: str) -> str:
     return "\n".join(lines).strip()
 
 
-def read_review(path: Path) -> str:
+def read_review(path: Path, *, allow_legacy_partial: bool = False) -> str:
     """Read prose, or render the canonical findings from a pipeline JSON output."""
     if path.suffix.lower() != ".json":
         return strip_review_metadata(path.read_text(encoding="utf-8"))
@@ -145,14 +145,31 @@ def read_review(path: Path) -> str:
     findings = data.get("findings") if isinstance(data, Mapping) else None
     if not isinstance(findings, list):
         raise ValueError(f"review JSON {path} has no findings list")
-    rendered = []
+    study_map = data.get("study_map", {}) if isinstance(data.get("study_map"), Mapping) else {}
+    rendered = ["STUDY OVERVIEW", str(study_map.get("design_summary") or "No study overview was available."),
+                "", "CLAIMED CONTRIBUTION", str(study_map.get("contribution_summary") or "No contribution summary was available."),
+                "", "STRENGTHS"]
+    strengths = study_map.get("strengths") or []
+    rendered.extend(f"- {strength}" for strength in strengths)
+    if not strengths:
+        rendered.append("No specific strengths summary was available.")
+    rendered.extend(["", "FINDINGS"])
     for row in findings:
-        if row.get("editorial_disposition") in {"rejected", "merged", "cap"}:
+        disposition = row.get("editorial_disposition")
+        if disposition != "publish" and not (allow_legacy_partial and disposition is None):
             continue
-        if row.get("status") in {"rejected", "contradicted", "merged"}:
+        if row.get("status") in {"candidate", "unverified", "rejected", "contradicted", "merged"}:
             continue
-        rendered.append(f"{row.get('severity', 'unspecified').upper()}: {row.get('claim', '')}\n"
-                        f"Reason: {row.get('rationale', '')}\nSuggested response: {row.get('remedy', '')}")
+        item = (f"{row.get('severity', 'unspecified').upper()}: {row.get('claim', '')}\n"
+                f"Reason: {row.get('rationale', '')}")
+        if row.get("status") == "unresolved":
+            item += "\nAssessment: Unresolved concern; the available evidence did not establish or contradict it."
+        if row.get("remedy_status") not in {"overreaching", "unresolved"}:
+            item += f"\nSuggested response: {row.get('remedy', '')}"
+        for source in row.get("evidence", []):
+            location = source.get("location") or (f"page {source['page']}" if source.get("page") else "location unavailable")
+            item += f"\nEvidence: “{source.get('quote', '')}” — {source.get('source_id', '')}, {location}"
+        rendered.append(item)
     return "\n\n".join(rendered)
 
 
@@ -342,7 +359,10 @@ def sample_finding_audit(
     Target priority is explicit: serious severity, then verifier disagreement or
     unresolved status. Rates from these strata must never be pooled implicitly.
     """
-    rows = [dict(f) for f in findings if include_set_aside or f.get("editorial_disposition") not in {"rejected", "merged", "cap"}]
+    rows = [dict(f) for f in findings if include_set_aside or (
+        f.get("editorial_disposition") == "publish"
+        and f.get("status") not in {"candidate", "unverified", "rejected", "contradicted", "merged"}
+    )]
     if any("finding_id" not in row for row in rows):
         raise ValueError("every finding needs finding_id")
     rng = random.Random(seed)
@@ -372,6 +392,27 @@ def audit_summary(adjudications: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         result[stratum] = {"n": len(rows), "counts": counts,
                            "supported_rate_among_resolved": counts["supported"] / denom if denom else None}
     return result
+
+
+def revalidate_verification_rows(rows: Sequence[Mapping[str, Any]], manuscript: str) -> list[dict[str, Any]]:
+    """Reapply the current deterministic quote matcher without another model call."""
+    validated = []
+    for value in rows:
+        row = dict(value)
+        model_verdict = row.get("repaired_model_verdict") or row.get("raw_model_verdict") or row.get("verdict")
+        matched_support, matched_counter, unmatched = _audit_verification_quotes(row, manuscript)
+        relevant = matched_support if model_verdict == "supported" else matched_counter if model_verdict == "contradicted" else matched_support + matched_counter
+        row.update({"matched_supporting_evidence": matched_support, "matched_counterevidence": matched_counter,
+                    "unmatched_evidence": unmatched, "verdict": model_verdict,
+                    "evidence_normalizer": "verification.verify_quote-current"})
+        if unmatched or not relevant:
+            row["verdict"] = "unresolved"
+            row["confidence"] = min(float(row.get("confidence", 0)), .5)
+            row["evidence_check"] = "unmatched_on_revalidation" if unmatched else "no_exact_verdict_relevant_quote"
+        else:
+            row["evidence_check"] = "passed_on_revalidation"
+        validated.append(row)
+    return validated
 
 
 def planted_error_recall(predictions: Sequence[Mapping[str, Any]], gold_error_ids: Iterable[str]) -> dict[str, Any]:
@@ -453,9 +494,10 @@ def _command(args: argparse.Namespace) -> int:
         if candidate_partial and not args.allow_partial:
             raise ValueError("candidate review is partial; pass --allow-partial for a plumbing smoke excluded from validation")
         paper = {"paper_id": args.paper_id, "manuscript": args.manuscript.read_text(encoding="utf-8"),
-                 "candidate_review": read_review(args.candidate), "reference_review": read_review(args.reference)}
+                 "candidate_review": read_review(args.candidate, allow_legacy_partial=candidate_partial and args.allow_partial),
+                 "reference_review": read_review(args.reference)}
         cases = build_pairwise_cases([paper], seed=args.seed, order_swap=True)
-        config = {"backend": backend.identity, "seed": args.seed, "prompt_version": "pairwise-v2",
+        config = {"backend": backend.identity, "seed": args.seed, "prompt_version": "pairwise-v6",
                   "content_sha256": hashlib.sha256(json.dumps(paper, sort_keys=True).encode()).hexdigest()}
         key = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
         if args.output.exists():
@@ -477,15 +519,29 @@ def _command(args: argparse.Namespace) -> int:
         if isinstance(findings, Mapping):
             findings = findings.get("findings", [])
         if not args.include_set_aside:
-            findings = [row for row in findings if row.get("editorial_disposition") not in {"rejected", "merged", "cap"}]
-        rows, invalid = [], []
+            findings = [row for row in findings if row.get("editorial_disposition") == "publish"
+                        and row.get("status") not in {"candidate", "unverified", "rejected", "contradicted", "merged"}]
+        config = {"backend": backend.identity, "prompt_version": "finding-verification-v2",
+                  "content_sha256": hashlib.sha256(json.dumps({"manuscript": manuscript, "findings": findings}, sort_keys=True).encode()).hexdigest()}
+        prior_rows: dict[str, dict[str, Any]] = {}
+        if args.resume_partial and args.output.exists():
+            prior = json.loads(args.output.read_text(encoding="utf-8"))
+            current_ids = {str(row.get("finding_id", row.get("id"))) for row in findings}
+            prior_rows = _validated_resume_rows(prior, config, current_ids)
+        rows, invalid = list(prior_rows.values()), []
         for finding in findings:
+            finding_id = str(finding.get("finding_id", finding.get("id")))
+            if finding_id in prior_rows:
+                continue
             try:
                 rows.append(asyncio_run(verify_finding(manuscript, finding, backend)))
             except Exception as exc:
                 invalid.append({"finding_id": finding.get("finding_id", finding.get("id")),
                                 "error_type": type(exc).__name__, "error": str(exc)})
-        _write_json({"backend": backend.identity, "verifications": rows, "invalid": invalid}, args.output)
+        order = {str(row.get("finding_id", row.get("id"))): index for index, row in enumerate(findings)}
+        rows.sort(key=lambda row: order.get(str(row.get("finding_id")), len(order)))
+        _write_json({"backend": backend.identity, "verification_config": config,
+                     "resumed_assessments": len(prior_rows), "verifications": rows, "invalid": invalid}, args.output)
         exit_code = 2 if invalid else 0
     elif args.eval_action == "fetch-corpus":
         entries = load_corpus(args.manifest)
@@ -517,6 +573,12 @@ def _command(args: argparse.Namespace) -> int:
             fetched.append(record)
         _write_json({"fetched": fetched, "errors": errors}, args.output)
         exit_code = 2 if errors else 0
+    elif args.eval_action == "revalidate":
+        payload = json.loads(args.assessments.read_text(encoding="utf-8"))
+        manuscript = args.manuscript.read_text(encoding="utf-8")
+        payload["verifications"] = revalidate_verification_rows(payload.get("verifications", []), manuscript)
+        payload["deterministic_revalidation"] = "current verification.verify_quote; no model calls"
+        _write_json(payload, args.output)
     return exit_code
 
 
@@ -537,6 +599,16 @@ def _download_public(url: str, timeout: int) -> bytes:
 def asyncio_run(awaitable: Awaitable[Any]) -> Any:
     import asyncio
     return asyncio.run(awaitable)
+
+
+def _validated_resume_rows(prior: Mapping[str, Any], config: Mapping[str, Any], current_ids: set[str]) -> dict[str, dict[str, Any]]:
+    """Accept cached verification rows only for an identical frozen evaluation."""
+    if prior.get("verification_config") != config:
+        raise ValueError("cannot resume verification: backend, prompt version, or input content changed")
+    rows = {str(row.get("finding_id")): dict(row) for row in prior.get("verifications", [])}
+    if not set(rows).issubset(current_ids):
+        raise ValueError("cannot resume verification: prior output contains finding IDs outside the current input")
+    return rows
 
 
 def _backend_from_args(args: argparse.Namespace) -> Any:
@@ -575,6 +647,10 @@ def register(subparsers: Any) -> None:
     fetch.add_argument("manifest", type=Path)
     fetch.add_argument("directory", type=Path)
     fetch.add_argument("--timeout", type=int, default=60)
+    revalidate = actions.add_parser("revalidate")
+    revalidate.add_argument("--manuscript", required=True, type=Path)
+    revalidate.add_argument("--assessments", required=True, type=Path)
+    revalidate.add_argument("--output", required=True, type=Path)
     compare = actions.add_parser("compare")
     compare.add_argument("--paper-id", required=True)
     compare.add_argument("--manuscript", required=True, type=Path)
@@ -590,12 +666,14 @@ def register(subparsers: Any) -> None:
     verify.add_argument("--findings", required=True, type=Path)
     verify.add_argument("--output", required=True, type=Path)
     verify.add_argument("--include-set-aside", action="store_true")
+    verify.add_argument("--resume-partial", action="store_true", help="retain successful rows in an existing partial output and retry missing/invalid findings")
     _add_backend_args(verify)
     for command in (check, sample, summary, recall, fetch):
         command.add_argument("--output", type=Path)
         command.set_defaults(func=_command)
     for command in (compare, verify):
         command.set_defaults(func=_command)
+    revalidate.set_defaults(func=_command)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

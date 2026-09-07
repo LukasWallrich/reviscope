@@ -19,6 +19,36 @@ def test_quote_does_not_fuzz_numeric_substitutions():
     assert result.status == "unanchored"
 
 
+def test_quote_normalization_never_collapses_numeric_ranges():
+    result = verify_quote("The range was 23.", [source("The range was 2-3.").model_dump()], "main")
+    assert result.status == "unanchored"
+
+
+def test_quote_normalization_never_dehyphenates_numeric_linebreaks():
+    result = verify_quote("The range was 23.", [source("The range was 2-\n3.").model_dump()], "main")
+    assert result.status == "unanchored"
+
+
+def test_quote_numeric_match_cannot_end_inside_longer_decimal():
+    result = verify_quote("estimate was -0.2", [source("The estimate was -0.25.").model_dump()], "main")
+    assert result.status == "unanchored"
+
+
+def test_quote_normalization_preserves_superscript_numbers():
+    result = verify_quote("value was 103", [source("The value was 10³.").model_dump()], "main")
+    assert result.status == "unanchored"
+
+
+def test_quote_numeric_match_cannot_truncate_superscript_exponent_or_grouping():
+    assert verify_quote("value was 10", [source("The value was 10³.").model_dump()], "main").status == "unanchored"
+    assert verify_quote("value was 1", [source("The value was 1e3.").model_dump()], "main").status == "unanchored"
+    assert verify_quote("value was -1", [source("The value was -1,000.").model_dump()], "main").status == "unanchored"
+
+
+def test_numeric_boundary_logic_does_not_reject_ordinary_prose():
+    assert verify_quote("values were positive", [source("The values were positive.").model_dump()], "main").status == "supported"
+
+
 def test_findings_are_retained_and_unresolved_without_claim_verifier():
     finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
                       evidence=[Evidence(source_id="main", quote="estimate was −0.25")])

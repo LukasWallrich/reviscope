@@ -21,3 +21,25 @@ All finding identifiers are stable within a run. Candidate records survive edito
 ## Evaluation separation
 
 The generation pipeline never sees benchmark labels or historical reviews. The evaluation harness receives those artifacts separately. Historical reviews only compare fairly against the manuscript version originally reviewed; the final revised publication can have already addressed the objections. Pairwise presentation is blinded and order-swapped. An independent model can help audit findings, but its assent is not a ground-truth label. Random human-audit sampling and targeted diagnostic inspection remain distinct.
+
+## Current v2 flow
+
+```mermaid
+flowchart TD
+    Input[Manuscript, supplements, preregistration] --> Extract[Extract text and record coverage]
+    Extract --> Map[Describe studies and assess material sufficiency]
+    Map --> Modules[Apply methodological and discipline modules]
+    Profile[Inherited discipline profile] --> Modules
+    Modules --> Anchor[Anchor candidate quotations to sources]
+    Anchor --> Verify[Check claims and remedies in a separate model call]
+    Profile --> Verify
+    Verify --> Editorial[Select distinct issues and reconcile overview]
+    Editorial --> Report[JSON, Markdown, HTML and audit records]
+    Report --> Eval[Separate human comparison and known-error evaluation]
+```
+
+The default is `social_psychology_v2`. The original profiles remain available for development baselines. A different model family can perform verification; the report records whether this is a same-model call, a different model in the same family, or a different model family. Quote anchoring does not establish the criticism's truth. Unsupported advice is withheld independently of the factual criticism. Failed verification cannot be overridden by editorial selection.
+
+Generation and evaluation are separate processes. The reviewer receives the supplied manuscript sources and profile, never historical reviews or benchmark error annotations. The evaluator receives final published substantive content with pipeline provenance removed for blinding; it retains the manuscript and comparator provenance in separate audit artifacts.
+
+Editorial synthesis reconciles the displayed overview, contribution summary, and strengths with supported findings. The original study map remains in `preliminary_study_map` for audit. A model-backed editorial response that omits this reconciliation fails explicitly; the report labels the unreconciled account as preliminary. This prevents an early summary from silently praising a feature challenged by the final review.

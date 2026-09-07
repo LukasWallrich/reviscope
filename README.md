@@ -2,7 +2,7 @@
 
 An independent, modular manuscript-review alpha, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
-The initial profile covers quantitative social psychology. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
+The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
 
 ## Install and run
 
@@ -19,7 +19,7 @@ uv run coarse-socpsy review paper.pdf \
 
 Luna at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
 
-Use `--verifier-backend claude --verifier-model fable` for a different verification model, or select another supported backend/model explicitly. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
+Use `--verifier-backend claude --verifier-model fable` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification is a separate call to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
 
 A deterministic installation demonstration needs no model or credentials:
 
@@ -28,7 +28,7 @@ uv run coarse-socpsy review examples/demo_manuscript.md \
   --backend fixture --out runs/offline-demo
 ```
 
-Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.md` is intentionally short and incomplete, so real models will find reporting gaps in it.
+Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.md` is intentionally short and incomplete. The default model-backed pipeline treats it as insufficient material, emits one Minor intake notice, and skips specialist review modules; it is not evidence of review quality.
 
 ## Results and resume
 
@@ -47,7 +47,7 @@ uv run coarse-socpsy review paper.md \
   --profile examples/education_profile --out runs/custom-review
 ```
 
-Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/coarse_socpsy/profiles).
+Inherit from `quantitative_social_science_v2` to reuse the revised authored methods, verification, severity, and editorial rules. These rules passed engineering and adversarial prompt review but have not established scientific validity. Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/coarse_socpsy/profiles).
 
 ## Evaluate
 
@@ -67,7 +67,7 @@ uv run coarse-socpsy evaluate compare --paper-id PAPER_ID \
 
 Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run coarse-socpsy evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.
 
-No competitive-with-human or low-false-claim performance result is established by shipping this alpha. LLM judging, known-error detection, and sampled human auditing answer different questions.
+The [small pilot evaluation](docs/PILOT_EVALUATION.md) records observed real-paper results and limitations. It does not establish general human-equivalent performance or a low false-claim rate. LLM judging, known-error detection, and sampled human auditing answer different questions.
 
 ## Development and checks
 

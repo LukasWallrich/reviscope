@@ -104,6 +104,7 @@ class ReviewRun(BaseModel):
     metadata: RunMetadata
     sources: list[SourceDocument]
     study_map: StudyMap = Field(default_factory=lambda: StudyMap(studies=[], research_question=None, design_summary=None, contribution_summary=None, strengths=[]))
+    preliminary_study_map: StudyMap | None = None
     candidates: list[Finding] = Field(default_factory=list)
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)

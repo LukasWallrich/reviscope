@@ -9,12 +9,14 @@ from .schemas import ReviewRun
 def to_markdown(run: ReviewRun) -> str:
     state = "PARTIAL REVIEW" if run.partial else "COMPLETE REVIEW"
     title = "DEMONSTRATION — NOT AN AI REVIEW" if run.metadata.backend == "fixture" else f"Peer review ({state})"
-    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", "## Study overview", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
+    editorial_complete = any(stage.name == "editorial" and stage.status in {"completed", "cached"} for stage in run.stages)
+    overview_label = "Study overview" if editorial_complete else "Preliminary manuscript account (not reconciled)"
+    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", f"## {overview_label}", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
     lines.extend(f"- {strength}" for strength in run.study_map.strengths)
     if not run.study_map.strengths:
         lines.append("No specific strengths summary was available.")
     lines.extend(["", "## Findings", ""])
-    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status != "contradicted"]
+    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "contradicted"}]
     if not kept:
         lines.append("No supported substantive findings were produced.")
     for finding in kept:

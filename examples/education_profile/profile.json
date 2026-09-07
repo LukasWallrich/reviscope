@@ -2,7 +2,7 @@
   "id": "education_local_example",
   "name": "Local education profile example",
   "status": "demonstration_unvalidated",
-  "extends": "quantitative_social_science",
+  "extends": "quantitative_social_science_v2",
   "modules": ["education_context"],
   "terminology": {"participant": "learner, educator, classroom, school, or other unit"},
   "metadata": {"validated": false, "purpose": "Example of an external profile directory"}

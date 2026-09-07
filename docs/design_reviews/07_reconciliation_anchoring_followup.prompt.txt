@@ -1,0 +1,17 @@
+You are reviewing a narrow follow-up patch for an alpha academic-review pipeline. The prior review blocked release on five concrete integrity defects. Assess only whether the supplied current code and focused tests fix those defects without introducing a material regression. Do not request the manuscript, broader research plan, or new product scope.
+
+Prior blockers to verify:
+1. Numeric line-break text `2-\n3` must never normalize to `23`, while alphabetic PDF dehyphenation such as `multi-\nlevel` may normalize to `multilevel` with correct original-source offsets.
+2. A quote ending in `-0.2` must not anchor inside source number `-0.25`; omission or alteration of a numeric sign must not anchor.
+3. Unicode superscript numerals such as `10³` must not normalize into the different ordinary number `103`.
+4. Every non-fixture backend must return a reconciled overview at editorial stage; this guard must not rely on a list of known backend names. A missing result must produce a partial run and must not publish unverified findings.
+5. Reconciliation must not erase a non-null preliminary design or contribution summary by returning null. The preliminary study map must remain retained for audit.
+
+Also inspect the actual before/after behavior: the preliminary empirical-report overview praised counterbalancing, while the reconciled overview qualifies that the same four critical details were fixed as discussed for every pair and notes timing/coding/analysis inconsistencies. Confirm that the runtime instruction supports this evidence-sensitive qualification while preserving accurate claims and forbidding invented facts.
+
+Return exactly:
+- VERDICT: SHIP or BLOCK
+- FIX CHECK: one concise line for each numbered blocker
+- MATERIAL REGRESSIONS: none, or concrete code-level defects only
+- RATIONALE: at most 180 words
+

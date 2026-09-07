@@ -40,6 +40,19 @@ def test_external_profile_can_extend_bundled_base(tmp_path):
     assert "institution and jurisdiction" in profile.verification_prompt
 
 
+def test_shipped_external_education_example_inherits_v2_calibration():
+    from pathlib import Path
+
+    example = Path(__file__).parents[1] / "examples" / "education_profile"
+    profile = load_profile_path(example)
+    assert "quantitative_social_science_v2" in profile.metadata["ancestry"]
+    assert profile.metadata["validated"] is False
+    assert "education_context" in profile.modules
+    assert "invalidates a central result" in profile.metadata["severity_guidance"]["critical"]
+    assert "acknowledge a design limitation" in profile.module_prompts["design"]
+    assert "This example is not a validated education-review rubric" in profile.module_prompts["education_context"]
+
+
 def test_v2_profile_preserves_v1_and_adds_scientific_restraint_contracts():
     original = load_profile("social_psychology")
     revised = load_profile("social_psychology_v2")

@@ -12,6 +12,8 @@ from coarse_socpsy.evaluation import (
     sample_finding_audit,
     verify_finding,
     read_review,
+    revalidate_verification_rows,
+    _validated_resume_rows,
 )
 
 
@@ -137,10 +139,13 @@ def test_verification_repairs_when_any_evidence_quote_is_unmatched():
 
 def test_read_canonical_review_hides_provenance(tmp_path):
     path = tmp_path / "review.json"
-    path.write_text(json.dumps({"metadata": {"backend": "codex"}, "findings": [
-        {"severity": "major", "claim": "Claim", "rationale": "Why", "remedy": "Fix"}]}))
+    path.write_text(json.dumps({"metadata": {"backend": "codex"}, "study_map": {
+        "design_summary": "Two-study design", "contribution_summary": "New test", "strengths": ["Clear question"]}, "findings": [
+        {"severity": "major", "claim": "Claim", "rationale": "Why", "remedy": "Fix",
+         "editorial_disposition": "publish", "status": "supported"}]}))
     text = read_review(path)
     assert "codex" not in text and "Claim" in text and "Fix" in text
+    assert "Two-study design" in text and "New test" in text and "Clear question" in text
 
     from coarse_socpsy.render import to_markdown
     from coarse_socpsy.schemas import ReviewRun, RunMetadata
@@ -180,8 +185,8 @@ def test_candidate_plus_tie_is_not_a_win():
 
 def test_audit_sample_summary_round_trip():
     samples = sample_finding_audit([
-        {"finding_id": "one", "status": "unresolved", "severity": "major"},
-        {"finding_id": "two", "status": "supported", "severity": "minor"},
+        {"finding_id": "one", "status": "unresolved", "severity": "major", "editorial_disposition": "publish"},
+        {"finding_id": "two", "status": "supported", "severity": "minor", "editorial_disposition": "publish"},
     ], random_n=1, targeted_n=1, seed=1)
     adjudicated = [{**row, "verdict": "supported"} for rows in samples.values() for row in rows]
     summary = audit_summary(adjudicated)
@@ -217,9 +222,54 @@ def test_read_review_and_audit_exclude_set_aside_by_default(tmp_path):
     explicit = sample_finding_audit(normalized, random_n=2, targeted_n=0, include_set_aside=True)
     assert len(default["random"]) == 1 and len(explicit["random"]) == 2
 
+    path.write_text(json.dumps({"findings": [
+        {**findings[0], "status": "unverified"},
+        {**findings[0], "id": "needs", "editorial_disposition": "needs_review"},
+        {**findings[0], "id": "withhold", "claim": "Visible concern", "remedy": "Bad advice",
+         "remedy_status": "overreaching"},
+    ]}))
+    filtered = read_review(path)
+    assert "Shown" not in filtered and "Bad advice" not in filtered and "Visible concern" in filtered
+    assert "Supported concern" not in filtered
+
 
 def test_legacy_null_editorial_disposition_is_read_but_explicit_reject_is_set_asError():
     # Null occurs in legacy partial runs whose editorial stage never completed;
     # the compare CLI separately requires --allow-partial and marks it ineligible.
     rows = [{"finding_id": "legacy", "editorial_disposition": None}]
-    assert sample_finding_audit(rows, random_n=1, targeted_n=0)["random"][0]["finding_id"] == "legacy"
+    assert sample_finding_audit(rows, random_n=1, targeted_n=0)["random"] == []
+
+
+def test_revalidate_uses_current_quote_matcher_without_model_call():
+    rows = [{"finding_id": "x", "raw_model_verdict": "supported", "verdict": "unresolved", "confidence": .5,
+             "supporting_evidence": ["range 2-3"], "counterevidence": [], "reasoning": "r"}]
+    result = revalidate_verification_rows(rows, "The exact range 2-3 is reported.")
+    assert result[0]["verdict"] == "supported"
+    assert result[0]["evidence_check"] == "passed_on_revalidation"
+
+
+def test_verification_resume_rejects_changed_content_with_same_finding_id():
+    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    prior = {"verification_config": {**config, "content_sha256": "old"},
+             "verifications": [{"finding_id": "same", "verdict": "supported"}]}
+    import pytest
+    with pytest.raises(ValueError, match="input content changed"):
+        _validated_resume_rows(prior, config, {"same"})
+
+
+def test_verification_resume_rejects_legacy_output_without_frozen_config():
+    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    prior = {"backend": config["backend"],
+             "verifications": [{"finding_id": "same", "verdict": "supported"}]}
+    import pytest
+    with pytest.raises(ValueError, match="input content changed"):
+        _validated_resume_rows(prior, config, {"same"})
+
+
+def test_verification_resume_rejects_rows_outside_current_finding_set():
+    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    prior = {"verification_config": config,
+             "verifications": [{"finding_id": "removed", "verdict": "supported"}]}
+    import pytest
+    with pytest.raises(ValueError, match="outside the current input"):
+        _validated_resume_rows(prior, config, {"same"})

@@ -38,7 +38,8 @@ class ScriptedBackend(Backend):
             return response_model.model_validate({"decisions": rows})
         if response_model.__name__ == "EditorialResponse":
             rows = self.editorial(instruction) if callable(self.editorial) else (self.editorial or [])
-            return response_model.model_validate({"decisions": rows})
+            return response_model.model_validate({"decisions": rows, "reconciled_overview": {
+                "design_summary": "d", "contribution_summary": "c", "strengths": []}})
         raise AssertionError(response_model)
 
 
