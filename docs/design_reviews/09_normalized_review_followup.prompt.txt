@@ -1,0 +1,1 @@
+Check only whether the revised normalization fairly preserves full peer reviews: atomic substantive assessments include criticism, strengths, endorsements, and overall evaluations; exact source spans; empty omitted fields; no manuscript; different-family completeness/faithfulness audit; deterministic duplicates/cap/span gates. State any remaining blocker concisely.

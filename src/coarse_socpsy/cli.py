@@ -8,6 +8,8 @@ from pathlib import Path
 from .backend import ClaudeBackend, CodexBackend, FixtureBackend
 from .pipeline import ReviewPipeline
 from .evaluation import register as register_evaluation
+from .normalization import register as register_normalization
+from .ranking import register as register_ranking
 from .profiles import available_profiles
 
 
@@ -34,6 +36,8 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--max-findings", type=int, default=12)
     review.set_defaults(func=_review_command)
     register_evaluation(sub)
+    register_normalization(sub)
+    register_ranking(sub)
     return p
 
 

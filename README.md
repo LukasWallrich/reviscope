@@ -1,6 +1,6 @@
 # coarse-socpsy
 
-An independent, modular manuscript-review alpha, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
+An independent, modular manuscript-review alpha for quantitative social science, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
 The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
 
@@ -67,7 +67,65 @@ uv run coarse-socpsy evaluate compare --paper-id PAPER_ID \
 
 Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run coarse-socpsy evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.
 
+### Normalize and rank review pools
+
+`normalize-review` supports a sensitivity analysis in which every source review is converted to the same assessment schema. Create an inventory, audit it with a different model family, and optionally allow one audit-guided revision:
+
+```bash
+uv run coarse-socpsy normalize-review create \
+  --review human-review.txt --output runs/eval/human.normalized.json \
+  --backend openrouter --model z-ai/glm-5.3-flash \
+  --max-issues 40 --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
+
+uv run coarse-socpsy normalize-review audit \
+  --review human-review.txt --inventory runs/eval/human.normalized.json \
+  --output runs/eval/human.audit.json \
+  --backend claude --model fable --effort high \
+  --timeout 900
+
+uv run coarse-socpsy normalize-review revise \
+  --review human-review.txt --inventory runs/eval/human.normalized.json \
+  --audit runs/eval/human.audit.json \
+  --output runs/eval/human.normalized-revised.json \
+  --backend openrouter --model z-ai/glm-5.3-flash \
+  --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
+
+uv run coarse-socpsy normalize-review audit \
+  --review human-review.txt --inventory runs/eval/human.normalized-revised.json \
+  --output runs/eval/human.final-audit.json \
+  --backend claude --model fable --effort high \
+  --timeout 900
+```
+
+The OpenRouter backend reads `OPENROUTER_API_KEY` from the environment; its reasoning level is fixed low, so `--effort` is omitted. `--max-cost-usd` is a conservative pre-call estimate enforced from configured token allowances, not a hard billing cap. The Claude audit does not use the OpenRouter token or cost controls. A revision must be audited again, as shown above; successful revision does not itself establish eligibility.
+
+An audit failure returns exit status 2. A normalized comparison is eligible only when every input passes deterministic and model-audit gates; do not rank the surviving subset. Normalization tests sensitivity to representation and does not repair weak comparators or selection bias.
+
+`rank-reviews` evaluates a bounded pool of 2–12 reviews for one manuscript in seeded, blinded orders. Its JSON manifest records `paper_id`, `manuscript`, `condition`, optional `expected_composition`, and review rows with unique `id`, `kind`, `path`, and `generator_model` for AI reviews. Run each judge family separately, then aggregate only compatible complete outputs:
+
+```bash
+uv run coarse-socpsy rank-reviews \
+  --manifest eval/corpus/review-pool.json \
+  --output runs/eval/ranks-fable.json \
+  --backend claude --model fable --effort high \
+  --presentations 3 --seed 20260907 --timeout 900
+
+uv run coarse-socpsy rank-reviews \
+  --manifest eval/corpus/review-pool.json \
+  --output runs/eval/ranks-sol.json \
+  --backend codex --model gpt-5.6-sol --effort high \
+  --presentations 3 --seed 20260907 --timeout 900
+
+uv run coarse-socpsy aggregate-review-ranks \
+  runs/eval/ranks-fable.json runs/eval/ranks-sol.json \
+  --output runs/eval/ranks-combined.json
+```
+
+Presentations and judges are repeated measurements of one paper, not additional papers. See [VALIDATION.md](docs/VALIDATION.md) for the full eligibility and interpretation rules and [OPEN_REVIEW_SAMPLING_FRAME.md](docs/OPEN_REVIEW_SAMPLING_FRAME.md) for defining a discipline-led target population separately from an archive-accessibility sample.
+
 The [small pilot evaluation](docs/PILOT_EVALUATION.md) records observed real-paper results and limitations. It does not establish general human-equivalent performance or a low false-claim rate. LLM judging, known-error detection, and sampled human auditing answer different questions.
+
+The public project name remains undecided. [Naming exploration](docs/naming/SHORTLIST.md) preserves rejected historical directions and the current development-oriented discussion; no candidate is selected or cleared.
 
 ## Development and checks
 
