@@ -96,3 +96,22 @@ Do not promote FaultFind (needlessly adversarial), Charcoal (obscure and author-
 Discussion shortlist: **Check**, **Keystone**, **Fuel**. Check is the clearest neutral action; Keystone is the strongest new metaphor for testing central claims but needs a descriptor; Fuel remains an option if the user likes the name itself, with its author-only framing removed. This shortlist is editorial curation, not the ensemble's aggregate top three. None is selected or cleared.
 
 A neutral descriptor is **evidence-grounded manuscript review**. Supporting text can say: **For authors and peer reviewers, across disciplines.** This states the function and both audiences without restricting use to developing one's own work.
+
+## Scope direction — user preference update
+
+The user likes **VeriScope** but questions whether it implies excessive objectivity, and asks whether Crosscheck.ai is actually a problem. The earlier categorical exclusion of Crosscheck was too strong: an existing common name is a practical differentiation question, not an automatic veto. This is not a legal determination.
+
+Direct HTTPS retrieval of `crosscheck.ai` failed, including a certificate-verification error; its ownership, availability and current service were not established. Separately, [Platilus uses CrossCheck AI for cross-model answer verification](https://platilus.com/), a close functional overlap, in addition to Crossref's historical usage. **VeriScope** also has existing [news-verification](https://www.veriscope.news/) and [live evidence-checking](https://devpost.com/software/veriscope) uses. These are identifiable products rather than a claim that every use of the words is blocked.
+
+The productive feature of VeriScope is the instrument metaphor: a way to examine research from several perspectives. The uncertain feature is “Veri”, which can suggest truth certification. Retain that distinction in further exploration.
+
+Current creative directions, without selection or clearance:
+
+- **CritiScope** — critical examination, including methods, evidence and interpretation; clear role for both authors and reviewers, but “critical” can sound severe.
+- **Reviscope** — review plus a closer look; easier and warmer, though it may be heard as revision-focused and needs the review descriptor.
+- **VeriScope** — the user's preferred sound remains viable if verification describes a process, not guaranteed correctness; practical collision concerns remain.
+- **Refract** — several perspectives and discipline-specific lenses; less explicit about manuscript review.
+
+Suggested common descriptor: **Evidence-informed manuscript review**. Audience line: **For authors and peer reviewers, across disciplines.** These names do not confer objectivity; reports must still distinguish observations, interpretations, and unresolved questions.
+
+A further Sol response is saved in [scope-direction-sol.md](scope-direction-sol.md). Its ReviewScope proposal was not promoted because [ReviewScope already has multiple review-analysis products](https://reviewscope.ai/). No rename was performed.
