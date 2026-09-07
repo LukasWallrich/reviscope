@@ -9,7 +9,7 @@ from .schemas import ReviewRun
 def to_markdown(run: ReviewRun) -> str:
     state = "PARTIAL REVIEW" if run.partial else "COMPLETE REVIEW"
     title = "DEMONSTRATION — NOT AN AI REVIEW" if run.metadata.backend == "fixture" else f"Peer review ({state})"
-    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`", "", "## Study overview", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
+    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", "## Study overview", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
     lines.extend(f"- {strength}" for strength in run.study_map.strengths)
     if not run.study_map.strengths:
         lines.append("No specific strengths summary was available.")
@@ -18,7 +18,11 @@ def to_markdown(run: ReviewRun) -> str:
     if not kept:
         lines.append("No supported substantive findings were produced.")
     for finding in kept:
-        lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**Verification:** `{finding.status}` — {finding.verification or 'No verification note.'}", "", finding.rationale, "", f"**Suggested response:** {finding.remedy}", ""])
+        lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**Verification:** `{finding.status}` — {finding.verification or 'No verification note.'}", "", finding.rationale, ""])
+        if finding.remedy_status in {"overreaching", "unresolved"}:
+            lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])
+        else:
+            lines.extend([f"**Suggested response:** {finding.remedy}", ""])
         for ev in finding.evidence:
             where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
             lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")

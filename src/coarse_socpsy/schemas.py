@@ -66,7 +66,9 @@ class Finding(BaseModel):
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)
     verification: str | None = None
-    editorial_disposition: Literal["publish", "merged", "rejected", "cap"] = "publish"
+    remedy_status: Literal["supported", "overreaching", "unresolved"] | None = None
+    remedy_verification: str | None = None
+    editorial_disposition: Literal["publish", "merged", "rejected", "needs_review", "cap"] = "publish"
     editorial_reason: str | None = None
     merged_into: str | None = None
 
@@ -78,6 +80,7 @@ class StageRecord(BaseModel):
     artifact: str | None = None
     error: str | None = None
     key_components: dict[str, Any] = Field(default_factory=dict)
+    duration_seconds: float | None = Field(default=None, ge=0)
 
 
 class RunMetadata(BaseModel):
@@ -89,10 +92,12 @@ class RunMetadata(BaseModel):
     verifier_backend: str | None = None
     verifier_model: str | None = None
     verifier_effort: str | None = None
+    verification_relationship: Literal["same_model_separate_call", "different_model_same_family", "different_model_family", "deterministic_fixture", "not_run"] = "not_run"
     profile: str
     profile_hash: str
     input_hash: str
     output_dir: str
+    engine_version: str = "0.2.0a1"
 
 
 class ReviewRun(BaseModel):

@@ -10,6 +10,7 @@ from coarse_socpsy.backend import Backend, FixtureBackend
 from coarse_socpsy.ingest import ingest
 from coarse_socpsy.pipeline import ReviewPipeline
 from coarse_socpsy.render import to_html
+from coarse_socpsy.render import to_markdown
 from coarse_socpsy.schemas import Evidence, Finding, Profile, StudyMap
 
 
@@ -47,7 +48,7 @@ def profile(*modules):
                    verification_prompt="verify", editorial_prompt="edit")
 
 
-def manuscript(tmp_path, text="Quoted source sentence."):
+def manuscript(tmp_path, text="Quoted source sentence. " + "Context for a complete manuscript. " * 40):
     path = tmp_path / "paper.md"
     path.write_text(text)
     return path
@@ -114,6 +115,28 @@ def test_editorial_cannot_eliminate_only_supported_duplicate_via_rejected_target
         ])
     run = ReviewPipeline(generator, profile("a", "b"), generator).run(paper, output_dir=tmp_path / "out")
     assert run.partial or any(item.editorial_disposition == "publish" for item in run.findings)
+
+
+def test_overreaching_remedy_is_withheld_without_discarding_supported_claim(tmp_path):
+    paper = manuscript(tmp_path)
+    source_id = ingest(paper).id
+    rows = _fix_source_ids([finding()], source_id)
+    def verifier(instruction):
+        decisions = support_all(instruction)
+        for decision in decisions:
+            decision.update({"remedy_status": "overreaching", "remedy_rationale": "The requested fix exceeds the evidenced concern."})
+        return decisions
+    generator = ScriptedBackend(modules={"RUN a": rows}, editorial=lambda _instruction: [
+        {"finding_id": "a:0:same", "disposition": "keep", "reason": "Valid claim", "target_id": None}
+    ])
+    run = ReviewPipeline(generator, profile("a"), ScriptedBackend(model="verifier", verify=verifier)).run(
+        paper, output_dir=tmp_path / "out")
+    item = run.findings[0]
+    assert item.status == "llm_supported" and item.editorial_disposition == "publish"
+    assert item.remedy == "fix"
+    rendered = to_markdown(run)
+    assert "Proposed response withheld" in rendered
+    assert "**Suggested response:** fix" not in rendered
 
 
 def test_cache_identity_changes_with_backend_model_effort_profile_and_input(tmp_path):

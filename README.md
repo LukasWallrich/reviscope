@@ -14,7 +14,7 @@ uv run coarse-socpsy profiles
 uv run coarse-socpsy review paper.pdf \
   --backend codex --model gpt-5.6-luna --effort max \
   --supplement appendix.pdf --preregistration registration.md \
-  --timeout 600 --out runs/paper
+  --timeout 1800 --out runs/paper
 ```
 
 Luna at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
@@ -32,7 +32,7 @@ Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.m
 
 ## Results and resume
 
-Each run writes `review.json`, `review.md`, `review.html`, and content-keyed stage artifacts. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work.
+Each run writes `review.json`, `review.md`, `review.html`, timestamped `run.log`, and content-keyed stage artifacts. The default per-call deadline is 1,800 seconds; long max-effort stages can require substantially more than ten minutes. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work.
 
 A quotation match establishes provenance; it does not establish the criticism's truth. `llm_supported` means the verifier judged the criticism supported. Unresolved findings remain labelled. Numerical checks are conservative leads with recorded applicability and coverage. Editorial rejection and merging do not erase the original finding or its evidential status.
 
@@ -62,7 +62,7 @@ uv run coarse-socpsy evaluate compare --paper-id PAPER_ID \
   --manuscript manuscript.txt --candidate runs/paper/review.json \
   --reference human-review.txt --reference-kind human_review \
   --backend claude --model fable \
-  --effort high --timeout 600 --output runs/eval/comparison.json
+  --effort high --timeout 1800 --output runs/eval/comparison.json
 ```
 
 Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run coarse-socpsy evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.

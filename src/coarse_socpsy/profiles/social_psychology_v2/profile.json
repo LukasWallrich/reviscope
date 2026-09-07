@@ -1,0 +1,14 @@
+{
+  "id": "social_psychology_v2",
+  "name": "Social and personality psychology v2",
+  "status": "alpha_v2",
+  "extends": "quantitative_social_science_v2",
+  "modules": ["social_psychology_context"],
+  "terminology": {"manipulation": "experimental manipulation", "construct": "psychological construct"},
+  "metadata": {
+    "validated": false,
+    "version": "0.2.0",
+    "scope": "Quantitative social and personality psychology",
+    "scientific_review": "Fable review 04"
+  }
+}

@@ -113,6 +113,28 @@ def test_source_grounded_verification_with_core_backend():
     assert row["verdict"] == "unresolved"
 
 
+def test_verification_repairs_when_any_evidence_quote_is_unmatched():
+    calls = 0
+    class Output:
+        def __init__(self, value): self.value = value
+        def model_dump(self): return self.value
+    class Backend:
+        def generate(self, instruction, evidence, response_model):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return Output({"verdict": "contradicted", "confidence": .9, "supporting_evidence": ["invented"],
+                               "counterevidence": ["exact source", "table ... excerpt"], "reasoning": "checked"})
+            assert "UNMATCHED EXCERPTS" in evidence and "do not use" in instruction
+            return Output({"verdict": "contradicted", "confidence": .85, "supporting_evidence": [],
+                           "counterevidence": ["exact source"], "reasoning": "reassessed"})
+    row = asyncio.run(verify_finding("The exact source is here.", {"id": "negative", "claim": "false"}, Backend()))
+    assert row["verdict"] == "contradicted"
+    assert row["raw_model_verdict"] == "contradicted" and row["repaired_model_verdict"] == "contradicted"
+    assert row["evidence_check"] == "passed_after_repair"
+    assert row["matched_counterevidence"] == ["exact source"]
+
+
 def test_read_canonical_review_hides_provenance(tmp_path):
     path = tmp_path / "review.json"
     path.write_text(json.dumps({"metadata": {"backend": "codex"}, "findings": [

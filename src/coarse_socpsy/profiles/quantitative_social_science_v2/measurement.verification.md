@@ -1,0 +1,1 @@
+Verify that the alleged measurement issue matters for a stated claim and is not already bounded by the authors. Classify a merely unreported detail as unresolved information. Assess the remedy separately and mark it overreaching when the proposed analysis is infeasible, ritual, unsupported by the design, or disproportionate to the claim.

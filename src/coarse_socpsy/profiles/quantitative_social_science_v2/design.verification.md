@@ -1,0 +1,1 @@
+Confirm the design, inferential target, and manuscript genre. Distinguish demonstrated flaws, unresolved information, and optional strengthening. For acknowledged limitations, require anchored evidence of a conclusion-scope mismatch before supporting a criticism. Independently assess whether the remedy addresses the consequence without importing requirements from another genre.

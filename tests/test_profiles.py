@@ -22,7 +22,8 @@ def test_education_is_explicitly_unvalidated_extension():
 def test_unknown_profile_fails_loudly():
     with pytest.raises(ProfileError, match="Unknown profile"):
         load_profile("clinical_phrenology")
-    assert set(available_profiles()) == {"education", "quantitative_social_science", "social_psychology"}
+    assert {"education", "quantitative_social_science", "social_psychology",
+            "quantitative_social_science_v2", "social_psychology_v2"} <= set(available_profiles())
 
 
 def test_external_profile_can_extend_bundled_base(tmp_path):
@@ -37,3 +38,22 @@ def test_external_profile_can_extend_bundled_base(tmp_path):
     assert profile.modules[-1] == "institutions"
     assert "respondent or polity" in profile.module_prompts["design"]
     assert "institution and jurisdiction" in profile.verification_prompt
+
+
+def test_v2_profile_preserves_v1_and_adds_scientific_restraint_contracts():
+    original = load_profile("social_psychology")
+    revised = load_profile("social_psychology_v2")
+    assert original.metadata["version"] == "0.1.0"
+    assert revised.metadata["version"] == "0.2.0"
+    effective = "\n".join(revised.module_prompts.values())
+    for required in (
+        "at most one consolidated reviewability finding",
+        "Do not ask authors to preregister a completed study",
+        "acknowledge a design limitation",
+        "Compare numerical claims in prose with relevant tables",
+        "Do not restate an author-acknowledged limitation",
+        "Prefer one consolidated issue",
+    ):
+        assert required in effective
+    assert "maximum finding count is a ceiling, never a target" in revised.editorial_prompt
+    assert "classify the proposed remedy" in revised.verification_prompt

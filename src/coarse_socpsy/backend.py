@@ -65,7 +65,7 @@ def _extract_json(value: str) -> Any:
 
 
 class SubprocessBackend(Backend):
-    def __init__(self, command: list[str], name: str, model: str | None = None, timeout: int = 300, effort: str | None = None):
+    def __init__(self, command: list[str], name: str, model: str | None = None, timeout: int = 1800, effort: str | None = None):
         self.command, self.name, self.model, self.timeout, self.effort = command, name, model, timeout, effort
 
     def _run(self, prompt: str, response_model: type[T]) -> str:
@@ -102,7 +102,7 @@ class SubprocessBackend(Backend):
 
 
 class CodexBackend(SubprocessBackend):
-    def __init__(self, model: str | None = None, timeout: int = 300, effort: str | None = None):
+    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None):
         cmd = ["codex", "exec", "-c", 'web_search="disabled"', "--sandbox", "read-only", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
                "--disable", "shell_tool", "--disable", "unified_exec", "--disable", "code_mode_host", "--disable", "apps", "--disable", "browser_use", "--disable", "browser_use_external",
                "--disable", "in_app_browser", "--disable", "computer_use", "--disable", "image_generation", "--disable", "skill_search", "--disable", "multi_agent", "--color", "never", "-"]
@@ -114,7 +114,7 @@ class CodexBackend(SubprocessBackend):
 
 
 class ClaudeBackend(SubprocessBackend):
-    def __init__(self, model: str | None = None, timeout: int = 300, effort: str | None = None):
+    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None):
         cmd = ["claude", "-p", "--output-format", "text", "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--permission-prompts", "none"]
         if model:
             cmd.extend(["--model", model])
@@ -137,6 +137,8 @@ class FixtureBackend(Backend):
         if "findings" in fields:
             import re
 
+            if not any(term in instruction.lower() for term in ("design", "sampling", "participant")):
+                return response_model.model_validate({"findings": []})
             quote = "Participants were recruited from the university pool."
             injection_line = re.search(r"(<script\b[^>]*>.*?</script>\s*Participants were recruited from the university pool\.)", evidence, re.I | re.S)
             if injection_line:

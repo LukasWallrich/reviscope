@@ -1,0 +1,19 @@
+Review the effective `quantitative_social_science_v2` and `social_psychology_v2` prompts together with the supplied pipeline, schema, verifier, and renderer code as a final contract-consistency audit before a real run.
+
+Check specifically:
+- generation asks for few, genre-appropriate substantive issues and handles incomplete material without rubric inflation;
+- absence is not treated as demonstrated failure;
+- acknowledged limitations require a conclusion-scope mismatch;
+- retrospective preregistration and unjustified analyses are prohibited;
+- numerical prose/table consistency is generic and does not encode the known test-paper answer;
+- claim and remedy verification remain separate;
+- a supported claim with an overreaching remedy remains publishable while the renderer suppresses that remedy;
+- editorial instructions request only operations the typed schema and engine can perform, including immutable substantive text and severity;
+- semantic merging cannot target rejected/lower-support findings or silently erase candidates;
+- provenance accurately distinguishes same-model separate calls and different model families.
+
+Identify concrete contradictions or paths that violate those contracts. Rank only material issues. Do not propose a large table engine or add paper-specific benchmark facts. Return a concise ship/block verdict and exact fixes.
+
+Invocation: `claude -p --model fable --effort high --tools "" --strict-mcp-config --safe-mode --no-session-persistence`.
+
+Inputs supplied verbatim after this instruction: all generation, verification, editorial, and manifest files in the two v2 profile directories; flattened effective profile JSON; `schemas.py`, `verification.py`, the verification/editorial portions of `pipeline.py`, and `render.py`.

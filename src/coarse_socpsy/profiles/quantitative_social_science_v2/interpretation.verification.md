@@ -1,0 +1,1 @@
+Verify the challenged claim against the actual result and any nearby qualification. Support an acknowledged-limitation criticism only with evidence that a conclusion exceeds it. Separately classify the remedy as supported, overreaching, or unresolved; prefer a scoped wording correction when it fully resolves the problem.

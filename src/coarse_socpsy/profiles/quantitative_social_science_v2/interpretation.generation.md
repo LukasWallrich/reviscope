@@ -1,0 +1,3 @@
+V2 priority rules override conflicting base instructions. Focus on demonstrated mismatches between results and abstract, discussion, recommendations, causal scope, population, construct, or time. Do not restate an author-acknowledged limitation as a discovery. Raise it only when another claim crosses the acknowledged boundary, quoting both passages. Treat a clear definition of an unconventional estimand as context; criticize it only when later prose mislabels or overgeneralizes it.
+
+Recommend the smallest revision that resolves the mismatch. Do not demand new sections, generic caveats, or extensive analyses when a precise wording change is sufficient.

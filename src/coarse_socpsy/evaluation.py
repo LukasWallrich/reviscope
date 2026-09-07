@@ -206,25 +206,60 @@ async def verify_finding(
     instruction = (
         "Assess the criticism against the manuscript. Seek evidence that supports and defeats it; "
         "do not merely confirm the rationale. Return verdict supported, contradicted, or unresolved, "
-        "confidence, short verbatim supporting_evidence and counterevidence lists, and reasoning."
+        "confidence, short verbatim supporting_evidence and counterevidence lists, and reasoning. "
+        "Every evidence item must be one exact contiguous excerpt from the manuscript: never use "
+        "ellipses, bracketed omissions, paraphrases, or text stitched from separate table cells."
     )
     criticism = {key: finding.get(key) for key in ("finding_id", "id", "claim", "evidence", "study_id") if finding.get(key) is not None}
     evidence = f"MANUSCRIPT\n{manuscript}\n\nCRITICISM\n{json.dumps(criticism, ensure_ascii=False)}"
-    if hasattr(backend, "generate"):
-        raw = backend.generate(instruction, evidence, FindingVerificationOutput).model_dump()
-    else:
-        raw = dict(await _call_backend(backend, f"{instruction}\n\n{evidence}"))
+    raw = await _generate_verification(backend, instruction, evidence)
+    raw_model_verdict = raw.get("verdict")
     if raw.get("verdict") not in {"supported", "contradicted", "unresolved"}:
         raise ValueError("verification verdict must be supported, contradicted, or unresolved")
-    cited = list(raw.get("supporting_evidence", [])) + list(raw.get("counterevidence", []))
-    missing = [quote for quote in cited if _normalize(quote) not in _normalize(manuscript)]
-    if missing or (raw.get("verdict") == "supported" and not raw.get("supporting_evidence")):
+    matched_support, matched_counter, unmatched = _audit_verification_quotes(raw, manuscript)
+    repaired_model_verdict = None
+    if unmatched:
+        repair_instruction = (
+            "Reassess the criticism because at least one evidence excerpt from the prior assessment "
+            "could not be matched. Return a complete corrected assessment. Quote only exact contiguous "
+            "manuscript spans, with separate list items for separate table cells or passages; do not use "
+            "ellipses or paraphrase. Do not merely delete contrary evidence to preserve the prior verdict."
+        )
+        repair_evidence = (f"{evidence}\n\nPRIOR ASSESSMENT\n{json.dumps(raw, ensure_ascii=False)}"
+                           f"\n\nUNMATCHED EXCERPTS\n{json.dumps(unmatched, ensure_ascii=False)}")
+        raw = await _generate_verification(backend, repair_instruction, repair_evidence)
+        repaired_model_verdict = raw.get("verdict")
+        if repaired_model_verdict not in {"supported", "contradicted", "unresolved"}:
+            raise ValueError("repaired verification verdict must be supported, contradicted, or unresolved")
+        matched_support, matched_counter, unmatched = _audit_verification_quotes(raw, manuscript)
+    relevant_matches = matched_support if raw.get("verdict") == "supported" else matched_counter if raw.get("verdict") == "contradicted" else matched_support + matched_counter
+    raw["matched_supporting_evidence"] = matched_support
+    raw["matched_counterevidence"] = matched_counter
+    raw["unmatched_evidence"] = unmatched
+    if unmatched or not relevant_matches:
         raw["verdict"] = "unresolved"
         raw["confidence"] = min(float(raw.get("confidence", 0)), .5)
-        raw["evidence_check"] = "failed" if missing else "no_supporting_quote"
+        raw["evidence_check"] = "unmatched_after_repair" if unmatched else "no_exact_verdict_relevant_quote"
     else:
-        raw["evidence_check"] = "passed"
-    return {"finding_id": finding.get("finding_id", finding.get("id")), "assessment_method": "llm_assessed", **raw}
+        raw["evidence_check"] = "passed_after_repair" if repaired_model_verdict is not None else "passed"
+    return {"finding_id": finding.get("finding_id", finding.get("id")), "assessment_method": "llm_assessed",
+            "raw_model_verdict": raw_model_verdict, "repaired_model_verdict": repaired_model_verdict, **raw}
+
+
+async def _generate_verification(backend: JudgeBackend | Any, instruction: str, evidence: str) -> dict[str, Any]:
+    if hasattr(backend, "generate"):
+        return backend.generate(instruction, evidence, FindingVerificationOutput).model_dump()
+    return dict(await _call_backend(backend, f"{instruction}\n\n{evidence}"))
+
+
+def _audit_verification_quotes(raw: Mapping[str, Any], manuscript: str) -> tuple[list[str], list[str], list[str]]:
+    from .verification import verify_quote
+    support = list(raw.get("supporting_evidence", []))
+    counter = list(raw.get("counterevidence", []))
+    matched_support = [quote for quote in support if verify_quote(quote, [manuscript]).status == "supported"]
+    matched_counter = [quote for quote in counter if verify_quote(quote, [manuscript]).status == "supported"]
+    unmatched = [quote for quote in support + counter if verify_quote(quote, [manuscript]).status != "supported"]
+    return matched_support, matched_counter, unmatched
 
 
 def _normalize(text: str) -> str:
@@ -406,6 +441,10 @@ def _command(args: argparse.Namespace) -> int:
     elif args.eval_action == "planted-recall":
         predictions = json.loads(args.predictions.read_text(encoding="utf-8"))
         errors = import_dawes_errors(args.gold)
+        if args.paper is not None:
+            errors = [row for row in errors if str(row.get("paper")) == str(args.paper)]
+            if not errors:
+                raise ValueError(f"No Dawes errors found for paper {args.paper}")
         _write_json(planted_error_recall(predictions, [x["error_id"] for x in errors]), args.output)
     elif args.eval_action == "compare":
         backend = _backend_from_args(args)
@@ -531,6 +570,7 @@ def register(subparsers: Any) -> None:
     recall = actions.add_parser("planted-recall")
     recall.add_argument("predictions", type=Path)
     recall.add_argument("gold", type=Path)
+    recall.add_argument("--paper", help="limit Dawes CSV ground truth to one paper number")
     fetch = actions.add_parser("fetch-corpus")
     fetch.add_argument("manifest", type=Path)
     fetch.add_argument("directory", type=Path)

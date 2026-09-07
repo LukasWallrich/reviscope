@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 from .backend import ClaudeBackend, CodexBackend, FixtureBackend
 from .pipeline import ReviewPipeline
@@ -18,13 +20,13 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("manuscript")
     review.add_argument("--supplement", action="append", default=[])
     review.add_argument("--preregistration", action="append", default=[])
-    review.add_argument("--profile", default="social_psychology")
+    review.add_argument("--profile", default="social_psychology_v2")
     review.add_argument("--backend", choices=["codex", "claude", "fixture"], default="codex")
     review.add_argument("--model")
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="max")
     review.add_argument("--verifier-backend", choices=["codex", "claude"], help="Optional independent verification backend")
     review.add_argument("--verifier-model")
-    review.add_argument("--timeout", type=int, default=300)
+    review.add_argument("--timeout", type=int, default=1800, help="per-model-call timeout in seconds (default: 1800)")
     review.add_argument("--out", default="review-run")
     review.add_argument("--quiet", action="store_true")
     review.add_argument("--max-findings", type=int, default=12)
@@ -52,7 +54,15 @@ def _review_command(args: argparse.Namespace) -> int:
     elif args.verifier_backend == "codex":
         verifier = CodexBackend(args.verifier_model or "gpt-5.6-luna", args.timeout, args.effort)
     try:
-        progress = (lambda message: None) if args.quiet else (lambda message: print(message, file=sys.stderr, flush=True))
+        output_dir = Path(args.out).resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        log_path = output_dir / "run.log"
+        def progress(message: str) -> None:
+            line = f"{datetime.now(timezone.utc).isoformat()} {message}"
+            with log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+            if not args.quiet:
+                print(message, file=sys.stderr, flush=True)
         run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress, max_findings=args.max_findings).run(args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
