@@ -1,0 +1,41 @@
+# Open-review sampling frame
+
+Checked 7 September 2026. The detailed evidence audits are [psychology and adjacent social science](research/journals-psychology.md), [Nature Portfolio and Royal Society](research/journals-nature-royal-society.md), and [broad and health-adjacent venues](research/journals-broad-and-health.md). The machine-readable inventory is [open-review-journals.json](research/open-review-journals.json).
+
+## What can be sampled
+
+There are three distinct populations:
+
+1. **Conventional accepted papers with public reports and a public reviewed manuscript.** PeerJ (policy guarantees manuscript files for the applicable cohort), The BMJ/BMJ Open (previous manuscript versions are part of the stated history, subject to exceptions), and the inspected South African Journal of Science case are the clearest prepublication sources. Article-level checks remain mandatory.
+2. **Conventional accepted papers with public reports but no guaranteed original submission.** Nature Portfolio titles, PLOS, Wiley transparent-review titles, BMC after March 2015, Collabra and Royal Society titles supply review text. They enter a version-matched evaluation only when a separately archived manuscript can be tied to the first round.
+3. **Alternative review models.** F1000Research, Open Research Europe and current eLife expose versioned papers and reviews, but review occurs after publication or without conventional accept/reject decisions. Analyse these as a separate stratum.
+
+This frame estimates performance against reviews of **accepted, and often author-opted-in, papers**. It does not estimate performance across all submissions or rejected papers. Mandatory and optional policies must be separate strata; optional publication creates selection on authors' willingness to disclose reviews.
+
+## Sampling procedure
+
+- Freeze the policy cohort before inspecting review quality: journal, article type, submission date, transparent-review status and any opt-in rule.
+- Enumerate eligible records reproducibly from journal indexes or APIs. Draw a random accepted-paper sample within each stratum.
+- Retain every substantive report for a sampled paper, including short or positive reports. Do not exclude a report after observing its agreement with an AI review.
+- Require a hash of the manuscript and each report. Classify manuscript identity as `exact` only for an author- or journal-deposited file explicitly tied to the reviewed round, or a byte/text match against a known submission. Put externally matched preprints in a `high_confidence_proxy` sensitivity stratum even when title, authors, study count, tables, values and reviewer quotations agree. A timestamp or label such as `R0`, `Version 0` or `Original manuscript` does not prove exact identity unless an actual tied manuscript file is present.
+- Keep human reports hidden during AI generation and verification. Normalize only administrative boilerplate; preserve positive assessments and substantive headings.
+- Record each model's declared knowledge cutoff and the paper's first-public date. Prefer papers and reports first made public after that cutoff where feasible; otherwise run and retain preregistered memorization probes against both the manuscript and each public human report, and report contamination risk. Disable web search, browser, retrieval, MCP and host-file tools during every generation and verification pass, and persist backend configuration as provenance.
+- Treat public historical papers and reviews as a workflow and relative-comparison benchmark: disabling retrieval cannot remove possible pretraining memory. For stronger validity, add a prospective blinded cohort of newly submitted manuscripts and later human reports obtained with author or journal permission, keeping those reports unavailable to the model until evaluation.
+- Report results per paper and reviewer as well as pooled. Cluster uncertainty by paper.
+- Construct a separately labelled **challenge panel** of detailed, methodologically demanding reviews. It tests difficult-case performance and must not be reported as population prevalence or mixed invisibly into the random sample.
+
+## Admission states
+
+`policy_guarantee` means an official current workflow promises the relevant artifact for the defined cohort. `verified_example` means a specific article bundle was directly inspected. `indexed_only` means a link or search record exists but the artifact was not retrieved. `access_blocked` records a retrieval failure, not absence. `unlocated` means this bounded search found no official public-review workflow; it is never a journal-wide proof of absence.
+
+The most defensible **artifact-feasibility sample** is multi-journal: PeerJ's mandatory cohort, BMJ/BMJ Open cases with actual previous versions, and article-verified cases from other journals. It tests acquisition and scoring machinery, not performance in the target social-psychology population. Nature Portfolio and Royal Society reports add prestige and disciplinary breadth only after external manuscript matching. A psychology-focused feasibility stratum may add Meta-Psychology exact pairs while clearly reporting its niche status. F1000Research, Open Research Europe and eLife belong in sensitivity analyses of alternative review models.
+
+Define the alpha's target population by substantive field and design before selecting journals: completed **quantitative** empirical social and personality psychology (experiments, surveys and quantitative measurement studies), with a declared publication window such as 2023–2025. Then enumerate journal cohorts in that population and choose sample sizes after recording eligible counts. Prioritize field-relevant mainstream titles such as Nature Human Behaviour, Communications Psychology and participating personality journals; obtaining exact reviewed files may require a prospective author or journal partnership. No outreach has been authorized or attempted. Nature Portfolio/Royal Society `high_confidence_proxy` cases belong in a sensitivity analysis, never in the exact-pair estimate. Add Meta-Psychology exact pairs as a separately reported discipline-focused stratum. Fix any challenge panel before AI scoring and report it separately. Qualitative and mixed-method records such as the inspected South African Journal of Science case demonstrate archive availability, but belong to future discipline/method profiles rather than validation of the current quantitative alpha.
+
+Perform topic, article-type and design eligibility screening from a frozen metadata export containing no review links or review text. Record screeners' decisions before opening article pages or retrieving bundles. Only then acquire and validate artifacts for included records; this prevents visible review quality from influencing inclusion.
+
+PeerJ, The BMJ and BMJ Open can support a separate **artifact-feasibility sample** because their workflows make pairing tractable. That convenience sample is health/access weighted and is not the recommended validation population for ordinary social psychology. Do not set arbitrary equal-journal quotas until topic-eligible counts and review-publication rates have been enumerated.
+
+The already inspected PeerJ 236 case is retained as a retrospective workflow diagnostic, outside any future preregistered population estimate. Its demotion followed inspection of the human comparator quality and therefore cannot be used as a neutral inclusion decision; its AI outputs and all four Version 0.1 human reports remain reportable. A future sample must freeze eligibility before either human-review quality or AI agreement is examined.
+
+Before generation, derive a manuscript-only file and verify that it contains no referee report, decision letter, author response, editorial assessment, or review metadata. This matters for platforms whose downloadable PDF can append reviews (for example, reviewed-preprint/postpublication platforms) and for combined history PDFs such as the inspected South African Journal of Science example. Preserve the untouched source hash, derived manuscript hash, extraction page bounds and an automated plus manual contamination check. Never pass a combined history file to the review pipeline.
