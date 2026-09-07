@@ -67,3 +67,32 @@ The follow-up ensemble shifted from scholarly annotation and grain metaphors tow
 - **Check** states the evidence-verification function most clearly. It is narrower and cooler than the broader development promise, and as a common word would be difficult to distinguish or clear.
 
 These are descriptions of a direction, not finalists. No name has been selected or cleared, and no repository, package, command, profile, or public report has been renamed. The source outputs are preserved in `development-brief.md` and `development-{agy,deepseek,glm,sol}.md`.
+
+## Superseded author-focused framing — 7 September 2026
+
+**Fuel** was provisionally recommended. The user rejected the following framing as too author-focused and requested a fresh non-Claude ensemble for both author and peer-reviewer use. Suggested descriptor: **constructive review for research in progress**. It expresses the intended outcome—helping authors develop their work—and accommodates discipline-specific modules without putting psychology or social science in the product name. **Check** could be a plain name for the verification component, rather than the whole product.
+
+This is a preference among the development directions already discussed, not a new ensemble result or a name-clearance claim. No rename has been performed.
+
+## Dual-use ensemble — 7 September 2026
+
+The revised brief gives equal weight to authors assessing their own manuscripts and peer reviewers assessing other people's work. Claude was excluded. No Gemini 3.1 Pro was used.
+
+| Member | First | Second | Third |
+|---|---|---|---|
+| agy / Gemini 3.8 Flash (High) | Crosscheck | Keystone | Fulcrum |
+| DeepSeek V4 Flash | Crosscheck | FaultFind | VeriScope |
+| GLM 5.3 Flash | Crosscheck | Charcoal | Benchtest |
+| Sol | Claimwise | PeerScope | Reviewcraft |
+
+Raw complete responses: [agy](dual-use-agy.md), [DeepSeek](dual-use-deepseek.md), [GLM](dual-use-glm.md), [Sol](dual-use-sol.md). The initial DeepSeek response hit its output limit and was excluded; one retry completed. Paid API usage, including the truncated attempt: $0.001079359. The CLI/subagent requests do not contribute API charges to this figure.
+
+### Curation
+
+The convergence on Crosscheck is semantic evidence, not a suitable naming decision: [Crossref previously called its manuscript similarity service CrossCheck](https://www.crossref.org/blog/important-changes-to-similarity-check/). Fulcrum is already a [scholarly publishing platform](https://www.fulcrum.org/), while [ClaimWise](https://www.claimwise.ai/) is an existing AI insurance product. These are practical collision findings, not legal clearance.
+
+Do not promote FaultFind (needlessly adversarial), Charcoal (obscure and author-drafting tilted), or the recycled Grain suggestion. The ensembles still produce many strained compounds, so there is no compelling winner by voting alone.
+
+Discussion shortlist: **Check**, **Keystone**, **Fuel**. Check is the clearest neutral action; Keystone is the strongest new metaphor for testing central claims but needs a descriptor; Fuel remains an option if the user likes the name itself, with its author-only framing removed. This shortlist is editorial curation, not the ensemble's aggregate top three. None is selected or cleared.
+
+A neutral descriptor is **evidence-grounded manuscript review**. Supporting text can say: **For authors and peer reviewers, across disciplines.** This states the function and both audiences without restricting use to developing one's own work.
