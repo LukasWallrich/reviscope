@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "paper_id": "peerj-nettle-236-v0.1",
+  "condition": "original_format",
+  "manuscript": "eval/corpus/cache/peerj-nettle-236/manuscript/peerj-236-v0.1-original.pdf",
+  "expected_composition": {"human": 4, "ai": 3},
+  "reviews": [
+    {"id": "human-1", "kind": "human", "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-1.txt"},
+    {"id": "human-2", "kind": "human", "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-2.txt"},
+    {"id": "human-3", "kind": "human", "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-3.txt"},
+    {"id": "human-4", "kind": "human", "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-4.txt"},
+    {"id": "ai-luna", "kind": "ai", "generator_model": "gpt-5.6-luna", "path": "runs/multi-reviewer-peerj236/luna/review.json"},
+    {"id": "ai-sol", "kind": "ai", "generator_model": "gpt-5.6-sol", "path": "runs/multi-reviewer-peerj236/sol/review.json"},
+    {"id": "ai-opus", "kind": "ai", "generator_model": "opus", "path": "runs/multi-reviewer-peerj236/opus/review.json"}
+  ]
+}

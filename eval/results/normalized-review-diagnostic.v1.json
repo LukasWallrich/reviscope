@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "status": "development diagnostic complete; normalized comparison ineligible",
+  "normalizer": {
+    "requested_model": "z-ai/glm-5.3-flash",
+    "prompt_version": "review-normalization-v2",
+    "max_assessments": 40,
+    "same_schema_for_all": true
+  },
+  "auditor": {
+    "model": "claude:fable",
+    "effort": "high",
+    "prompt_version": "review-normalization-audit-v3",
+    "different_family": true
+  },
+  "protocol": {
+    "maximum_audit_guided_revisions": 1,
+    "eligibility": "complete, faithful, source-anchored, nonduplicate, below cap"
+  },
+  "reviews": [
+    {
+      "review_id": "zcurve2-alpha-v2",
+      "initial_inventory": {
+        "assessment_count": 13,
+        "artifact": "runs/eval/normalized/zcurve2-v2-candidate.glm-v2.json",
+        "sha256": "9a42c1cf22be099e3d56ff063a4d8dc80ee1f72f710d51bc0a058ba38101b190"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": true,
+        "complete": false,
+        "artifact": "runs/eval/normalized/zcurve2-v2-candidate.glm-v2.audit-fable.json",
+        "sha256": "e6b7bf29d798ae248201aea94843793c75cc258ff8ad95eabaafe9709c7d4a18",
+        "prompt_version": "review-normalization-audit-v2"
+      },
+      "final_inventory": {
+        "assessment_count": 15,
+        "artifact": "runs/eval/normalized/zcurve2-v2-candidate.glm-v2-revised.json",
+        "sha256": "ba5d8b1e4fb86bb7540d7b31c66c38a217abac682d264aafc05d4da9a0e3246b",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "eligible": false,
+        "faithful": true,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 0,
+        "duplicate_count": 2,
+        "artifact": "runs/eval/normalized/zcurve2-v2-candidate.final-audit-fable.json",
+        "sha256": "95dd7290dfef0fdae73103c542f56385ccbf2c1b3af42deb36adf799da03cbe5",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "a07db946e4bc63d821d703ae64a363c635060cff0ea0f310b53971b32f2a9521",
+      "source_artifact_sha256": "227e8853ce845af27fdbff66ea3e612e8d8fa34ff77aadc588067f218fc9d775"
+    },
+    {
+      "review_id": "zcurve2-human",
+      "initial_inventory": {
+        "assessment_count": 26,
+        "artifact": "runs/eval/normalized/zcurve2-human.glm-v2.json",
+        "sha256": "68c89c24c2610ae3a1e50463e4dd439d65b641187c3a9d0c462d337a3cac192a"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": true,
+        "complete": false,
+        "artifact": "runs/eval/normalized/zcurve2-human.glm-v2.audit-fable.json",
+        "sha256": "a9c372ae96770c7e8aec55cdbc2cd07d0424235d22a926bf23da0c42dd5bc35e",
+        "prompt_version": "review-normalization-audit-v2"
+      },
+      "final_inventory": {
+        "assessment_count": 25,
+        "artifact": "runs/eval/normalized/zcurve2-human.glm-v2-revised.json",
+        "sha256": "7daab12f0d96663fb2bba198289560ce30016f72d37b4c2e2db5ad871fdff145",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "eligible": false,
+        "faithful": false,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 4,
+        "duplicate_count": 0,
+        "artifact": "runs/eval/normalized/zcurve2-human.final-audit-fable.json",
+        "sha256": "6b039f3308cf01f4a29e1b4641216ce034d1882bbd201f2c1916fa9e5999fcd9",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "ac8507f9f3744425abc475ce8fbca612c3b489888331ee76c8bb7be9e0d99dde",
+      "source_artifact_sha256": "ba7a8967767f2a9aba1c555b4e6377741808fab45c2b17ce0f0f0da87afa1535"
+    },
+    {
+      "review_id": "peerj236-human-1",
+      "initial_inventory": {
+        "assessment_count": 7,
+        "artifact": "runs/eval/normalized/peerj236-human-1.glm-v2.json",
+        "sha256": "5bd86104893c426118d5a11d73ebd24da71640d6e7143579af90b774abd76bcf"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": false,
+        "complete": true,
+        "artifact": "runs/eval/normalized/peerj236-human-1.final-audit-fable.json",
+        "sha256": "2149b5732283965a3e67f8fbd8dfad263d01cb72a9e723380698b1f326a00c15",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "final_inventory": {
+        "assessment_count": 7,
+        "artifact": "runs/eval/normalized/peerj236-human-1.glm-v2-revised.json",
+        "sha256": "6490637bb7ed01b5afc98c9545f5b4765477ac4a3b955b5778cdf6aa53d18817",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 0,
+        "duplicate_count": 0,
+        "artifact": "runs/eval/normalized/peerj236-human-1.revised-audit-fable.json",
+        "sha256": "c9b61e1ec10b071f2281f94070ff57df605b07e75c390b9875a998febfb5f95a",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "020e0f06fadfe7129b2528dae220fa7cb52ccf0fa409283359fbf96c6d708f44",
+      "source_artifact_sha256": "2e19b9c6de6dfb43c6da26b447aba8557f821b0f07f221e68841ad4596bd0269"
+    },
+    {
+      "review_id": "peerj236-human-2",
+      "initial_inventory": {
+        "assessment_count": 9,
+        "artifact": "runs/eval/normalized/peerj236-human-2.glm-v2.json",
+        "sha256": "8f26705428734085bcc5ee43f771fb2bdc5dc3e64a9f697edf352eaa5e5dc796"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": false,
+        "complete": true,
+        "artifact": "runs/eval/normalized/peerj236-human-2.glm-v2.audit-fable.json",
+        "sha256": "4ad64d219f4df7d295f27369fb2869d53fa1c0ba3300e5241b5c8937e72342a6",
+        "prompt_version": "review-normalization-audit-v2"
+      },
+      "final_inventory": {
+        "assessment_count": 9,
+        "artifact": "runs/eval/normalized/peerj236-human-2.glm-v2-revised.json",
+        "sha256": "c2c02db10de1187bea3627273890496325f9c3fc3bbd0e2942c99b9bf96286ef",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "eligible": false,
+        "faithful": false,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 1,
+        "duplicate_count": 0,
+        "artifact": "runs/eval/normalized/peerj236-human-2.final-audit-fable.json",
+        "sha256": "00966e31d64e2f4dc5f55b7aa42466ca07bfe585b300b67fe704fb97e5c9d096",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "9aee93325c93d19d474b627095de9790e5134c9b2f245372e8b591307b48747c",
+      "source_artifact_sha256": "3a95b8322793f3516fb51e48ae8686e61ba9876e958814e541a8b39e70702471"
+    },
+    {
+      "review_id": "peerj236-human-3",
+      "initial_inventory": {
+        "assessment_count": 15,
+        "artifact": "runs/eval/normalized/peerj236-human-3.glm-v2.json",
+        "sha256": "d64f58b4ce10c5d5d74937d89a7b21d93c2db45f59ca9bd9ee227afd444d7465"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": false,
+        "complete": true,
+        "artifact": "runs/eval/normalized/peerj236-human-3.final-audit-fable.json",
+        "sha256": "69d9889d49c2226fff72231a0df9d61c932f33d95900cedf917dfc6d69ec015d",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "final_inventory": {
+        "assessment_count": 15,
+        "artifact": "runs/eval/normalized/peerj236-human-3.glm-v2-revised.json",
+        "sha256": "619b4b201ece62b3a6b8994196c8338b45b2d5cfa0eda8bfe407465d1a4c4bc8",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 0,
+        "duplicate_count": 0,
+        "artifact": "runs/eval/normalized/peerj236-human-3.revised-audit-fable.json",
+        "sha256": "c53258c925329d8f4fe2cdbbd40680108e31ddcaa338fc2dba0a41ee32b4839a",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "4adbe5b42526abb7de69adff8636a7e7bba8a4ab8db5956bee6f4ef18ab71159",
+      "source_artifact_sha256": "1d686fbec3890a658669342a5bf1e6a86f6eb8c269fd557a707254eb1cd4fdc4"
+    },
+    {
+      "review_id": "peerj236-human-4",
+      "initial_inventory": {
+        "assessment_count": 8,
+        "artifact": "runs/eval/normalized/peerj236-human-4.glm-v2.json",
+        "sha256": "437d16d78b536e9759416607682d5073fdc1e5425478f883efe9610994b46683"
+      },
+      "initial_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "artifact": "runs/eval/normalized/peerj236-human-4.final-audit-fable.json",
+        "sha256": "3f398e1f1ccf642babc15e8579b8c731d31cd34be47aedcba6698476e7d6e9a8",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "final_inventory": {
+        "assessment_count": 8,
+        "artifact": "runs/eval/normalized/peerj236-human-4.glm-v2.json",
+        "sha256": "437d16d78b536e9759416607682d5073fdc1e5425478f883efe9610994b46683",
+        "revision_count": 0
+      },
+      "final_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "missing_count": 0,
+        "unsupported_count": 0,
+        "duplicate_count": 0,
+        "artifact": "runs/eval/normalized/peerj236-human-4.final-audit-fable.json",
+        "sha256": "3f398e1f1ccf642babc15e8579b8c731d31cd34be47aedcba6698476e7d6e9a8",
+        "prompt_version": "review-normalization-audit-v3"
+      },
+      "normalization_input_sha256": "6e621b146e5f48fb161650378e74cb3c04b3f25ce830223fb1ecd18db110d228",
+      "source_artifact_sha256": "922adb5f4257e5b7171a8081d33caf386a46dbd882d60c33e7120317c0935a8b"
+    },
+    {
+      "review_id": "peerj236-ai-luna",
+      "normalization_input_sha256": "746bc94c16c5d6dee2937e11fea0c616e43a26ab9d5977c792aed5c52628ecee",
+      "source_artifact_sha256": "b175d2bd6b9b8546c2cb26a25090352213fec1dbb512c94e85c8d9c321bc523f",
+      "initial_inventory": {
+        "assessment_count": 14,
+        "artifact": "runs/eval/normalized/peerj236-ai-luna.glm-v2.json",
+        "sha256": "b0ffff2edd8f5b59e1cef9383f6c62f0abb1233fa02b25cc586ea95d6d9650e2"
+      },
+      "initial_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "prompt_version": "review-normalization-audit-v3",
+        "artifact": "runs/eval/normalized/peerj236-ai-luna.audit-fable.json",
+        "sha256": "d6233da0481440ecb1deef8472d5558d5ba58085f3766507f118e06dc94d53f9"
+      },
+      "final_inventory": {
+        "assessment_count": 14,
+        "artifact": "runs/eval/normalized/peerj236-ai-luna.glm-v2.json",
+        "sha256": "b0ffff2edd8f5b59e1cef9383f6c62f0abb1233fa02b25cc586ea95d6d9650e2",
+        "revision_count": 0
+      },
+      "final_audit": {
+        "eligible": true,
+        "faithful": true,
+        "complete": true,
+        "prompt_version": "review-normalization-audit-v3",
+        "artifact": "runs/eval/normalized/peerj236-ai-luna.audit-fable.json",
+        "sha256": "d6233da0481440ecb1deef8472d5558d5ba58085f3766507f118e06dc94d53f9"
+      }
+    },
+    {
+      "review_id": "peerj236-ai-sol",
+      "normalization_input_sha256": "bfc149786d489a4d213a92b8eda98e78fc296fa85f7c68aca9bb76ee15af8751",
+      "source_artifact_sha256": "439dac1bead63825558df64ede8ffda8e003234425bcdef3a0412b9edff3156d",
+      "initial_inventory": {
+        "assessment_count": 18,
+        "artifact": "runs/eval/normalized/peerj236-ai-sol.glm-v2.json",
+        "sha256": "81d3e2a252b56666049016d8362cf3717c5642d66d0befa8fff35680153b7eab"
+      },
+      "initial_audit": {
+        "eligible": false,
+        "faithful": true,
+        "complete": true,
+        "prompt_version": "review-normalization-audit-v3",
+        "artifact": "runs/eval/normalized/peerj236-ai-sol.audit-fable.json",
+        "sha256": "18cb7ec945716a7cc748529f04f0baaf27b8dd8bf8c3a9707d1449eb255fa617"
+      },
+      "final_inventory": {
+        "assessment_count": 17,
+        "artifact": "runs/eval/normalized/peerj236-ai-sol.glm-v2-revised.json",
+        "sha256": "799413f771ab24a604d35bd2fc696c269383fcc51939d7041a68e113bafa4858",
+        "revision_count": 1
+      },
+      "final_audit": {
+        "status": "not_completed_claude_quota_unavailable",
+        "eligible": false
+      }
+    },
+    {
+      "review_id": "peerj236-ai-opus",
+      "normalization_input_sha256": "9e057439a9c79b2915cea4821323c5cf744cbe9c5f2d2587a56807f0d0aa9d46",
+      "source_artifact_sha256": "bbd380789537ec0d0e4d7ff6c173591a2856c972c09d154fc8467b58646555f9",
+      "initial_inventory": {
+        "assessment_count": 18,
+        "artifact": "runs/eval/normalized/peerj236-ai-opus.glm-v2.json",
+        "sha256": "82eb5cb6670fb60202609da5e245fd02c4d3b0429e73eb5abb55f277b6d33f69"
+      },
+      "initial_audit": {
+        "status": "not_run_claude_quota_unavailable"
+      },
+      "final_inventory": {
+        "assessment_count": 18,
+        "artifact": "runs/eval/normalized/peerj236-ai-opus.glm-v2.json",
+        "sha256": "82eb5cb6670fb60202609da5e245fd02c4d3b0429e73eb5abb55f277b6d33f69",
+        "revision_count": 0
+      },
+      "final_audit": {
+        "status": "not_run_claude_quota_unavailable"
+      }
+    }
+  ],
+  "outcome": {
+    "final_eligible": 4,
+    "total": 9,
+    "zcurve2_normalized_comparison_estimable": false,
+    "peerj236_normalized_seven_review_ranking_estimable": false,
+    "note": "Four of nine inventories have a passing final audit. PeerJ human review 2 failed after one revision, which alone blocks the full normalized pool. Sol revision and Opus inventory could not receive final Fable audits after quota exhaustion. No reduced normalized ranking was run."
+  },
+  "cost": {
+    "completed_call_measured_usd": 0.040997075,
+    "failed_or_cancelled_call_cost": "usage was not returned; configured token allowances imply less than $0.01 at listed model prices, but this is an estimate rather than a verified billing bound",
+    "authorized_total_cap_usd": 0.1,
+    "cap_note": "Each completed command enforced a conservative pre-call estimate and required parameter-supporting providers; the $0.10 experiment ceiling was not approached by measured completed calls."
+  },
+  "scope": "workflow diagnostic; not evidence of review competitiveness or a false-claim rate"
+}

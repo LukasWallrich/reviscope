@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social-science review alpha · pilot evidence</title>
+  <style>
+    :root{--ink:#18201d;--muted:#5e6964;--paper:#fbfaf6;--card:#fff;--line:#d9ded9;--green:#165c46;--mint:#dcefe6;--amber:#9a5a12;--amber-bg:#fff1d8;--blue:#24556b;--blue-bg:#e6f2f6;--serif:Georgia,"Times New Roman",serif;--sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--sans)}
+    a{color:var(--green);text-decoration-thickness:1px;text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
+    .wrap{width:min(1120px,calc(100% - 40px));margin:auto}.hero{padding:74px 0 48px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#f0f5ef 0%,#fbfaf6 58%,#edf4f2 100%)}
+    .eyebrow{color:var(--green);font-weight:750;letter-spacing:.12em;text-transform:uppercase;font-size:.77rem}.hero h1{font:700 clamp(2.45rem,7vw,5.8rem)/.94 var(--serif);letter-spacing:-.04em;max-width:900px;margin:.18em 0}.deck{font:1.18rem/1.55 var(--serif);max-width:780px;color:#34413b}.stamp{display:inline-flex;gap:.5rem;align-items:center;margin-top:20px;padding:7px 11px;border:1px solid #b9d2c6;border-radius:99px;background:#fff;color:var(--green);font-size:.85rem;font-weight:650}.dot{width:8px;height:8px;border-radius:50%;background:#2e8b69}
+    main{padding:52px 0 80px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}.metric{grid-column:span 4}.metric strong{display:block;font:700 clamp(2rem,5vw,3.25rem)/1 var(--serif);color:var(--green);margin:8px 0}.metric p{margin:0;color:var(--muted)}
+    section{margin-top:60px}h2{font:700 clamp(1.75rem,4vw,2.6rem)/1.12 var(--serif);letter-spacing:-.02em;margin:0 0 14px}h3{font:700 1.15rem/1.3 var(--serif);margin:0 0 8px}.lead{max-width:760px;color:var(--muted);margin:0 0 24px}
+    .callout{border-left:4px solid var(--amber);background:var(--amber-bg);padding:18px 20px;border-radius:0 10px 10px 0;margin:26px 0}.callout strong{color:#794309}.callout p{margin:.25rem 0 0}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:.92rem}th,td{padding:14px 15px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{background:#edf3ef;color:#284138;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase}tr:last-child td{border-bottom:0}.tag{display:inline-block;border-radius:99px;padding:3px 8px;font-size:.73rem;font-weight:750;white-space:nowrap}.observed{background:var(--mint);color:var(--green)}.running{background:var(--blue-bg);color:var(--blue)}.planned{background:var(--amber-bg);color:var(--amber)}
+    .split{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}.result{padding:22px;border-top:3px solid var(--green);background:#fff;border-radius:4px 4px 12px 12px}.result .num{font:700 2.4rem/1 var(--serif);color:var(--green)}.result p{margin:.5rem 0 0;color:var(--muted)}
+    .steps{counter-reset:step;display:grid;gap:12px}.step{counter-increment:step;display:grid;grid-template-columns:42px 1fr;gap:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}.step:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;font-weight:750}.step p{margin:3px 0 0;color:var(--muted)}
+    .note{font-size:.87rem;color:var(--muted)}footer{border-top:1px solid var(--line);padding:28px 0 46px;color:var(--muted);font-size:.86rem}.links{display:flex;flex-wrap:wrap;gap:12px 22px}.avoid-break{break-inside:avoid}
+    @media(max-width:760px){.metric{grid-column:span 12}.split{grid-template-columns:1fr}.table-wrap{overflow-x:auto}.hero{padding-top:50px}}
+    @media print{body{background:#fff}.hero{padding:30px 0}.card,.result,.step{break-inside:avoid;box-shadow:none}a{color:inherit}.stamp{border-color:#777}}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Public alpha pilot · 7 September 2026</div>
+      <h1>Social-science review alpha</h1>
+      <p class="deck">A transparent first test of a modular review pipeline for quantitative social science. The alpha produced source-anchored criticism, but the pilot is too small and too model-dependent to claim human-equivalent peer review.</p>
+      <div class="stamp"><span class="dot"></span> Observed results recorded in frozen pilot, normalization, and PeerJ run artifacts</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid" aria-label="Pilot headline results">
+      <article class="card metric"><span class="eyebrow">Methods comparison corpus</span><strong>2 papers</strong><p>Two related, methods-heavy Meta-Psychology submissions, each matched to one public round-one review. The separate PeerJ paper is a workflow diagnostic.</p></article>
+      <article class="card metric"><span class="eyebrow">Strict source audit</span><strong>17 / 24</strong><p>Published baseline findings retained full deterministic quotation anchoring after strict revalidation; seven were unresolved and none contradicted.</p></article>
+      <article class="card metric"><span class="eyebrow">Planted errors</span><strong>4 / 10</strong><p>Strict recall on one separately generated psychology proposal, for both the development baseline and final v2.</p></article>
+    </div>
+
+    <div class="callout" role="note">
+      <strong>What was observed.</strong>
+      <p>The pipeline ran end to end on real papers. Two configured LLM judges preferred its development reviews to the paired human reviews, while the final-profile comparison split by judge. The final profile retained four detected planted errors while publishing fewer findings. The small, selected corpus and model-based assessment prevent a general performance or human-equivalence claim.</p>
+    </div>
+
+    <div class="callout" role="note" style="border-left-color:var(--blue);background:var(--blue-bg)">
+      <strong style="color:var(--blue)">Final v2 produced a judge split.</strong>
+      <p>On the second paper, Fable preferred the human review for deeper mathematical scrutiny, while noting that v2 was more careful and better sourced. Sol preferred v2 for its source accuracy, internal-consistency checks, and bounded remedies. Both judgments were stable across reversed presentation order. The predefined cross-judge result is a tie.</p>
+    </div>
+
+    <section id="design">
+      <h2>Four diagnostics, four different questions</h2>
+      <p class="lead">Preference, source support, and planted-error recall are reported separately because they do not validate one another.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Test</th><th>Material</th><th>Observed result</th><th>Interpretation boundary</th></tr></thead>
+        <tbody>
+          <tr><td>Blinded pairwise preference</td><td>Two exact pre-review manuscripts; one public review per paper; two model-judge families; both A/B orders</td><td>Both judges preferred both v1 pipeline reviews. For final v2 on the second paper, Fable preferred the human review and Sol preferred the pipeline review: a cross-judge tie.</td><td>Judges assess relative usefulness under a fixed rubric. They do not establish reviewer truth or human equivalence.</td></tr>
+          <tr><td>Published-finding audit</td><td>24 findings across two v1 development reviews</td><td>17 supported under the strict final gate; 7 unresolved; 0 contradicted. Raw Fable assessment had marked all 24 supported.</td><td>The gap shows why deterministic anchoring matters. This is not a population false-claim rate and had no human adjudicator.</td></tr>
+          <tr><td>Known-error recall</td><td>One manuscript with ten planted errors; labels withheld during generation</td><td>4/10 strict candidate and published recall in v1 and v2. V2 published 5 findings rather than 12.</td><td>One planted case measures sensitivity to those errors. It does not estimate precision, novelty, or performance on ordinary manuscripts.</td></tr>
+          <tr><td>Review-normalization feasibility</td><td>Nine source reviews transformed into one assessment schema, with one audit-guided revision allowed</td><td>4/9 inventories passed a final fidelity and completeness audit; three failed final gates and two final audits were unavailable after quota exhaustion. Neither normalized comparison proceeded.</td><td>This diagnoses a lossy preprocessing step and audit availability. Incomplete audits are not passes, and the passing subset is not ranked.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="papers">
+      <h2>The evidence base</h2>
+      <p class="lead">The comparison corpus uses exact manuscript versions from public review archives. Both papers concern z-curve and share an author, which sharply limits breadth.</p>
+      <div class="split">
+        <article class="card avoid-break"><span class="tag observed">Observed · v1 baseline</span><h3>Estimating Population Mean Power Under Conditions of Heterogeneity and Selection for Significance</h3><p>Meta-Psychology. Exact round-one manuscript and review pair.</p><p><a href="https://doi.org/10.15626/MP.2018.874">doi:10.15626/MP.2018.874</a> · <a href="https://osf.io/download/rufxb/">reviewed manuscript</a> · <a href="https://osf.io/download/ph58c/">public review</a></p></article>
+        <article class="card avoid-break"><span class="tag observed">Observed · v1 and final v2</span><h3>Z-curve 2.0: Estimating Replication Rates and Discovery Rates</h3><p>Meta-Psychology. Exact round-one manuscript and review pair.</p><p><a href="https://doi.org/10.15626/MP.2021.2720">doi:10.15626/MP.2021.2720</a> · <a href="https://osf.io/download/rz4na/">reviewed manuscript</a> · <a href="https://osf.io/download/pvxqj/">public review</a></p></article>
+      </div>
+      <article class="card avoid-break" style="margin-top:22px"><span class="tag observed">Observed · workflow diagnostic complete</span><h3>Being there: a brief visit to a neighbourhood induces the social attitudes of that neighbourhood</h3><p>PeerJ. A resident survey and randomized neighbourhood field experiment measuring trust and paranoia. Luna, Sol, and Opus each reviewed the same original submission through the full pipeline. They published 8, 6, and 10 findings respectively. Every published finding was <code>llm_supported</code>, carried a supported remedy, and retained deterministic source offsets; all runs were complete rather than partial.</p><p>Fable at high effort performed the verification stage for all three runs. This was a different-model-family check for Luna and Sol, and a different-model, same-family check for Opus. Four individual human reviews remained separate, producing a seven-review pool rather than a synthetic human consensus.</p><p><a href="https://doi.org/10.7717/peerj.236">doi:10.7717/peerj.236</a> · <a href="https://peerj.com/articles/236/reviews/">public review history</a> · <a href="https://peerj.com/articles/236v0.1/submission">original submission</a> · <a href="https://web.archive.org/web/20230206130936id_/https://peerj.com/articles/236v0.1/submission">archived copy</a></p><p class="note">The live history identifies Version 0.1 as the 4 October 2013 original submission and associates all four reviews with that version. The archived PDF carries the matching internal date/version footer. This provenance is frozen in the empirical-pilot corpus manifest. The comparator set was judged insufficiently demanding for a competitiveness evaluation; this convenience case is retained as a workflow diagnostic.</p></article>
+
+      <div class="callout" role="note">
+        <strong>PeerJ ranking outcome.</strong>
+        <p>Opus ranked first in all six blinded presentations, and every pipeline review ranked above every human review in all six. Gemini ranked Sol above Luna twice and tied them once; the Sol judge tied Luna and Sol in all three presentations. These repeated judgments describe one paper with an insufficiently demanding comparator set. They are a workflow result, not evidence that AI reviews generally outperform human peer review.</p>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Review</th><th>Gemini 3.8 Flash High mean rank</th><th>Sol high mean rank</th><th>Combined descriptive mean</th></tr></thead>
+        <tbody>
+          <tr><td>Opus pipeline</td><td>1.00</td><td>1.00</td><td>1.00</td></tr>
+          <tr><td>Sol pipeline</td><td>2.17</td><td>2.50</td><td>2.33</td></tr>
+          <tr><td>Luna pipeline</td><td>2.83</td><td>2.50</td><td>2.67</td></tr>
+          <tr><td>Human review 2</td><td>4.33</td><td>4.50</td><td>4.42</td></tr>
+          <tr><td>Human review 3</td><td>6.00</td><td>4.50</td><td>5.25</td></tr>
+          <tr><td>Human review 1</td><td>4.67</td><td>6.00</td><td>5.33</td></tr>
+          <tr><td>Human review 4</td><td>7.00</td><td>7.00</td><td>7.00</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Lower mean rank is better. Each judge supplied three seeded presentations of the same seven reviews. The combined column is descriptive; six presentations are not six independent papers. The human-review ordering also varied materially: Gemini placed human review 3 at 6.00 while Sol tied it with human review 2 at 4.50. Gemini 3.8 Flash High ran with prompt-level tool restrictions. Two outputs required deterministic wrapping of rank groups, and one required a bounded same-model schema repair after returning an invalid confidence value; the repair left the ranks unchanged and raw outputs were retained. Fable supplied no ranking judgment because its valid quota was unavailable; its completed verification work remains part of the pipeline record.</p>
+    </section>
+
+    <section id="search-scope">
+      <h2>Where version-matched comparisons can come from</h2>
+      <p class="lead">A bounded policy inventory separated three requirements that publisher pages often blend: a public article, public review text, and a defensible version of the manuscript that was reviewed. Evidence levels below describe what the audit established, rather than journal quality.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Source family</th><th>What policy or records establish</th><th>Version evidence</th><th>Corpus status</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://peerj.com/about/policies-and-procedures/#peer-review">PeerJ</a></td><td>Public histories can contain manuscript files, reports, rebuttals, and revisions; mandatory for newer submissions and optional historically.</td><td><strong>Exact observed case.</strong> PeerJ 236 Version 0.1 and all four reports were linked and archived.</td><td>Workflow diagnostic only: the comparator set was judged insufficiently demanding for a competitiveness evaluation.</td></tr>
+          <tr><td><a href="https://uk.sagepub.com/en-gb/eur/transparent-peer-review">SAGE selected titles</a></td><td>AMPPS, European Journal of Personality, and QJEP are among named titles publishing review stages, responses, and decisions; opt-outs can apply.</td><td><strong>Reports documented; manuscript uncertain.</strong> The general programme does not promise the submitted file.</td><td>High-priority psychology discovery stratum; exact and substantively audited proxy matches must be reported separately.</td></tr>
+          <tr><td><a href="https://open.lnu.se/index.php/metapsychology/about">Meta-Psychology</a> and <a href="https://www.ucpress.edu/blog-posts/52861-whats-new-with-collabra-psychology-a-qa-with-editor-in-chief-simine-vazire">Collabra: Psychology</a></td><td>Meta-Psychology uses public OSF editorial archives. Collabra's official 2020 announcement says reviews and decisions accompany all published papers under its revised policy.</td><td><strong>Exact Meta-Psychology cases observed; Collabra manuscript uncertain.</strong> Collabra's policy does not promise the submitted file.</td><td>Strong discipline-fit sources, reported separately from mainstream-journal strata; article-level version checks still apply.</td></tr>
+          <tr><td><a href="https://authorservices.wiley.com/asset/Transparent%20Peer%20Review.pdf">Wiley participating titles</a></td><td>Participating journals publish reports, responses, and decisions with accepted articles, generally with opt-out.</td><td><strong>Reports documented; manuscript uncertain.</strong> Original submissions are not promised by the general policy.</td><td>Useful psychology leads; verify title participation, file rights, and external version evidence.</td></tr>
+          <tr><td><a href="https://blogs.biomedcentral.com/bmcblog/2015/03/24/confidentiality-versus-transparency-publishers-dilemma/">BMC journals</a></td><td>Accepted-paper reports are public, but BMC stopped routine downloads of earlier manuscript versions from 30 March 2015.</td><td><strong>Historically variable.</strong> A timeline label such as “Original manuscript” is insufficient when its file is request-only.</td><td>Investigate pre-2015 archives; most later records do not yield reproducible public exact pairs.</td></tr>
+          <tr><td><a href="https://www.nature.com/nathumbehav/for-reviewers/review-initiatives">Nature Human Behaviour</a>, <a href="https://www.nature.com/commspsychol/submit/editorial-process">Communications Psychology</a>, <a href="https://www.nature.com/ncomms/submit/tpr-faq">Nature Communications</a>, and <a href="https://royalsociety.org/journals/ethics-policies/editorial-standards/">Royal Society</a></td><td>These relevant titles publish reports and responses for defined accepted-paper cohorts; uptake dates and mandatory or optional rules differ.</td><td><strong>Usually proxy or missing.</strong> A pre-review preprint may qualify as a substantively audited proxy, but its date never establishes identity automatically.</td><td>Strong mainstream exploratory candidates; report proxy and exact results separately, with an exact-only sensitivity analysis.</td></tr>
+          <tr><td><a href="https://journals.plos.org/plosone/s/editorial-and-peer-review-process">PLOS ONE</a> and <a href="https://www.bmj.com/about-bmj/publishing-model?change_country=1">BMJ family</a></td><td>PLOS offers opt-in accepted-paper histories; selected BMJ journals publish reports and previous versions, with journal-level exceptions.</td><td><strong>Policy differs.</strong> PLOS does not promise original files; BMJ can provide direct pairs for covered articles.</td><td>Broader health/social-behaviour strata; sample separately from conventional psychology.</td></tr>
+          <tr><td><a href="https://sajs.co.za/article/download/19020/24594">South African Journal of Science</a></td><td>Transparent-review publication is voluntary under its 2024 implementation; one inspected 2025 history contains reports, responses, and the original manuscript.</td><td><strong>Exact observed case.</strong> The manuscript begins on page 6 of the verified bundle and has a different title from the final article.</td><td>Real archive-feasibility source, including qualitative social research; not validation of the current quantitative profile.</td></tr>
+          <tr><td><a href="https://f1000research.com/about">F1000Research</a>, <a href="https://erc.europa.eu/sites/default/files/2024-12/Open-Research-Europe-short-introduction-for-ERC-grantees.pdf">Open Research Europe</a>, and <a href="https://elifesciences.org/about/peer-review">current eLife</a></td><td>Public reviews are tied to citable article or reviewed-preprint versions.</td><td><strong>Versioned by design.</strong> Access was policy-confirmed, but specific F1000/eLife candidates were retrieval-blocked in this audit.</td><td>Alternative post-publication or reviewed-preprint stratum; do not pool with conventional prepublication review.</td></tr>
+          <tr><td><a href="https://journals.sagepub.com/author-instructions/rap">Research &amp; Politics</a>, <a href="https://sociologicalscience.com/for-authors/editorial-and-review-process/">Sociological Science</a>, and <a href="https://www.frontiersin.org/journals/education/for-authors/editor-guidelines">Frontiers in Education</a></td><td>R&amp;P explicitly publishes no review information; Sociological Science does not promise its assessments; Frontiers names reviewers but says report text is not public.</td><td><strong>No default public exact pair.</strong></td><td>Discipline-breadth targets, but outside the paired population unless an independently archived case meets every requirement.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">This is a purposive policy map, not a world-complete journal census. Most documented schemes cover accepted papers, so even an expanded corpus will remain conditioned on publication unless rejected submissions and their reports are released separately.</p>
+      <p>The target evaluation population should be defined first by social-science discipline, topic, study design, and manuscript maturity. Journals with convenient complete archives form an <strong>accessibility sample</strong>, not a substitute for that target. Mainstream psychology and social-science venues remain an acquisition challenge because many publish reports without the reviewed manuscript, or publish neither; they should not be replaced by arbitrary quotas from health-adjacent sources.</p>
+      <div class="callout" role="note" style="border-left-color:var(--blue);background:var(--blue-bg)">
+        <strong style="color:var(--blue)">Pragmatic preprint matching for the exploratory alpha.</strong>
+        <p>Search first within ±7 days of submission for the review round being evaluated, then select only a version posted before that round's earliest dated report or decision. For transferred papers, match each journal's reports to the version submitted to that journal. The seven-day window is a discovery heuristic, not an identity test. Audit authors, studies, samples, design, primary outcomes, central facts and claims, tables and figures, supplements, and reviewer-cited locations. Positive concordance is required; reviewer-driven differences in the final paper are expected when the exchange explains them. Exclude substantive mismatches before model calls. Before generation, freeze a version-difference map and apply it symmetrically during scoring; version-dependent points become unevaluable, and a material loss of comparability prevents a ranking. Report the default ±7-day analysis and ±30-day sensitivity separately. A strongly workflow-linked older version may enter a labelled wider-window stratum after the same audit. Exact and audited-proxy results remain separate, with an exact-only sensitivity analysis; inconclusive temporal matches do not enter performance estimates.</p>
+      </div>
+      <div class="split">
+        <article class="card"><h3>PeerJ supplied the clean version match</h3><p>PeerJ is a broad multidisciplinary journal rather than a flagship psychology journal. Its public history exposed four reports and the original submitted manuscript, making a fair same-version comparison possible.</p></article>
+        <article class="card"><h3>Communications Psychology is a candidate for a future product check</h3><p>Its transparent-review bundles are promising and the journal is closer to the desired mainstream psychology setting. For the identified empirical article, we did not locate and verify the reviewed Version 0 manuscript. Comparing those reviews with the final published paper would confound review quality with author revisions, so it was excluded from human-review comparison.</p></article>
+      </div>
+      <p><a href="https://www.nature.com/nathumbehav/for-reviewers/review-initiatives">Nature Human Behaviour</a> and <a href="https://www.nature.com/ncomms/submit/hum-behav-soc-sci-studies">Nature Communications</a> are stronger mainstream candidates for the next corpus round because they support transparent review and publish relevant human-behaviour or social-science research. Their pre-review manuscripts still require exact matching or a documented substantive proxy audit. A current <a href="https://doi.org/10.1038/s41562-025-02358-4">Nature Human Behaviour discovery lead</a> has a Research Square version posted 17 days after the displayed received date, illustrating why ±7 days cannot be a rigid cutoff; it is not admitted because its route, supplement completeness, and substantive identity remain unaudited. <a href="https://www.psychologicalscience.org/publications/psychological_science/ps-submissions">Psychological Science</a> emphasizes research transparency, but the audited current guidance does not promise an equivalent public report corpus.</p>
+      <p class="note">The two Meta-Psychology methods papers and the PeerJ convenience case do not represent social psychology. The former supplied the completed comparison pilot; the latter adds a workflow diagnostic, not a new competitiveness sample.</p>
+    </section>
+
+    <section id="versions">
+      <h2>What changed from v1 to final v2</h2>
+      <div class="split">
+        <article class="result"><div class="num">12 → 5</div><h3>Fewer published concerns</h3><p>On the shared second paper, v1 published 12 findings. V2 generated 21 candidates and published five after different-family verification and editorial gating: three major and two minor.</p></article>
+        <article class="result"><div class="num">4 → 4</div><h3>Planted-error recall retained</h3><p>On the known-error case, v2 reduced the published set from 12 to five without losing any of the four strictly matched errors. This is promising restraint on one case, not an estimated precision gain.</p></article>
+      </div>
+      <p class="note">The two human-review wins are development-baseline v1 results. Final v2 was compared on only the second paper, where the judge families split. V2 is therefore not credited with the v1 result.</p>
+    </section>
+
+    <section id="next">
+      <h2>What would change the conclusion</h2>
+      <p class="lead">The next study should test the most plausible alternative explanations before expanding the claim.</p>
+      <div class="steps">
+        <article class="step"><div><span class="tag observed">Observed · feasibility failure</span><h3>AI-assisted review normalization did not clear its gate</h3><p>Four of nine inventories had passing final audits: PeerJ human reviews 1, 3, and 4, plus Luna's 14-assessment pipeline review. Three failed final gates: the two Z-curve reviews and PeerJ human review 2, which retained one assessment that did not faithfully preserve its source after revision. Sol's pipeline inventory was revised from 18 to 17 assessments but could not be re-audited after quota exhaustion; Opus's 18-assessment inventory could not be audited. Those two incomplete audits are not counted as passes. No normalized comparison or ranking was run. The development audit moved from prompt v2 to the stricter v3 while failures were being diagnosed, so this is an engineering diagnostic rather than a preregistered performance estimate.</p><p class="note">Measured completed calls cost $0.041. Usage for failed or cancelled calls was not returned; a sub-$0.01 figure from configured token allowances is an estimate, not an observed charge or hard billing bound.</p></div></article>
+        <article class="step"><div><span class="tag observed">Observed · not estimable</span><h3>The normalized seven-review comparison did not proceed</h3><p>PeerJ human review 2 failed after its allowed revision, which alone blocked the full normalized pool. Sol's final audit and Opus's audit were also unavailable. The protocol did not rank a reduced passing subset. The original-format ranking above is reported separately and normalization remains a failed feasibility diagnostic.</p></div></article>
+        <article class="step"><div><span class="tag observed">Observed · workflow only</span><h3>Seven original-format reviews were ranked</h3><p>Gemini 3.8 Flash High and Sol high each judged three seeded blinded presentations. The stable separation between pipeline and human reviews is visible in this case, alongside judge disagreement within the human set and over Luna versus Sol. Its inferential unit remains one paper and its human comparator set was insufficiently demanding.</p></div></article>
+        <article class="step"><div><span class="tag planned">Planned</span><h3>Add human claim auditing</h3><p>Commission blinded human assessment of a seeded random sample of published findings. Keep targeted audits of major and unresolved findings separate from prevalence estimates.</p></div></article>
+        <article class="step"><div><span class="tag planned">Planned</span><h3>Expand beyond the z-curve cluster</h3><p>Build a frozen multi-topic corpus with multiple reviews per manuscript, preregister the aggregation rule, and evaluate at the paper level. Order swaps and multiple judges remain repeated measurements, not extra papers.</p></div></article>
+      </div>
+    </section>
+
+    <section id="limits">
+      <h2>Limits to keep visible</h2>
+      <div class="grid">
+        <article class="card metric"><h3>Small and selected evidence base</h3><p>The historical comparison has two related z-curve methods papers sharing an author. PeerJ adds one empirical workflow diagnostic, not a representative third competitiveness case.</p></article>
+        <article class="card metric"><h3>Model-based assessment</h3><p>LLM judges can prefer model-generated style. Fable supplied the historical finding-audit verdicts and verified the three PeerJ pipeline reviews; the PeerJ ranking uses Gemini and Sol. Deterministic matching verifies quotation provenance, not the criticism's truth.</p></article>
+        <article class="card metric"><h3>Uneven human comparators</h3><p>Each methods paper was compared with one reviewer. PeerJ provides four separate reports, but that comparator set was judged insufficiently demanding for a competitiveness evaluation. Neither represents the full editorial process or a human consensus.</p></article>
+      </div>
+    </section>
+
+    <section id="method">
+      <h2>Reproducibility and credit</h2>
+      <p class="lead">The recorded protocol swaps review order, aggregates swaps within judge and judges within paper, permits ties, and preserves hashes for source and result artifacts. A compact, machine-readable result record is maintained with the project.</p>
+      <p><strong>coarse-socpsy</strong> is an independent, modular implementation inspired by David Van Dijcke’s <a href="https://github.com/Davidvandijcke/coarse">coarse</a> (MIT; <a href="https://github.com/Davidvandijcke/coarse/commit/07dc9def97bf6ee4a3b7f7989079f6f45eb277fa">source revision reviewed</a>). It adapts the staged analysis, quoted evidence, verification, and editorial-synthesis pattern, with newly authored social-science discipline profiles and stricter provenance gates.</p>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><div class="links"><a href="https://github.com/Davidvandijcke/coarse">Upstream coarse project</a><a href="https://github.com/Dawes-Institute/ai-peer-review-benchmark">Dawes Institute benchmark</a><a href="https://open.lnu.se/index.php/metapsychology/index">Meta-Psychology</a></div><p>Public pilot report · observed methods-comparison, normalization-diagnostic, and PeerJ workflow results recorded 7 September 2026 · planned checks are labelled explicitly.</p></div></footer>
+</body>
+</html>

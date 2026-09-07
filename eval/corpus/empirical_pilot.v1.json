@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "created_on": "2026-09-07",
+  "purpose": "Empirical social-psychology pilot sources. Human-review files are evaluation references and must never be supplied to review generation.",
+  "entries": [
+    {
+      "id": "peerj-nettle-2014-being-there",
+      "title": "Being there: a brief visit to a neighbourhood induces the social attitudes of that neighbourhood",
+      "journal": "PeerJ",
+      "doi": "10.7717/peerj.236",
+      "design": "Resident survey plus randomized neighbourhood field experiment measuring trust and paranoia",
+      "status": "Exact reviewed-version workflow diagnostic, outside the representative validation sample. The live PeerJ history identifies Version 0.1 as the original submission received 2013-10-04 and links four reviews before the 2013-11-01 decision. The publisher URL is blocked to automated clients; a public Internet Archive capture preserves the reviewing PDF, whose internal footer gives the same date. No byte comparison with the currently blocked live publisher response was possible.",
+      "review_history": "https://peerj.com/articles/236/reviews/",
+      "manuscript_under_review_url": "https://peerj.com/articles/236v0.1/submission",
+      "archived_manuscript_url": "https://web.archive.org/web/20230206130936id_/https://peerj.com/articles/236v0.1/submission",
+      "manuscript_local_path": "eval/corpus/cache/peerj-nettle-236/manuscript/peerj-236-v0.1-original.pdf",
+      "manuscript_sha256": "5f019a84e50049b59b7c7c71dfb692fe919783858e5a009bd5ea385fd1c98e05",
+      "manuscript_bytes": 270612,
+      "manuscript_pages": 20,
+      "review_urls": [
+        "https://peerj.com/articles/236v0.1/reviews/1/",
+        "https://peerj.com/articles/236v0.1/reviews/2/",
+        "https://peerj.com/articles/236v0.1/reviews/3/",
+        "https://peerj.com/articles/236v0.1/reviews/4/"
+      ],
+      "review_local_files": [
+        {
+          "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-1.txt",
+          "sha256": "2e19b9c6de6dfb43c6da26b447aba8557f821b0f07f221e68841ad4596bd0269"
+        },
+        {
+          "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-2.txt",
+          "sha256": "3a95b8322793f3516fb51e48ae8686e61ba9876e958814e541a8b39e70702471"
+        },
+        {
+          "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-3.txt",
+          "sha256": "1d686fbec3890a658669342a5bf1e6a86f6eb8c269fd557a707254eb1cd4fdc4"
+        },
+        {
+          "path": "eval/corpus/cache/peerj-nettle-236/human-reviews/review-4.txt",
+          "sha256": "922adb5f4257e5b7171a8081d33caf386a46dbd882d60c33e7120317c0935a8b"
+        }
+      ],
+      "license": "PeerJ review-history page states that all text and materials on the page are CC BY.",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": false,
+      "version_evidence": "The PDF title matches the review history, identifies itself as a Reviewing Manuscript, and carries PeerJ footer v2013:10:888:0:0:NEW 4 Oct 2013. PeerJ identifies Version 0.1 as the original submission received that date and associates all four reviews with v0.1. This establishes version linkage from publisher metadata and the file itself, not byte identity with the inaccessible live response.",
+      "review_text_note": "The four local comparator files transcribe each review's substantive headings and text from the public history. Editor decision text, citation boilerplate, navigation, and rebuttal are excluded. Brief approving sections are retained.",
+      "leakage_control": "Generate from manuscript_local_path only. Do not expose review_local_files or the review-history page to generation.",
+      "article_url": "https://peerj.com/articles/236/",
+      "review_url": "https://peerj.com/articles/236/reviews/",
+      "corpus_role": "workflow_diagnostic_only",
+      "representative_target_population": false,
+      "exclusion_reason": "Human reports were judged too weak for the planned representative comparison after inspection; retain all artifacts and AI outputs as a workflow diagnostic, outside prospective population estimates."
+    },
+    {
+      "id": "metapsych-satrevik-sjastad-2020-round1",
+      "title": "Failed preregistered replication of mortality salience effects in traditional and novel measures",
+      "authors": [
+        "Bjørn Sætrevik",
+        "Hallgeir Sjåstad"
+      ],
+      "journal": "Meta-Psychology",
+      "article_type": "Replication Report",
+      "domain": "experimental social psychology; terror management; social attitudes and prosociality",
+      "study_design": "Two completed experiments: Norwegian laboratory sample (N=101) and US online sample (N=784)",
+      "article_doi": "10.15626/MP.2020.2628",
+      "editorial_archive": "https://osf.io/pf6dn/",
+      "manuscript_under_review": {
+        "url": "https://osf.io/download/z8fhs/",
+        "archive_name": "2628-Manuscript in PDF.pdf",
+        "local_path": "eval/corpus/cache/empirical-pilot/satrevik-2020-2628/manuscript/2628-initial-manuscript.pdf",
+        "sha256": "61cfdbb2cd1fb62aaa4a78efe811aff3af8e2db636bbd716ac1404398e35f4cd",
+        "bytes": 283578,
+        "pages": 32,
+        "osf_created": "2021-07-11T21:35:22.214688Z",
+        "pdf_created": "2020-09-30T11:41:23Z"
+      },
+      "human_reviews": [
+        {
+          "reviewer": "Adrien Fillon",
+          "round": 1,
+          "url": "https://osf.io/download/jwk75/",
+          "local_path": "eval/corpus/cache/empirical-pilot/satrevik-2020-2628/human-reviews/review-fillon.pdf",
+          "sha256": "1dfcee8f8f0a133a3d9dba941e199bf2a6617097da44e6c718c89ba2de79abb8"
+        },
+        {
+          "reviewer": "Artur Nilsson",
+          "round": 1,
+          "url": "https://osf.io/download/q4xnf/",
+          "local_path": "eval/corpus/cache/empirical-pilot/satrevik-2020-2628/human-reviews/review-nilsson.pdf",
+          "sha256": "ed2207200b9d95e17f7f5d336ee5ab8c12da950f7753fef8a96eea6a24f7234f"
+        }
+      ],
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": false,
+      "version_evidence": "The journal OSF archive separately labels the source as 'Manuscript in PDF' and a later file as 'revised-after-review'. Both round-1 reports were archived as review files. They describe the same two experiments and quote text with matching manuscript page numbers, including the Experiment 1 power calculation on page 8 and the mortality-salience hypothesis on page 6.",
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/download/2628/2541",
+        "archived_submission_and_raw_reviews": "Publicly downloadable in the journal editorial archive; no separate file-level license was exposed by the OSF API. Confirm redistribution terms before distributing those raw files outside this research workspace."
+      },
+      "leakage_control": "Generate reviews from manuscript_under_review.local_path only. Keep the human-reviews directory excluded from all source and supplement arguments.",
+      "article_url": "https://doi.org/10.15626/MP.2020.2628",
+      "review_url": "https://osf.io/pf6dn/",
+      "manuscript_under_review_url": "https://osf.io/download/z8fhs/",
+      "manuscript_local_path": "eval/corpus/cache/empirical-pilot/satrevik-2020-2628/manuscript/2628-initial-manuscript.pdf",
+      "manuscript_sha256": "61cfdbb2cd1fb62aaa4a78efe811aff3af8e2db636bbd716ac1404398e35f4cd",
+      "corpus_role": "verified_fallback_not_run",
+      "representative_target_population": false,
+      "status": "Verified exact-version fallback pair retained for future evaluation; no AI review or human-comparison run has been performed for this entry, and it is not part of the representative validation sample."
+    }
+  ],
+  "next_candidates": [
+    {
+      "id": "metapsych-bonetto-2021-round1",
+      "title": "Group Membership and Deviance Punishment: Are Deviant Ingroup Members Actually Judged more Negatively than Outgroup Ones?",
+      "journal": "Meta-Psychology",
+      "doi": "10.15626/MP.2021.2764",
+      "design": "Six social-judgment experiments across France and the US plus an internal meta-analysis",
+      "status": "Public archive contains an explicitly named original manuscript DOCX, two substantive first-round reviews, revisions, and responses. A final file-level license check and permanent cache are still required.",
+      "editorial_archive": "https://osf.io/vxqj5/"
+    },
+    {
+      "id": "commspsych-barry-2025",
+      "title": "People overlook subtractive solutions to mental health problems",
+      "journal": "Communications Psychology",
+      "doi": "10.1038/s44271-025-00312-8",
+      "design": "Empirical social judgment and problem-solving studies",
+      "status": "Publisher peer-review bundle verified, but no exact public Version 0 manuscript is available. PsyArXiv v1 was published 2025-03-17 (99 days before the journal received date of 2025-06-24); v2 was published 2025-08-05 (42 days after). Neither is admitted: the current loader is exact-only and the proposed proxy protocol still requires a selected-round timing and substantive audit.",
+      "article_url": "https://www.nature.com/articles/s44271-025-00312-8",
+      "version_of_record_url": "https://www.nature.com/articles/s44271-025-00312-8.pdf",
+      "local_smoke_path": "eval/corpus/cache/mainstream-smoke/barry-2025-version-of-record.pdf",
+      "version_of_record_sha256": "b0c12183e3db1bed366d59e24832d0f91cbb87f926ef441a1487182311ada342",
+      "evaluation_eligible": false,
+      "preprint_candidates": [
+        {
+          "version": "v1",
+          "url": "https://api.osf.io/v2/preprints/vsp5q_v1/",
+          "published": "2025-03-17",
+          "gap_from_displayed_received_days": -99
+        },
+        {
+          "version": "v2",
+          "url": "https://api.osf.io/v2/preprints/vsp5q_v2/",
+          "published": "2025-08-05",
+          "gap_from_displayed_received_days": 42
+        }
+      ]
+    }
+  ]
+}
