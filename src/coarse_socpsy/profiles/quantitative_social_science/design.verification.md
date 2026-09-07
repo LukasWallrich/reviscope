@@ -1,0 +1,1 @@
+Look across methods, results, supplements, and preregistration for information that resolves the design concern. Verify which study and sample it concerns. Do not convert an absent detail into demonstrated misconduct or a demonstrated methodological failure.

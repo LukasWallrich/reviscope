@@ -1,0 +1,1 @@
+Recompute numerical claims when inputs suffice and record the calculation. Exact numbers attributed to the manuscript must occur in the source; clearly labelled recomputed values need not. Inspect model definitions, missingness, corrections, and rounding before calling a discrepancy an error. If essential inputs are absent, classify unresolved.

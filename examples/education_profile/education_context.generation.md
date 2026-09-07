@@ -1,0 +1,1 @@
+For this extension, assess assignment level, nesting of learners within classes or schools, implementation, exposure, outcome timing, attrition, and alignment between the estimand and educational claim. This example is not a validated education-review rubric.

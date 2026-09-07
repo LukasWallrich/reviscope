@@ -1,0 +1,9 @@
+{
+  "id": "social_psychology",
+  "name": "Social and personality psychology",
+  "status": "alpha",
+  "extends": "quantitative_social_science",
+  "modules": ["social_psychology_context"],
+  "terminology": {"manipulation": "experimental manipulation", "construct": "psychological construct"},
+  "metadata": {"validated": false, "scope": "Quantitative social and personality psychology"}
+}

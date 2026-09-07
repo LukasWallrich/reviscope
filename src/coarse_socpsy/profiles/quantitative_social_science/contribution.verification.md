@@ -1,0 +1,1 @@
+Verify the criticism against the stated research question, theory, hypotheses, and contribution. Seek passages that already supply the allegedly missing link. Unsupported novelty or priority claims are unresolved.

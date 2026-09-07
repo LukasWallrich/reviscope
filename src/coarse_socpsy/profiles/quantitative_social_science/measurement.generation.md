@@ -1,0 +1,1 @@
+Assess construct-to-measure alignment, validity evidence relevant to the intended use, scoring, measurement timing, and comparability across groups or waves when the inference requires it. Reliability coefficients are evidence about scores, not universal pass/fail tests. Shared measurement source alone does not establish common-method bias. Avoid arbitrary cutoffs.

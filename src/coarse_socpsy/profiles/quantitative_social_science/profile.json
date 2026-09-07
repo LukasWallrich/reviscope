@@ -1,0 +1,13 @@
+{
+  "id": "quantitative_social_science",
+  "name": "Quantitative social science",
+  "status": "alpha",
+  "modules": ["contribution", "design", "measurement", "statistical_inference", "interpretation"],
+  "terminology": {"participant": "participant or observational unit", "outcome": "outcome or dependent variable"},
+  "severity_guidance": {
+    "critical": "A demonstrated issue that invalidates a central inference.",
+    "major": "A supported issue that materially changes an important claim or requires substantial analysis or clarification.",
+    "minor": "A localized issue whose correction improves precision or reporting without changing a central inference."
+  },
+  "metadata": {"validated": false, "version": "0.1.0"}
+}

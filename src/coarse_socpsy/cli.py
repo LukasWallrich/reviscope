@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+import argparse
+import sys
+
+from .backend import ClaudeBackend, CodexBackend, FixtureBackend
+from .pipeline import ReviewPipeline
+from .evaluation import register as register_evaluation
+from .profiles import available_profiles
+
+
+def parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="coarse-socpsy", description="Auditable social-science manuscript review")
+    sub = p.add_subparsers(dest="command", required=True)
+    profiles = sub.add_parser("profiles", help="list bundled discipline profiles")
+    profiles.set_defaults(func=lambda _args: _print_profiles())
+    review = sub.add_parser("review")
+    review.add_argument("manuscript")
+    review.add_argument("--supplement", action="append", default=[])
+    review.add_argument("--preregistration", action="append", default=[])
+    review.add_argument("--profile", default="social_psychology")
+    review.add_argument("--backend", choices=["codex", "claude", "fixture"], default="codex")
+    review.add_argument("--model")
+    review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="max")
+    review.add_argument("--verifier-backend", choices=["codex", "claude"], help="Optional independent verification backend")
+    review.add_argument("--verifier-model")
+    review.add_argument("--timeout", type=int, default=300)
+    review.add_argument("--out", default="review-run")
+    review.add_argument("--quiet", action="store_true")
+    review.add_argument("--max-findings", type=int, default=12)
+    review.set_defaults(func=_review_command)
+    register_evaluation(sub)
+    return p
+
+
+def _print_profiles() -> int:
+    print("\n".join(available_profiles()))
+    return 0
+
+
+def _review_command(args: argparse.Namespace) -> int:
+    if args.backend == "fixture":
+        backend = FixtureBackend()
+        print("WARNING: fixture backend creates deterministic demo output; it is not an AI review.", file=sys.stderr)
+    elif args.backend == "claude":
+        backend = ClaudeBackend(args.model, args.timeout, args.effort)
+    else:
+        backend = CodexBackend(args.model or "gpt-5.6-luna", args.timeout, args.effort)
+    verifier = None
+    if args.verifier_backend == "claude":
+        verifier = ClaudeBackend(args.verifier_model, args.timeout, args.effort)
+    elif args.verifier_backend == "codex":
+        verifier = CodexBackend(args.verifier_model or "gpt-5.6-luna", args.timeout, args.effort)
+    try:
+        progress = (lambda message: None) if args.quiet else (lambda message: print(message, file=sys.stderr, flush=True))
+        run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress, max_findings=args.max_findings).run(args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"Wrote {'partial' if run.partial else 'complete'} review to {args.out}")
+    return 2 if run.partial else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

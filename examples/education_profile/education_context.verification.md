@@ -1,0 +1,1 @@
+Verify assignment and analysis units against the design and model descriptions. Seek clustering adjustments, implementation evidence, attrition accounting, and the stated scope. If the required evidence is absent, classify the criticism unresolved.

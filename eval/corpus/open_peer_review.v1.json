@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "frozen_on": "2026-09-07",
+  "purpose": "Seed sources for constructing a version-matched psychology review comparison set; inclusion is not a claim of validity.",
+  "entries": [
+    {
+      "id": "metapsych-bartos-schimmack-2022-round1",
+      "title": "Z-curve 2.0: Estimating Replication Rates and Discovery Rates",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2021.2720",
+      "review_url": "https://osf.io/download/pvxqj/",
+      "manuscript_under_review_url": "https://osf.io/download/rz4na/",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "The journal's public OSF peer-review archive node v2kw5 stores 2720-Manuscript in PDF-7201-1-4-20201214.pdf in the submission/cover-letter folder and 2720-Review-van Zwet.pdf in the peer-reviews folder; later files are explicitly named manuscript revision 2 and zcurve2revised.",
+      "manuscript_sha256": "0f7d081d3d7d572a4b9669ddd4b00a53e923e9476b5a132db2befbfd96de7392",
+      "review_sha256": "2f36403c718aad528c4fdfd18296a5ab22c8aeaee11e6caa0e36992ed50d86bc",
+      "verified_note": "Round-1 pair usable for method-review comparison. Hashes were calculated from OSF downloads on 2026-09-07."
+    },
+    {
+      "id": "metapsych-brunner-schimmack-2020-round1-williams",
+      "title": "Estimating Population Mean Power Under Conditions of Heterogeneity and Selection for Significance",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2018.874",
+      "review_url": "https://osf.io/download/ph58c/",
+      "manuscript_under_review_url": "https://osf.io/download/rufxb/",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "Meta-Psychology's public OSF node peumw separates files into 1. Submission and 2. Review Round 1. The URLs identify 874-Manuscript in PDF-2177-1-2-20180425.pdf and Donald Williams' round-1 review respectively. The review quotes phrases present in that submitted manuscript, including 'two populations of power'.",
+      "manuscript_sha256": "9f48edb62117e69594b378bbc018a635e65815ad831984fa9237225afd1843a8",
+      "review_sha256": "fa9c159b13dac5f86dd83d3ed0731d062c4e97fee4a42c75abd348f6720bd369",
+      "verified_note": "The review is DOCX and the manuscript is PDF. Hashes were calculated from OSF downloads on 2026-09-07. This methods-heavy pair is a technical smoke case, not representative validation of empirical psychology reviewing."
+    },
+    {
+      "id": "commspsych-kewenig-2025",
+      "title": "A multimodal transformer-based tool for automatic generation of concreteness ratings across languages",
+      "journal": "Communications Psychology",
+      "article_url": "https://www.nature.com/articles/s44271-025-00280-z",
+      "review_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs44271-025-00280-z/MediaObjects/44271_2025_280_MOESM1_ESM.pdf",
+      "manuscript_under_review_url": null,
+      "version_status": "review_bundle_identifies_version_0_but_manuscript_file_not_publicly_linked",
+      "evaluation_eligible": false,
+      "verified_note": "Publisher peer-review PDF labels the first decision and reports as Version 0; it contains letters, reviews, and rebuttals, but not the Version 0 manuscript."
+    },
+    {
+      "id": "commspsych-barry-2025",
+      "title": "People overlook subtractive solutions to mental health problems",
+      "journal": "Communications Psychology",
+      "article_url": "https://www.nature.com/articles/s44271-025-00312-8",
+      "review_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs44271-025-00312-8/MediaObjects/44271_2025_312_MOESM1_ESM.pdf",
+      "manuscript_under_review_url": null,
+      "version_status": "review_bundle_public_pre_review_manuscript_not_verified",
+      "evaluation_eligible": false,
+      "verified_note": "Article page links the transparent peer-review file; a matching pre-review manuscript must be found and version-checked before evaluation."
+    },
+    {
+      "id": "commspsych-sankhe-2024",
+      "title": "Model-free decision-making underlies motor errors in rapid sequential movements under threat",
+      "journal": "Communications Psychology",
+      "article_url": "https://www.nature.com/articles/s44271-024-00123-3",
+      "review_url": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs44271-024-00123-3/MediaObjects/44271_2024_123_MOESM1_ESM.pdf",
+      "manuscript_under_review_url": null,
+      "version_status": "review_bundle_public_pre_review_manuscript_not_verified",
+      "evaluation_eligible": false,
+      "verified_note": "Article page links the peer-review file; do not compare its reviews against the version of record."
+    }
+  ],
+  "discovery_sources": [
+    {
+      "journal": "Meta-Psychology",
+      "url": "https://open.lnu.se/index.php/metapsychology/index",
+      "archive_url": "https://osf.io/3m4z3/",
+      "note": "Journal states that all submission histories are public in its OSF archive; curate exact manuscript/review pairs from the archive."
+    },
+    {
+      "journal": "Royal Society Open Science",
+      "url": "https://royalsocietypublishing.org/journal/rsos",
+      "note": "Candidate prominent multidisciplinary source; include only records whose review history and exact reviewed manuscript are both public."
+    }
+  ]
+}

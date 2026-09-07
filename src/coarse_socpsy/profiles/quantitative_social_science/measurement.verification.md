@@ -1,0 +1,1 @@
+Verify the claimed construct, measure, population, and use. Seek reported validation, scoring, robustness, and limitations. A concern based only on a generic coefficient cutoff or common source remains unsupported unless the criticism supplies a consequence supported by the manuscript.

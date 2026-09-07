@@ -1,0 +1,9 @@
+{
+  "id": "education",
+  "name": "Quantitative education research (demonstration)",
+  "status": "demonstration_unvalidated",
+  "extends": "quantitative_social_science",
+  "modules": ["education_context"],
+  "terminology": {"participant": "learner, educator, classroom, school, or other unit"},
+  "metadata": {"validated": false, "purpose": "Demonstrates profile inheritance; not suitable for production claims"}
+}

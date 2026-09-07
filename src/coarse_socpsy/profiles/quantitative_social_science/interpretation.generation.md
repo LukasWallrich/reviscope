@@ -1,0 +1,1 @@
+Compare abstract, results, discussion, and limitations. Check that claims preserve the design's population, time, construct, and causal scope and reflect uncertainty. Prefer a precise remedy. Do not demand ritual caveats already addressed or substitute generic advice for a consequential criticism.

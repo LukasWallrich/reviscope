@@ -1,0 +1,1 @@
+Verify unit-of-assignment and unit-of-analysis concerns against the sampling and model descriptions. Seek clustering adjustments, design effects, implementation evidence, attrition accounting, and stated scope. This demonstration protocol has not been validated by education-domain evaluation.

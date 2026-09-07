@@ -1,0 +1,1 @@
+Seek results and limitations that support or qualify the challenged interpretation. Classify a criticism as supported only when the mismatch and its consequence are evidenced. Keep disagreement about importance separate from factual support.
