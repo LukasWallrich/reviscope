@@ -7,7 +7,7 @@ import re
 import unicodedata
 from typing import Any, Iterable, Literal, Mapping
 
-from .schemas import Finding, SourceDocument
+from .schemas import Evidence, Finding, SourceDocument
 
 @dataclass(frozen=True)
 class QuoteVerification:
@@ -99,9 +99,30 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
     source_by_id = {source.id: source for source in source_list}
     verified: list[Finding] = []
     for finding in findings:
-        anchors = [verify_quote(item.quote, source_maps, item.source_id) for item in finding.evidence]
+        original_anchors = [verify_quote(item.quote, source_maps, item.source_id) for item in finding.evidence]
+        decision = decisions.get(finding.id)
+        verifier_evidence = decision.get("evidence", []) if decision else []
+        # Reject malformed rows too: silently filtering them could turn a partially
+        # invalid evidence set into an apparently fully grounded one.
+        verifier_anchors = [
+            verify_quote(item["quote"], source_maps, item["source_id"])
+            for item in verifier_evidence
+        ] if isinstance(verifier_evidence, list) and all(
+            isinstance(item, Mapping) and isinstance(item.get("quote"), str)
+            and isinstance(item.get("source_id"), str) for item in verifier_evidence
+        ) else []
+        verifier_grounded = bool(verifier_anchors) and all(
+            anchor.status == "supported" for anchor in verifier_anchors)
+        use_verifier_evidence = bool(
+            decision and decision.get("status") == "supported" and verifier_grounded
+            and finding.status not in {"recomputed", "verified_deterministic"})
+        # Candidates remain unchanged in the run audit. Downstream editorial and
+        # rendering receive only the evidence that actually supports approval.
+        selected_evidence = [Evidence(source_id=item["source_id"], quote=item["quote"])
+                             for item in verifier_evidence] if use_verifier_evidence else finding.evidence
+        anchors = verifier_anchors if use_verifier_evidence else original_anchors
         grounded_evidence = []
-        for item, anchor in zip(finding.evidence, anchors):
+        for item, anchor in zip(selected_evidence, anchors):
             page = None
             source = source_by_id.get(item.source_id)
             if anchor.status == "supported" and source is not None:
@@ -117,7 +138,6 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
                 "source_char_end": anchor.source_char_end if anchor.status == "supported" else None,
             }))
         anchor_failed = not anchors or any(item.status == "unanchored" for item in anchors)
-        decision = decisions.get(finding.id)
         if anchor_failed:
             status = "unresolved"
             rationale = "At least one cited quotation could not be anchored in its named source."
@@ -131,18 +151,16 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
             raw_status = decision.get("status", "unresolved")
             status = raw_status if raw_status in {"supported", "contradicted", "unresolved"} else "unresolved"
             rationale = str(decision.get("rationale", "The separate verification pass supplied no rationale."))
-            verifier_evidence = decision.get("evidence", [])
-            verifier_anchors = [
-                verify_quote(str(item.get("quote", "")), source_maps, str(item.get("source_id", "")))
-                for item in verifier_evidence if isinstance(item, Mapping)
-            ]
-            if status == "supported" and (not verifier_anchors or any(a.status != "supported" for a in verifier_anchors)):
+            if status == "supported" and not verifier_grounded:
                 status = "unresolved"
                 rationale = "The model selected supported, but its separately selected evidence was absent or could not be anchored."
             elif status == "supported":
                 status = "llm_supported"
         trace = "; ".join(
             [f"quote[{i}]={anchor.status}: {anchor.reason}" for i, anchor in enumerate(anchors)]
+            + ([f"original_quote[{i}]={anchor.status}: {anchor.reason}"
+                for i, anchor in enumerate(original_anchors)]
+               + ["evidence=separately_selected_verifier_evidence"] if use_verifier_evidence else [])
             + [f"claim={status}: {rationale}",
                f"provenance=deterministic_quote_anchor+{relationship}" if decision else
                "provenance=deterministic_quote_anchor"]

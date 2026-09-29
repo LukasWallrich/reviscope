@@ -1,6 +1,8 @@
 # Naming exploration record
 
-> **Status:** The user rejected this first-round slate and its coarse-adjacent naming direction. The entries below are retained as historical research only. None is an active recommendation.
+> **Selected name: ReviScope.** The user selected ReviScope for the product and the `reviscope` package and command. It presents review as a close, structured examination that serves authors developing manuscripts and peer reviewers preparing rigorous assessments. This selection supersedes every shortlist and provisional recommendation below. It is a product decision, not legal, trademark, domain, or package-name clearance.
+
+The entries below are retained as historical research and decision provenance. None remains an active recommendation.
 
 ## Inputs and provenance
 
@@ -66,13 +68,13 @@ The follow-up ensemble shifted from scholarly annotation and grain metaphors tow
 - **Soundcheck** frames rigorous feedback as a constructive rehearsal before public scrutiny. Its meaning fits the author-support goal, but it is occupied by Spotify's developer-quality product and strongly associated with audio.
 - **Check** states the evidence-verification function most clearly. It is narrower and cooler than the broader development promise, and as a common word would be difficult to distinguish or clear.
 
-These are descriptions of a direction, not finalists. No name has been selected or cleared, and no repository, package, command, profile, or public report has been renamed. The source outputs are preserved in `development-brief.md` and `development-{agy,deepseek,glm,sol}.md`.
+These were descriptions of a direction rather than finalists. At that stage no name had been selected or cleared. The source outputs are preserved in `development-brief.md` and `development-{agy,deepseek,glm,sol}.md`.
 
 ## Superseded author-focused framing — 7 September 2026
 
 **Fuel** was provisionally recommended. The user rejected the following framing as too author-focused and requested a fresh non-Claude ensemble for both author and peer-reviewer use. Suggested descriptor: **constructive review for research in progress**. It expresses the intended outcome—helping authors develop their work—and accommodates discipline-specific modules without putting psychology or social science in the product name. **Check** could be a plain name for the verification component, rather than the whole product.
 
-This is a preference among the development directions already discussed, not a new ensemble result or a name-clearance claim. No rename has been performed.
+This was a preference among the development directions already discussed, not a new ensemble result or a name-clearance claim. It was later superseded by the ReviScope selection.
 
 ## Dual-use ensemble — 7 September 2026
 
@@ -114,4 +116,4 @@ Current creative directions, without selection or clearance:
 
 Suggested common descriptor: **Evidence-informed manuscript review**. Audience line: **For authors and peer reviewers, across disciplines.** These names do not confer objectivity; reports must still distinguish observations, interpretations, and unresolved questions.
 
-A further Sol response is saved in [scope-direction-sol.md](scope-direction-sol.md). Its ReviewScope proposal was not promoted because [ReviewScope already has multiple review-analysis products](https://reviewscope.ai/). No rename was performed.
+A further Sol response is saved in [scope-direction-sol.md](scope-direction-sol.md). Its ReviewScope proposal was not promoted because [ReviewScope already has multiple review-analysis products](https://reviewscope.ai/). This exploration preceded the ReviScope selection.

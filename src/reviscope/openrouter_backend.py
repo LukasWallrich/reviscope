@@ -58,7 +58,7 @@ class OpenRouterBackend(Backend):
             "https://openrouter.ai/api/v1/chat/completions",
             data=json.dumps(payload).encode(),
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
-                     "User-Agent": "coarse-socpsy-evaluation/0.2"},
+                     "User-Agent": "reviscope-evaluation/0.2"},
             method="POST",
         )
         try:

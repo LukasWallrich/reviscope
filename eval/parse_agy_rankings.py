@@ -5,8 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from coarse_socpsy.backend import _extract_json
-from coarse_socpsy.ranking import (ListwiseJudgment, PROMPT_VERSION, _load_manifest,
+from reviscope.backend import _extract_json
+from reviscope.ranking import (ListwiseJudgment, PROMPT_VERSION, _load_manifest,
                                     rank_once, summarize_rankings)
 
 

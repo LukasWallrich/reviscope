@@ -1,4 +1,4 @@
-from coarse_socpsy.cli import parser
+from reviscope.cli import parser
 
 
 def test_verifier_effort_can_override_generation_effort():

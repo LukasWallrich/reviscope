@@ -1,6 +1,6 @@
 import pytest
 
-from coarse_socpsy.profiles import ProfileError, available_profiles, load_profile, load_profile_path
+from reviscope.profiles import ProfileError, available_profiles, load_profile, load_profile_path
 
 
 def test_social_psychology_inherits_base_protocols():

@@ -93,6 +93,7 @@ class ReviewPipeline:
             raise ValueError("max_findings must be positive")
         self.max_findings = max_findings
         self.profile, self.profile_hash = _load_profile(profile)
+        self.deep_discovery = bool(self.profile.metadata.get("coverage_first", False))
 
     @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
@@ -167,11 +168,36 @@ class ReviewPipeline:
             excerpt = next(source for source in sources if source.kind == "manuscript").text.strip()[:300]
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
-        for module in self.profile.modules:
+        calculation_evidence = ""
+        if self.deep_discovery and not insufficient:
+            from . import discovery
+            from .discovery import CALCULATION_PROMPT, CalculationPlan, CalculationReport, execute_plan
+            try:
+                plan, stage = self._cached(out, "calculation-plan", {"sources": input_hash, "instruction_hash": _hash(SYSTEM_GUARD + CALCULATION_PROMPT)}, CalculationPlan,
+                                           lambda: self.backend.generate(CALCULATION_PROMPT, evidence, CalculationPlan))
+                run.stages.append(stage)
+                report, stage = self._cached(out, "calculations", {"plan": plan.model_dump(), "sources": input_hash, "calculator": "bounded-scalar-v1", "implementation_hash": _hash(Path(discovery.__file__).read_text())}, CalculationReport,
+                                             lambda: execute_plan(plan, sources))
+                run.stages.append(stage)
+                calculation_evidence = "\nBOUNDED CALCULATIONS (check assumptions; not claim verification)\n" + report.model_dump_json()
+                run.coverage.extend(f"calculation {r.request.id}: {r.status}" for r in report.results)
+                run.coverage.extend(f"calculation unavailable: {reason}" for reason in report.not_checkable)
+                if not report.results:
+                    run.coverage.append("bounded calculations: no requests; this does not establish numerical coverage")
+            except Exception as exc:
+                run.partial = True
+                run.stages.append(StageRecord(name="calculations", status="failed", error=f"{type(exc).__name__}: {exc}"))
+                run.coverage.append("bounded calculations: unavailable")
+                self.progress(f"calculations: failed ({type(exc).__name__})")
+        modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
+        for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
                 continue
             prompt = self.profile.module_prompts.get(module)
+            if module == "blind_spots" and self.deep_discovery:
+                prompt = "Perform one blind-spot audit of the full manuscript against the existing candidate inventory and coverage ledger. Treat earlier findings as unverified leads, not facts. Search for overlooked claims, mechanisms, numerical assumptions and consequential omissions. Return only substantively new findings; do not paraphrase existing issues. Do not manufacture problems to fill gaps."
+
             if not prompt:
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (profile has no prompt)")
@@ -179,14 +205,45 @@ class ReviewPipeline:
                 continue
             try:
                 module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
+                module_evidence += calculation_evidence
+                if module == "blind_spots":
+                    module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
+                    module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
+                    module_evidence += "\nEXISTING DEFERRED TOOL CHECKS (avoid duplicates)\n" + _canonical([c.model_dump() for c in run.deferred_tool_checks])
                 severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
                 suffix = f"\nReturn zero to five prioritized findings. Every finding must cite exact evidence and use a valid SOURCE_ID. Severity guidance: {severity_rules}. Missing information alone cannot be major or critical without a demonstrated material consequence. If the supplied material is thin or incomplete, return zero findings outside the contribution module rather than generating generic requests."
                 final_instruction = prompt + suffix
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(run.study_map.model_dump()), "instruction_hash": _hash(SYSTEM_GUARD + final_instruction)}, FindingsResponse, lambda p=final_instruction, e=module_evidence: self.backend.generate(p, e, FindingsResponse))
+                response_type = FindingsResponse
+                if self.deep_discovery:
+                    from .discovery import DiscoveryResponse, discovery_instruction, validate_discovery
+                    final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
+                    response_type = DiscoveryResponse
+                def generate_findings(p=final_instruction, e=module_evidence, t=response_type, m=module):
+                    value = self.backend.generate(p, e, t)
+                    if self.deep_discovery:
+                        raw_dir = out / "raw-discovery"
+                        raw_dir.mkdir(exist_ok=True)
+                        raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": t.model_json_schema()})
+                        raw_path = raw_dir / f"{m}-{raw_key}.json"
+                        raw_path.write_text(value.model_dump_json(indent=2), encoding="utf-8")
+                        return validate_discovery(value, m, sources)
+                    return value
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(SYSTEM_GUARD + final_instruction)}, response_type, generate_findings)
+                if self.deep_discovery:
+                    result = validate_discovery(result, module, sources)
+                    from .verification import verify_quote
+                    for check in result.deferred_tool_checks:
+                        anchored = all(verify_quote(e.quote, [s.model_dump() for s in sources], e.source_id).status == "supported" for e in check.evidence)
+                        run.deferred_tool_checks.append(check.model_copy(update={"module": module, "anchor_status": "anchored" if anchored else "unanchored"}))
+                    run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
+                    if result.search_incomplete or len(result.findings) == 20 or any(c.status == "not_checked" for c in result.checks):
+                        run.partial = True
+                        run.coverage.append(f"{module}: discovery incomplete or resource ceiling reached")
                 for position, finding in enumerate(result.findings):  # type: ignore[attr-defined]
                     run.candidates.append(finding.model_copy(update={"id": f"{module}:{position}:{finding.id or 'finding'}", "module": module, "status": "candidate", "confidence": None, "verification": None, "remedy_status": None, "remedy_verification": None, "editorial_disposition": "publish", "editorial_reason": None, "merged_into": None}))
                 run.stages.append(stage)
-                run.coverage.append(f"{module}: assessed")
+                if not self.deep_discovery:
+                    run.coverage.append(f"{module}: assessed")
             except Exception as exc:
                 self.progress(f"review-{module}: failed ({type(exc).__name__})")
                 run.partial = True
@@ -231,7 +288,7 @@ class ReviewPipeline:
                 compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim, "remedy": f.remedy, "quoted_evidence": [e.model_dump() for e in f.evidence]} for f in pending]
                 instruction = "Run a separate verification pass for each criticism using only its claim, proposed remedy, quoted evidence, and the untrusted sources. Actively seek defeating context. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include at least one separately selected exact quotation with its valid source_id in evidence; supported with empty evidence is forbidden. Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
                 verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt
-                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), "instruction_hash": _hash(SYSTEM_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse), self.verifier_backend.identity)
+                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), **({"calculation_evidence": _hash(calculation_evidence)} if self.deep_discovery else {}), "instruction_hash": _hash(SYSTEM_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence + calculation_evidence, VerificationResponse), self.verifier_backend.identity)
                 verification_artifact = stage.artifact
                 decisions = {}
                 for decision in verification.decisions:  # type: ignore[attr-defined]

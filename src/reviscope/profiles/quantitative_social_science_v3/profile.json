@@ -1,0 +1,12 @@
+{
+  "id": "quantitative_social_science_v3",
+  "name": "Quantitative Social Science V3",
+  "status": "development_v3",
+  "extends": "quantitative_social_science_v2",
+  "modules": [],
+  "metadata": {
+    "validated": false,
+    "version": "0.3.0-dev",
+    "coverage_first": true
+  }
+}

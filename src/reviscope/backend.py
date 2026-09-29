@@ -71,7 +71,7 @@ class SubprocessBackend(Backend):
     def _run(self, prompt: str, response_model: type[T]) -> str:
         safe_env = {key: value for key, value in os.environ.items() if key in {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "CODEX_HOME", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "TMPDIR", "LANG", "LC_ALL"}}
         safe_env["NO_COLOR"] = "1"
-        with tempfile.TemporaryDirectory(prefix="coarse-socpsy-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="reviscope-") as tmp:
             command = list(self.command)
             output_path = Path(tmp) / "last-message.json"
             if self.name == "codex":
@@ -115,7 +115,7 @@ class CodexBackend(SubprocessBackend):
 
 class ClaudeBackend(SubprocessBackend):
     def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None):
-        cmd = ["claude", "-p", "--output-format", "text", "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--permission-prompts", "none"]
+        cmd = ["claude", "-p", "--output-format", "text", "--tools", "", "--strict-mcp-config", "--permission-prompts", "none"]
         if model:
             cmd.extend(["--model", model])
         if effort:

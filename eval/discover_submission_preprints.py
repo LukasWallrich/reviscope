@@ -22,7 +22,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
-USER_AGENT = "coarse-socpsy-preprint-discovery/0.1"
+USER_AGENT = "reviscope-preprint-discovery/0.1"
 PSYARXIV_PREFIXES = ("10.31234", "10.31219")
 
 

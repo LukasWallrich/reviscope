@@ -1,6 +1,6 @@
 # Architecture
 
-coarse-socpsy is an independent, coarse-inspired manuscript review engine. It does not import or monkey-patch the coarse pipeline. David Van Dijcke's coarse project provided the architectural starting point: staged review, source quotations, verification, and editorial synthesis. See THIRD_PARTY_NOTICES.md for precise component provenance.
+ReviScope is an independent, coarse-inspired manuscript review engine. It does not import or monkey-patch the coarse pipeline. David Van Dijcke's coarse project provided the architectural starting point: staged review, source quotations, verification, and editorial synthesis. See THIRD_PARTY_NOTICES.md for precise component provenance.
 
 ## Boundaries
 

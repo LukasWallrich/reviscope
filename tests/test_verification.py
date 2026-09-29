@@ -1,5 +1,7 @@
-from coarse_socpsy.schemas import Evidence, Finding, PageText, SourceDocument
-from coarse_socpsy.verification import verify_findings, verify_quote
+import pytest
+
+from reviscope.schemas import Evidence, Finding, PageText, SourceDocument
+from reviscope.verification import verify_findings, verify_quote
 
 
 def source(text="The multi-\nlevel estimate was −0.25 (SE = 0.10)."):
@@ -92,3 +94,36 @@ def test_deterministic_provenance_replaces_model_page_and_location():
 
 def test_numeric_sign_and_effect_change_cannot_anchor():
     assert verify_quote("estimate was +0.25", [source().model_dump()], "main").status == "unanchored"
+
+
+def test_valid_verifier_evidence_rescues_bad_generator_quotes_with_fresh_locations():
+    finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
+                      evidence=[Evidence(source_id="main", quote="estimate was 99")])
+    original = finding.model_dump()
+    decision = {"f1": {"status": "supported", "rationale": "Checked against source",
+                       "evidence": [{"source_id": "main", "quote": "SE = 0.10", "page": 999,
+                                     "location": "invented", "source_char_start": 999}]}}
+    result = verify_findings([finding], [source()], decision)[0]
+    assert result.status == "llm_supported"
+    assert [item.quote for item in result.evidence] == ["SE = 0.10"]
+    ev = result.evidence[0]
+    assert ev.page == 4
+    assert source().text[ev.source_char_start:ev.source_char_end] == ev.quote
+    assert ev.location == f"source characters {ev.source_char_start}:{ev.source_char_end}"
+    assert "original_quote[0]=unanchored" in result.verification
+    assert finding.model_dump() == original
+
+
+@pytest.mark.parametrize("evidence", [
+    [], None, [None], [{"quote": "SE = 0.10"}],
+    [{"source_id": "other", "quote": "SE = 0.10"}],
+    [{"source_id": "main", "quote": "SE = 0.20"}],
+    [{"source_id": "main", "quote": "SE = 0.10"}, None],
+    [{"source_id": "main", "quote": "SE = 0.10"}, {"source_id": "main", "quote": "invented"}],
+])
+@pytest.mark.parametrize("original_quote", ["invented", "SE = 0.10"])
+def test_invalid_replacement_evidence_cannot_approve(evidence, original_quote):
+    finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
+                      evidence=[Evidence(source_id="main", quote=original_quote)])
+    decision = {"f1": {"status": "supported", "evidence": evidence}}
+    assert verify_findings([finding], [source()], decision)[0].status == "unresolved"

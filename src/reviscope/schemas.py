@@ -73,6 +73,19 @@ class Finding(BaseModel):
     merged_into: str | None = None
 
 
+class DeferredToolCheck(BaseModel):
+    question: str = Field(min_length=1)
+    capability: Literal["calculation", "data_analysis", "document_retrieval", "reference_lookup", "figure_inspection", "other"]
+    proposed_action: str = Field(min_length=1)
+    required_inputs: list[str] = Field(min_length=1)
+    expected_review_impact: str = Field(min_length=1)
+    stopping_rule: str = Field(min_length=1)
+    priority: Literal["high", "medium", "low"]
+    evidence: list[Evidence] = Field(min_length=1)
+    module: str = ""
+    anchor_status: Literal["unchecked", "anchored", "unanchored"] = "unchecked"
+
+
 class StageRecord(BaseModel):
     name: str
     status: Literal["completed", "cached", "failed", "skipped"]
@@ -109,6 +122,7 @@ class ReviewRun(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)
     coverage: list[str] = Field(default_factory=list)
+    deferred_tool_checks: list[DeferredToolCheck] = Field(default_factory=list)
     partial: bool = False
 
 

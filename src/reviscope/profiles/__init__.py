@@ -14,7 +14,7 @@ class ProfileError(ValueError):
     """Raised when a discipline profile is invalid or cannot be resolved."""
 
 
-_RESOURCE_ROOT = files("coarse_socpsy.profiles")
+_RESOURCE_ROOT = files("reviscope.profiles")
 
 
 def available_profiles() -> tuple[str, ...]:

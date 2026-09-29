@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from coarse_socpsy.backend import FixtureBackend
-from coarse_socpsy.ingest import ingest
-from coarse_socpsy.pipeline import ReviewPipeline
-from coarse_socpsy.schemas import Profile
-from coarse_socpsy.pipeline import FindingsResponse
-from coarse_socpsy.render import to_html, to_markdown
+from reviscope.backend import FixtureBackend
+from reviscope.ingest import ingest
+from reviscope.pipeline import ReviewPipeline
+from reviscope.schemas import Profile
+from reviscope.pipeline import FindingsResponse
+from reviscope.render import to_html, to_markdown
 from pydantic import ValidationError
 import pytest
 

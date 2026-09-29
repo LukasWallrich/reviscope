@@ -1,4 +1,4 @@
-from coarse_socpsy.checks import run_statistical_checks
+from reviscope.checks import run_statistical_checks
 
 
 def test_checks_supported_statistics_and_reports_coverage():

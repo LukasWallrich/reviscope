@@ -1,4 +1,4 @@
-from coarse_socpsy.ranking import CRITERIA, ListwiseJudgment, _complete_presentations, aggregate_command, rank_once, summarize_rankings
+from reviscope.ranking import CRITERIA, ListwiseJudgment, _complete_presentations, aggregate_command, rank_once, summarize_rankings
 
 
 def criteria():
@@ -74,7 +74,7 @@ def test_aggregate_rejects_duplicate_judge_and_partial_input(tmp_path):
 
 def test_ranking_resume_calls_only_missing_presentations(tmp_path, monkeypatch):
     import json
-    import coarse_socpsy.ranking as module
+    import reviscope.ranking as module
     reviews = [{"id": f"r{i}", "kind": "human" if i < 4 else "ai",
                 "generator_model": None if i < 4 else "m", "text": str(i)} for i in range(7)]
     monkeypatch.setattr(module, "_load_manifest", lambda _path: ("p", "manuscript", reviews, "original"))

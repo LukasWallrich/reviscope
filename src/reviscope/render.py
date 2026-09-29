@@ -30,6 +30,14 @@ def to_markdown(run: ReviewRun) -> str:
             lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
         lines.append("")
     lines.extend(["## Coverage and audit", ""])
+    if run.deferred_tool_checks:
+        lines.extend(["### Deferred tool checks — not executed", "", "These are proposed checks, not manuscript findings or verified problems.", ""])
+        for check in run.deferred_tool_checks:
+            lines.extend([f"- [{check.priority}; {check.capability}; {check.module}; source {check.anchor_status}] {check.question}",
+                          f"  Proposed action: {check.proposed_action}",
+                          f"  Required inputs: {'; '.join(check.required_inputs)}",
+                          f"  Possible review impact: {check.expected_review_impact}",
+                          f"  Stop when: {check.stopping_rule}", ""])
     lines.extend(f"- {item}" for item in run.coverage)
     lines.append("")
     for stage in run.stages:

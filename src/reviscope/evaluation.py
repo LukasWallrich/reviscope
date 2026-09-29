@@ -597,7 +597,7 @@ def _command(args: argparse.Namespace) -> int:
 def _download_public(url: str, timeout: int) -> bytes:
     """Download a public artifact with an explicit research-client identity."""
     request = urllib.request.Request(url, headers={
-        "User-Agent": "coarse-socpsy-evaluation/0.1 (+https://github.com/)",
+        "User-Agent": "reviscope-evaluation/0.1 (+https://github.com/)",
         "Accept": "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,*/*",
     })
     try:
@@ -689,7 +689,7 @@ def register(subparsers: Any) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="coarse-socpsy-eval")
+    parser = argparse.ArgumentParser(prog="reviscope-eval")
     register(parser.add_subparsers(dest="command", required=True))
     args = parser.parse_args(["evaluate", *(list(argv) if argv is not None else sys.argv[1:])])
     return args.func(args)

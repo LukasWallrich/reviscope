@@ -55,7 +55,7 @@ Release reports must state corpus size, eligibility rules, exclusions, judge con
 Materialize the eligible pairs and verify their recorded hashes:
 
 ```bash
-python -m coarse_socpsy.evaluation fetch-corpus \
+python -m reviscope.evaluation fetch-corpus \
   eval/corpus/open_peer_review.v1.json eval/corpus/cache \
   --output runs/eval/corpus-fetch.json
 ```
@@ -63,7 +63,7 @@ python -m coarse_socpsy.evaluation fetch-corpus \
 After extracting the exact manuscript and public review to text, compare it with a candidate pipeline `review.json`. The command always evaluates both presentation orders and caches only a complete successful result:
 
 ```bash
-python -m coarse_socpsy.evaluation compare --paper-id PAPER_ID \
+python -m reviscope.evaluation compare --paper-id PAPER_ID \
   --manuscript manuscript.txt --candidate review.json --reference human-review.txt --reference-kind human_review \
   --backend claude --model MODEL --effort max --output runs/eval/comparison.json
 ```

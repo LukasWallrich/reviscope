@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from coarse_socpsy.evaluation import (
+from reviscope.evaluation import (
     aggregate_pairwise,
     audit_summary,
     build_pairwise_cases,
@@ -92,12 +92,12 @@ def test_core_backend_protocol_and_failure_capture():
     paper = {"paper_id": "p", "manuscript": "m", "candidate_review": "Backend: codex\nreview", "reference_review": "h"}
     cases = build_pairwise_cases([paper], order_swap=False)
     assert not cases[0].review_a.startswith("Backend:") and not cases[0].review_b.startswith("Backend:")
-    from coarse_socpsy.evaluation import run_comparisons
+    from reviscope.evaluation import run_comparisons
     result = asyncio.run(run_comparisons(cases, Backend()))
     assert len(result["judgments"]) == 1
     assert result["invalid"] == []
 
-    from coarse_socpsy.evaluation import JudgeOutput
+    from reviscope.evaluation import JudgeOutput
     schema = JudgeOutput.model_json_schema()
     assert schema["properties"]["criteria"]["type"] == "array"
 
@@ -147,8 +147,8 @@ def test_read_canonical_review_hides_provenance(tmp_path):
     assert "codex" not in text and "Claim" in text and "Fix" in text
     assert "Two-study design" in text and "New test" in text and "Clear question" in text
 
-    from coarse_socpsy.render import to_markdown
-    from coarse_socpsy.schemas import ReviewRun, RunMetadata
+    from reviscope.render import to_markdown
+    from reviscope.schemas import ReviewRun, RunMetadata
     run = ReviewRun(metadata=RunMetadata(run_id="x", backend="codex", model="luna", profile="social",
                     profile_hash="p", input_hash="i", output_dir="o"), sources=[])
     rendered = tmp_path / "rendered.md"
@@ -166,7 +166,7 @@ def test_comparison_records_partial_invalid_order():
             raise RuntimeError("judge unavailable")
         return {"winner": "tie", "confidence": .5, "rationale": "insufficient difference"}
     paper = {"paper_id": "p", "manuscript": "m", "candidate_review": "c", "reference_review": "r"}
-    from coarse_socpsy.evaluation import run_comparisons
+    from reviscope.evaluation import run_comparisons
     result = asyncio.run(run_comparisons(build_pairwise_cases([paper]), flaky))
     assert len(result["judgments"]) == 1
     assert result["invalid"][0]["case_id"].endswith("order-2")

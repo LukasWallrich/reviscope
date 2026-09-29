@@ -6,12 +6,12 @@ from docx import Document
 import pytest
 from pydantic import BaseModel
 
-from coarse_socpsy.backend import Backend, FixtureBackend
-from coarse_socpsy.ingest import ingest
-from coarse_socpsy.pipeline import ReviewPipeline
-from coarse_socpsy.render import to_html
-from coarse_socpsy.render import to_markdown
-from coarse_socpsy.schemas import Evidence, Finding, Profile, StudyMap
+from reviscope.backend import Backend, FixtureBackend
+from reviscope.ingest import ingest
+from reviscope.pipeline import ReviewPipeline
+from reviscope.render import to_html
+from reviscope.render import to_markdown
+from reviscope.schemas import Evidence, Finding, Profile, StudyMap
 
 
 class ScriptedBackend(Backend):
@@ -86,6 +86,30 @@ def test_model_cannot_forge_recomputed_status_and_duplicate_ids_are_namespaced(t
     assert len({item.id for item in run.candidates}) == 2
     assert all(item.status == "candidate" for item in run.candidates)
     assert all(item.status == "llm_supported" for item in run.findings)
+
+
+def test_corrected_verifier_quotes_reach_editorial_and_published_output(tmp_path):
+    import json
+
+    paper = manuscript(tmp_path)
+    rows = _fix_source_ids([finding()], ingest(paper).id)
+    rows[0]["evidence"][0]["quote"] = "Invented generator quotation."
+
+    def editorial(instruction):
+        findings = json.loads(instruction.split("\nFINDINGS\n", 1)[1])
+        assert findings[0]["status"] == "llm_supported"
+        assert findings[0]["evidence"][0]["quote"] == "Quoted source sentence."
+        return [{"finding_id": findings[0]["id"], "disposition": "keep", "reason": "Supported"}]
+
+    generator = ScriptedBackend(modules={"RUN a": rows}, editorial=editorial)
+    run = ReviewPipeline(generator, profile("a"), ScriptedBackend(verify=support_all)).run(
+        paper, output_dir=tmp_path / "out")
+    assert not run.partial
+    assert run.findings[0].editorial_disposition == "publish"
+    assert run.candidates[0].evidence[0].quote == "Invented generator quotation."
+    published = to_markdown(run).split("## Coverage and audit", 1)[0]
+    assert "Quoted source sentence." in published
+    assert "Invented generator quotation." not in published
 
 
 @pytest.mark.parametrize("mode", ["unknown", "duplicate", "missing"])

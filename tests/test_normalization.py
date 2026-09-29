@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from coarse_socpsy.normalization import (
+from reviscope.normalization import (
     InventoryAudit,
     ReviewInventory,
     audit_inventory,
@@ -68,7 +68,7 @@ def test_audit_rejects_inventory_from_different_review():
 
 
 def test_cli_registers_normalize_review():
-    from coarse_socpsy.cli import parser
+    from reviscope.cli import parser
     args = parser().parse_args(["normalize-review", "create", "--review", "r.txt", "--output", "o.json",
                                 "--backend", "openrouter", "--model", "z-ai/glm-5.3-flash"])
     assert args.max_tokens == 6000

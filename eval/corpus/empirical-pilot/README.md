@@ -5,7 +5,7 @@ URLs, version evidence, hashes, and licensing qualifications. Downloaded source
 files live in the ignored `eval/corpus/cache/empirical-pilot/` tree.
 
 Files under `human-reviews/` are held-out evaluation references. Never pass
-that directory or its contents to `coarse-socpsy review`; generation receives
+that directory or its contents to `reviscope review`; generation receives
 only the file under `manuscript/`.
 
 The Sætrevik–Sjåstad pair is a completed empirical report with two experiments,

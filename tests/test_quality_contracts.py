@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 import re
 
-from coarse_socpsy.backend import Backend
-from coarse_socpsy.pipeline import ReviewPipeline
-from coarse_socpsy.profiles import load_profile
-from coarse_socpsy.schemas import Evidence, Finding, Profile, StudyMap
+from reviscope.backend import Backend
+from reviscope.pipeline import ReviewPipeline
+from reviscope.profiles import load_profile
+from reviscope.schemas import Evidence, Finding, Profile, StudyMap
 
 
 _DEFAULT_OVERVIEW = object()

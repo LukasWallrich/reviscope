@@ -25,7 +25,7 @@ JOURNALS = {
     "Journal of Community Psychology": "1520-6629",
     "BMC Psychology": "2050-7283",
 }
-AGENT = "coarse-socpsy-preprint-discovery/0.1"
+AGENT = "reviscope-preprint-discovery/0.1"
 CACHE = Path("eval/corpus/cache/crossref-psychology-discovery")
 
 

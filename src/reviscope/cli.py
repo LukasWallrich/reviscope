@@ -14,7 +14,7 @@ from .profiles import available_profiles
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="coarse-socpsy", description="Auditable social-science manuscript review")
+    p = argparse.ArgumentParser(prog="reviscope", description="Auditable social-science manuscript review")
     sub = p.add_subparsers(dest="command", required=True)
     profiles = sub.add_parser("profiles", help="list bundled discipline profiles")
     profiles.set_defaults(func=lambda _args: _print_profiles())

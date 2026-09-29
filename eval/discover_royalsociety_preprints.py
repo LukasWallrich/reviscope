@@ -43,7 +43,7 @@ def date_parts(item: dict) -> str | None:
 def get(url: str, params: dict[str, object] | None = None) -> tuple[int, str]:
     if params:
         url = f"{url}?{urlencode(params)}"
-    request = Request(url, headers={"User-Agent": "coarse-socpsy-corpus-discovery/0.1"})
+    request = Request(url, headers={"User-Agent": "reviscope-corpus-discovery/0.1"})
     try:
         with urlopen(request, timeout=60) as response:
             return response.status, response.read().decode("utf-8")

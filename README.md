@@ -1,8 +1,15 @@
-# coarse-socpsy
+# ReviScope
+
+> **EARLY WORK IN PROGRESS — NOT VALIDATED FOR REAL-WORLD USE.** ReviScope is experimental research software. Its reviews can miss serious problems, invent or misstate criticisms, and express unjustified confidence. It has not been validated as a substitute for qualified human peer review and should not be used to make editorial, funding, employment, clinical, or other consequential decisions. Do not submit confidential or unpublished manuscripts unless you have checked that your use of the selected model service is authorized and appropriate for that material. Interfaces, profiles, and results may change without notice.
 
 An independent, modular manuscript-review alpha for quantitative social science, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
 The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
+
+The experimental `social_psychology_v3` profile adds coverage-first discovery,
+genre-aware interpretation, one blind-spot audit and a bounded numerical tool.
+Use `--profile social_psychology_v3` to try it; the baseline default remains v2
+pending evaluation. See [the v3 contract](docs/DISCOVERY_V3.md).
 
 ## Install and run
 
@@ -10,8 +17,8 @@ Requires Python 3.11+, and an authenticated Codex CLI or Claude CLI for model-ba
 
 ```bash
 uv sync --extra dev
-uv run coarse-socpsy profiles
-uv run coarse-socpsy review paper.pdf \
+uv run reviscope profiles
+uv run reviscope review paper.pdf \
   --backend codex --model gpt-5.6-luna --effort max \
   --supplement appendix.pdf --preregistration registration.md \
   --timeout 1800 --out runs/paper
@@ -24,7 +31,7 @@ Use `--verifier-backend claude --verifier-model fable` for a different-family ve
 A deterministic installation demonstration needs no model or credentials:
 
 ```bash
-uv run coarse-socpsy review examples/demo_manuscript.md \
+uv run reviscope review examples/demo_manuscript.md \
   --backend fixture --out runs/offline-demo
 ```
 
@@ -43,54 +50,54 @@ Exit status is 0 for successful commands, 1 for invalid input, and 2 for a parti
 Copy [the external profile example](examples/education_profile) and change its `profile.json`, generation protocols, verification protocols, and editorial rules. It can inherit from a bundled profile:
 
 ```bash
-uv run coarse-socpsy review paper.md \
+uv run reviscope review paper.md \
   --profile examples/education_profile --out runs/custom-review
 ```
 
-Inherit from `quantitative_social_science_v2` to reuse the revised authored methods, verification, severity, and editorial rules. These rules passed engineering and adversarial prompt review but have not established scientific validity. Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/coarse_socpsy/profiles).
+Inherit from `quantitative_social_science_v2` to reuse the revised authored methods, verification, severity, and editorial rules. These rules passed engineering and adversarial prompt review but have not established scientific validity. Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/reviscope/profiles).
 
 ## Evaluate
 
 The included [corpus manifest](eval/corpus/open_peer_review.v1.json) records two version-matched Meta-Psychology manuscript/review pairs, plus Communications Psychology leads whose original reviewed versions remain unverified. The matched papers are methods-heavy technical cases, not a representative social-psychology benchmark.
 
 ```bash
-uv run coarse-socpsy evaluate check eval/corpus/open_peer_review.v1.json
-uv run coarse-socpsy evaluate fetch-corpus \
+uv run reviscope evaluate check eval/corpus/open_peer_review.v1.json
+uv run reviscope evaluate fetch-corpus \
   eval/corpus/open_peer_review.v1.json eval/corpus/cache \
   --output runs/eval/corpus-fetch.json
-uv run coarse-socpsy evaluate compare --paper-id PAPER_ID \
+uv run reviscope evaluate compare --paper-id PAPER_ID \
   --manuscript manuscript.txt --candidate runs/paper/review.json \
   --reference human-review.txt --reference-kind human_review \
   --backend claude --model fable \
   --effort high --timeout 1800 --output runs/eval/comparison.json
 ```
 
-Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run coarse-socpsy evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.
+Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run reviscope evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.
 
 ### Normalize and rank review pools
 
 `normalize-review` supports a sensitivity analysis in which every source review is converted to the same assessment schema. Create an inventory, audit it with a different model family, and optionally allow one audit-guided revision:
 
 ```bash
-uv run coarse-socpsy normalize-review create \
+uv run reviscope normalize-review create \
   --review human-review.txt --output runs/eval/human.normalized.json \
   --backend openrouter --model z-ai/glm-5.3-flash \
   --max-issues 40 --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
 
-uv run coarse-socpsy normalize-review audit \
+uv run reviscope normalize-review audit \
   --review human-review.txt --inventory runs/eval/human.normalized.json \
   --output runs/eval/human.audit.json \
   --backend claude --model fable --effort high \
   --timeout 900
 
-uv run coarse-socpsy normalize-review revise \
+uv run reviscope normalize-review revise \
   --review human-review.txt --inventory runs/eval/human.normalized.json \
   --audit runs/eval/human.audit.json \
   --output runs/eval/human.normalized-revised.json \
   --backend openrouter --model z-ai/glm-5.3-flash \
   --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
 
-uv run coarse-socpsy normalize-review audit \
+uv run reviscope normalize-review audit \
   --review human-review.txt --inventory runs/eval/human.normalized-revised.json \
   --output runs/eval/human.final-audit.json \
   --backend claude --model fable --effort high \
@@ -104,19 +111,19 @@ An audit failure returns exit status 2. A normalized comparison is eligible only
 `rank-reviews` evaluates a bounded pool of 2–12 reviews for one manuscript in seeded, blinded orders. Its JSON manifest records `paper_id`, `manuscript`, `condition`, optional `expected_composition`, and review rows with unique `id`, `kind`, `path`, and `generator_model` for AI reviews. Run each judge family separately, then aggregate only compatible complete outputs:
 
 ```bash
-uv run coarse-socpsy rank-reviews \
+uv run reviscope rank-reviews \
   --manifest eval/corpus/review-pool.json \
   --output runs/eval/ranks-fable.json \
   --backend claude --model fable --effort high \
   --presentations 3 --seed 20260907 --timeout 900
 
-uv run coarse-socpsy rank-reviews \
+uv run reviscope rank-reviews \
   --manifest eval/corpus/review-pool.json \
   --output runs/eval/ranks-sol.json \
   --backend codex --model gpt-5.6-sol --effort high \
   --presentations 3 --seed 20260907 --timeout 900
 
-uv run coarse-socpsy aggregate-review-ranks \
+uv run reviscope aggregate-review-ranks \
   runs/eval/ranks-fable.json runs/eval/ranks-sol.json \
   --output runs/eval/ranks-combined.json
 ```
@@ -125,7 +132,7 @@ Presentations and judges are repeated measurements of one paper, not additional 
 
 The [small pilot evaluation](docs/PILOT_EVALUATION.md) records observed real-paper results and limitations. It does not establish general human-equivalent performance or a low false-claim rate. LLM judging, known-error detection, and sampled human auditing answer different questions.
 
-The public project name remains undecided. [Naming exploration](docs/naming/SHORTLIST.md) preserves rejected historical directions and the current development-oriented discussion; no candidate is selected or cleared.
+The project is named **ReviScope**: evidence-grounded manuscript review for authors and peer reviewers, across disciplines. [Naming exploration](docs/naming/SHORTLIST.md) preserves the rejected and superseded directions that preceded the selection. The name records a product decision, not trademark or package-name clearance.
 
 ## Development and checks
 
