@@ -79,7 +79,7 @@ def test_ranking_resume_calls_only_missing_presentations(tmp_path, monkeypatch):
                 "generator_model": None if i < 4 else "m", "text": str(i)} for i in range(7)]
     monkeypatch.setattr(module, "_load_manifest", lambda _path: ("p", "manuscript", reviews, "original"))
     backend = type("Backend", (), {"identity": "claude:fable:high"})()
-    monkeypatch.setattr(module, "ClaudeBackend", lambda *args: backend)
+    monkeypatch.setattr(module, "ClaudeBackend", lambda *args, **kwargs: backend)
     calls = []
     def fake_rank(_manuscript, rows, _backend, *, paper_id, seed, repetition):
         calls.append(repetition)

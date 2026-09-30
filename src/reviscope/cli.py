@@ -53,13 +53,13 @@ def _review_command(args: argparse.Namespace) -> int:
     elif args.backend == "claude":
         backend = ClaudeBackend(args.model, args.timeout, args.effort)
     else:
-        backend = CodexBackend(args.model or "gpt-5.6-luna", args.timeout, args.effort)
+        backend = CodexBackend(args.model or "gpt-6-luna", args.timeout, args.effort)
     verifier = None
     verifier_effort = args.verifier_effort or args.effort
     if args.verifier_backend == "claude":
         verifier = ClaudeBackend(args.verifier_model, args.timeout, verifier_effort)
     elif args.verifier_backend == "codex":
-        verifier = CodexBackend(args.verifier_model or "gpt-5.6-luna", args.timeout, verifier_effort)
+        verifier = CodexBackend(args.verifier_model or "gpt-6-luna", args.timeout, verifier_effort)
     try:
         output_dir = Path(args.out).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)

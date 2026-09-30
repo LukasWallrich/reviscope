@@ -7,7 +7,7 @@ import re
 import unicodedata
 from typing import Any, Iterable, Literal, Mapping
 
-from .schemas import Evidence, Finding, SourceDocument
+from .schemas import Evidence, ExternalEvidence, Finding, SourceDocument
 
 @dataclass(frozen=True)
 class QuoteVerification:
@@ -92,7 +92,12 @@ def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_
 def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocument],
                     model_results: Mapping[str, Mapping[str, Any]] | None = None,
                     relationship: str = "separate_verification_pass") -> list[Finding]:
-    """Apply anchors and optional separate-pass claim decisions without dropping findings."""
+    """Apply anchors and optional separate-pass claim decisions without dropping findings.
+
+    Only manuscript quotations (`evidence`) are anchored here; a finding needs at least one.
+    External evidence cannot be substring-checked, so once a verifier decision exists the
+    finding carries only the external items the verifier reports having confirmed.
+    """
     source_list = list(sources)
     source_maps = [{"source_id": source.id, "text": source.text} for source in source_list]
     decisions = model_results or {}
@@ -165,11 +170,16 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
                f"provenance=deterministic_quote_anchor+{relationship}" if decision else
                "provenance=deterministic_quote_anchor"]
         )
+        external = ([ExternalEvidence.model_validate(item) for item in decision.get("external_evidence", [])]
+                    if decision else finding.external_evidence)
+        if decision and (finding.external_evidence or external):
+            trace += f"; external_evidence={len(external)} confirmed by verifier ({len(finding.external_evidence)} cited in discovery)"
         remedy_status = (str(decision.get("remedy_status")) if decision and
                          decision.get("remedy_status") in {"supported", "overreaching", "unresolved"} else None)
         remedy_verification = str(decision.get("remedy_rationale", "")) if decision else None
         verified.append(finding.model_copy(update={"status": status, "verification": trace,
                                                    "evidence": grounded_evidence,
+                                                   "external_evidence": external,
                                                    "remedy_status": remedy_status,
                                                    "remedy_verification": remedy_verification}))
     return verified

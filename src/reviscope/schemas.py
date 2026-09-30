@@ -23,6 +23,29 @@ class Evidence(BaseModel):
     source_char_end: int | None = Field(default=None, ge=0)
 
 
+class ExternalEvidence(BaseModel):
+    """A passage from a source outside the supplied documents, found with a tool."""
+
+    url: str | None = None
+    doi: str | None = None
+    quote: str = Field(min_length=1)
+    shows: str = Field(min_length=1)
+
+
+class ToolCall(BaseModel):
+    stage: str = ""
+    backend: str
+    sequence: int = Field(ge=0)
+    kind: Literal["search", "fetch", "exec", "other"]
+    name: str
+    query: str | None = None
+    url: str | None = None
+    command: str | None = None
+    output: str = ""
+    error: bool = False
+    timestamp: datetime
+
+
 class PageText(BaseModel):
     page: int = Field(ge=1)
     text: str
@@ -62,6 +85,7 @@ class Finding(BaseModel):
     remedy: str
     severity: Severity = Severity.major
     evidence: list[Evidence] = Field(default_factory=list)
+    external_evidence: list[ExternalEvidence] = Field(default_factory=list)
     study_id: str | None = None
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)
@@ -73,19 +97,6 @@ class Finding(BaseModel):
     merged_into: str | None = None
 
 
-class DeferredToolCheck(BaseModel):
-    question: str = Field(min_length=1)
-    capability: Literal["calculation", "data_analysis", "document_retrieval", "reference_lookup", "figure_inspection", "other"]
-    proposed_action: str = Field(min_length=1)
-    required_inputs: list[str] = Field(min_length=1)
-    expected_review_impact: str = Field(min_length=1)
-    stopping_rule: str = Field(min_length=1)
-    priority: Literal["high", "medium", "low"]
-    evidence: list[Evidence] = Field(min_length=1)
-    module: str = ""
-    anchor_status: Literal["unchecked", "anchored", "unanchored"] = "unchecked"
-
-
 class StageRecord(BaseModel):
     name: str
     status: Literal["completed", "cached", "failed", "skipped"]
@@ -94,6 +105,7 @@ class StageRecord(BaseModel):
     error: str | None = None
     key_components: dict[str, Any] = Field(default_factory=dict)
     duration_seconds: float | None = Field(default=None, ge=0)
+    tool_calls: list[ToolCall] = Field(default_factory=list)
 
 
 class RunMetadata(BaseModel):
@@ -122,7 +134,6 @@ class ReviewRun(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)
     coverage: list[str] = Field(default_factory=list)
-    deferred_tool_checks: list[DeferredToolCheck] = Field(default_factory=list)
     partial: bool = False
 
 

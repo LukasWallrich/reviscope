@@ -625,9 +625,10 @@ def _validated_resume_rows(prior: Mapping[str, Any], config: Mapping[str, Any], 
 
 def _backend_from_args(args: argparse.Namespace) -> Any:
     from .backend import ClaudeBackend, CodexBackend
+    # Judges read only the supplied manuscript and reviews; web access could reveal the human reviews.
     if args.backend == "claude":
-        return ClaudeBackend(args.model, args.timeout, args.effort)
-    return CodexBackend(args.model, args.timeout, args.effort)
+        return ClaudeBackend(args.model, args.timeout, args.effort, tools=False)
+    return CodexBackend(args.model, args.timeout, args.effort, tools=False)
 
 
 def _add_backend_args(parser: Any) -> None:

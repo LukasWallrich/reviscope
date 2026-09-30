@@ -169,8 +169,9 @@ def _load_manifest(path: Path) -> tuple[str, str, list[dict[str, str]], str]:
 
 def command(args: argparse.Namespace) -> int:
     paper_id, manuscript, reviews, condition = _load_manifest(args.manifest)
-    backend: Backend = (ClaudeBackend(args.model, args.timeout, args.effort) if args.backend == "claude"
-                        else CodexBackend(args.model, args.timeout, args.effort))
+    # Rankers read only the supplied manuscript and reviews; web access could reveal which review is human.
+    backend: Backend = (ClaudeBackend(args.model, args.timeout, args.effort, tools=False) if args.backend == "claude"
+                        else CodexBackend(args.model, args.timeout, args.effort, tools=False))
     config = {"backend": backend.identity, "prompt_version": PROMPT_VERSION, "seed": args.seed,
               "presentations": args.presentations, "condition": condition,
               "content_sha256": hashlib.sha256(json.dumps({"manuscript": manuscript, "reviews": reviews}, sort_keys=True).encode()).hexdigest()}

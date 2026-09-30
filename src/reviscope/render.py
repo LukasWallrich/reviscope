@@ -28,27 +28,33 @@ def to_markdown(run: ReviewRun) -> str:
         for ev in finding.evidence:
             where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
             lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
+        for ext in finding.external_evidence:
+            lines.append(f"> External source: “{ext.quote}” — {ext.url or ext.doi or 'source not recorded'}; shows: {ext.shows}")
         lines.append("")
     lines.extend(["## Coverage and audit", ""])
-    if run.deferred_tool_checks:
-        lines.extend(["### Deferred tool checks — not executed", "", "These are proposed checks, not manuscript findings or verified problems.", ""])
-        for check in run.deferred_tool_checks:
-            lines.extend([f"- [{check.priority}; {check.capability}; {check.module}; source {check.anchor_status}] {check.question}",
-                          f"  Proposed action: {check.proposed_action}",
-                          f"  Required inputs: {'; '.join(check.required_inputs)}",
-                          f"  Possible review impact: {check.expected_review_impact}",
-                          f"  Stop when: {check.stopping_rule}", ""])
     lines.extend(f"- {item}" for item in run.coverage)
     lines.append("")
     for stage in run.stages:
         detail = f": {stage.error}" if stage.error else ""
         lines.append(f"- `{stage.name}` — {stage.status}{detail}")
+    lines.extend(_tool_use(run))
     set_aside = [f for f in run.findings if f not in kept]
     if set_aside:
         lines.extend(["", "### Set-aside findings", ""])
         for finding in set_aside:
             lines.append(f"- `{finding.id}` — epistemic `{finding.status}`, editorial `{finding.editorial_disposition}`: {finding.editorial_reason or finding.verification or 'No reason recorded.'}")
     return "\n".join(lines) + "\n"
+
+
+def _tool_use(run: ReviewRun) -> list[str]:
+    calls = [call for stage in run.stages for call in stage.tool_calls]
+    counts = {kind: sum(call.kind == kind for call in calls) for kind in ("search", "fetch", "exec", "other")}
+    lines = ["", "### Tool use", "", f"{len(calls)} tool calls: " + ", ".join(f"{n} {kind}" for kind, n in counts.items()) + "."]
+    for call in calls:
+        if call.kind in {"search", "fetch"}:
+            target = " ".join(part for part in (call.query and f"“{call.query}”", call.url) if part)
+            lines.append(f"- `{call.stage}` {call.kind}: {target or call.name}{' (refused or failed)' if call.error else ''}")
+    return lines
 
 
 def to_html(markdown: str) -> str:

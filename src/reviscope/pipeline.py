@@ -8,12 +8,12 @@ import time
 from pathlib import Path
 from typing import Callable, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
-from .backend import Backend, CodexBackend, SYSTEM_GUARD
+from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
-from .schemas import Evidence, Finding, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap
+from .schemas import Evidence, ExternalEvidence, Finding, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
 
 
 class FindingsResponse(BaseModel):
@@ -25,6 +25,7 @@ class VerificationDecision(BaseModel):
     status: Literal["supported", "contradicted", "unresolved"]
     rationale: str
     evidence: list[Evidence] = Field(default_factory=list)
+    external_evidence: list[ExternalEvidence] = Field(default_factory=list)
     remedy_status: Literal["supported", "overreaching", "unresolved"] = "unresolved"
     remedy_rationale: str = ""
 
@@ -51,12 +52,26 @@ class EditorialResponse(BaseModel):
     reconciled_overview: ReconciledOverview | None = None
 
 
+TOOL_CALLS = TypeAdapter(list[ToolCall])
+
+
 def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str)
 
 
 def _hash(value: object) -> str:
     return hashlib.sha256(_canonical(value).encode()).hexdigest()
+
+
+def _write_atomic(path: Path, payload: str) -> None:
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.stem}-", suffix=".json", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def _load_profile(profile: str | Path | Profile) -> tuple[Profile, str]:
@@ -86,7 +101,7 @@ class ReviewPipeline:
     STAGE_VERSION = "0.2.0a1"
 
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, max_findings: int = 12):
-        self.backend = backend or CodexBackend(model="gpt-5.6-luna", effort="max")
+        self.backend = backend or CodexBackend(model="gpt-6-luna", effort="max")
         self.verifier_backend = verifier_backend or self.backend
         self.progress = progress or (lambda _: None)
         if max_findings < 1:
@@ -102,29 +117,36 @@ class ReviewPipeline:
             chunks.append(f"SOURCE_ID: {source.id}\nTYPE: {source.kind}\nCONTENT BEGIN\n{source.text}\nCONTENT END")
         return "\n\n".join(chunks)
 
-    def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend_identity: str | None = None) -> tuple[BaseModel, StageRecord]:
-        components = {"stage": name, "version": self.STAGE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend_identity or self.backend.identity, "profile": self.profile_hash}
+    def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
+        """Run or reuse one model stage. Tool calls are stored in a sidecar next to the artifact."""
+        backend = backend or self.backend
+        components = {"stage": name, "version": self.STAGE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend.identity, "profile": self.profile_hash}
         key = _hash(components)
         artifact = out / "stages" / f"{name}-{key}.json"
+        tools_artifact = artifact.with_suffix(".tools.json")
         artifact.parent.mkdir(parents=True, exist_ok=True)
         if artifact.is_file():
             self.progress(f"{name}: cache hit")
-            return model_type.model_validate_json(artifact.read_text()), StageRecord(name=name, status="cached", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=0)
+            calls = TOOL_CALLS.validate_json(tools_artifact.read_bytes()) if tools_artifact.is_file() else []
+            return model_type.model_validate_json(artifact.read_text()), StageRecord(name=name, status="cached", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=0, tool_calls=calls)
         self.progress(f"{name}: started")
         started = time.monotonic()
-        value = fn()
-        payload = value.model_dump_json(indent=2)
-        fd, temporary = tempfile.mkstemp(prefix=f".{name}-", suffix=".json", dir=artifact.parent)
+        backend.take_tool_calls()
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(payload)
-            os.replace(temporary, artifact)
-        finally:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
+            value = fn()
+        except Exception as exc:
+            exc.tool_calls = [call.model_copy(update={"stage": name}) for call in backend.take_tool_calls()]  # type: ignore[attr-defined]
+            raise
+        calls = [call.model_copy(update={"stage": name}) for call in backend.take_tool_calls()]
+        _write_atomic(tools_artifact, TOOL_CALLS.dump_json(calls, indent=2).decode())
+        _write_atomic(artifact, value.model_dump_json(indent=2))
         elapsed = time.monotonic() - started
-        self.progress(f"{name}: completed in {elapsed:.1f}s")
-        return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed)
+        self.progress(f"{name}: completed in {elapsed:.1f}s ({len(calls)} tool calls)")
+        return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, tool_calls=calls)
+
+    def _failed(self, name: str, exc: Exception) -> StageRecord:
+        self.progress(f"{name}: failed ({type(exc).__name__})")
+        return StageRecord(name=name, status="failed", error=f"{type(exc).__name__}: {exc}", tool_calls=getattr(exc, "tool_calls", []))
 
     def run(self, manuscript: str | Path, *, supplements: list[str | Path] | None = None, preregistrations: list[str | Path] | None = None, output_dir: str | Path = "review-run") -> ReviewRun:
         out = Path(output_dir).resolve()
@@ -152,15 +174,14 @@ class ReviewPipeline:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
         verification_artifact: str | None = None
         try:
-            study_instruction = "Extract the research question, claimed contribution, overall design, distinct studies, and concrete evidence-based strengths. Do not make external novelty claims. Anchor claims in exact quotations with valid SOURCE_ID values. This is descriptive synthesis, not fault-finding."
-            result, stage = self._cached(out, "study_map", {"sources": input_hash, "instruction_hash": _hash(SYSTEM_GUARD + study_instruction)}, StudyMap, lambda: self.backend.generate(study_instruction, evidence, StudyMap))
+            study_instruction = "Extract the research question, claimed contribution, overall design, distinct studies, and concrete evidence-based strengths. Describe the contribution as the manuscript claims it; later stages assess novelty. Anchor claims in exact quotations with valid SOURCE_ID values. This is descriptive synthesis, not fault-finding."
+            result, stage = self._cached(out, "study_map", {"sources": input_hash, "instruction_hash": _hash(REVIEW_GUARD + study_instruction)}, StudyMap, lambda: self.backend.generate(study_instruction, evidence, StudyMap))
             run.study_map = result  # type: ignore[assignment]
             run.preliminary_study_map = result.model_copy(deep=True)  # type: ignore[union-attr]
             run.stages.append(stage)
         except Exception as exc:
-            self.progress(f"study_map: failed ({type(exc).__name__})")
             run.partial = True
-            run.stages.append(StageRecord(name="study_map", status="failed", error=f"{type(exc).__name__}: {exc}"))
+            run.stages.append(self._failed("study_map", exc))
         manuscript_chars = sum(len(source.text.strip()) for source in sources if source.kind == "manuscript")
         insufficient = self.backend.name in {"codex", "claude"} and manuscript_chars < 1000 and not any(source.kind != "manuscript" for source in sources)
         if insufficient:
@@ -168,27 +189,6 @@ class ReviewPipeline:
             excerpt = next(source for source in sources if source.kind == "manuscript").text.strip()[:300]
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
-        calculation_evidence = ""
-        if self.deep_discovery and not insufficient:
-            from . import discovery
-            from .discovery import CALCULATION_PROMPT, CalculationPlan, CalculationReport, execute_plan
-            try:
-                plan, stage = self._cached(out, "calculation-plan", {"sources": input_hash, "instruction_hash": _hash(SYSTEM_GUARD + CALCULATION_PROMPT)}, CalculationPlan,
-                                           lambda: self.backend.generate(CALCULATION_PROMPT, evidence, CalculationPlan))
-                run.stages.append(stage)
-                report, stage = self._cached(out, "calculations", {"plan": plan.model_dump(), "sources": input_hash, "calculator": "bounded-scalar-v1", "implementation_hash": _hash(Path(discovery.__file__).read_text())}, CalculationReport,
-                                             lambda: execute_plan(plan, sources))
-                run.stages.append(stage)
-                calculation_evidence = "\nBOUNDED CALCULATIONS (check assumptions; not claim verification)\n" + report.model_dump_json()
-                run.coverage.extend(f"calculation {r.request.id}: {r.status}" for r in report.results)
-                run.coverage.extend(f"calculation unavailable: {reason}" for reason in report.not_checkable)
-                if not report.results:
-                    run.coverage.append("bounded calculations: no requests; this does not establish numerical coverage")
-            except Exception as exc:
-                run.partial = True
-                run.stages.append(StageRecord(name="calculations", status="failed", error=f"{type(exc).__name__}: {exc}"))
-                run.coverage.append("bounded calculations: unavailable")
-                self.progress(f"calculations: failed ({type(exc).__name__})")
         modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
         for module in modules:
             if insufficient:
@@ -205,11 +205,9 @@ class ReviewPipeline:
                 continue
             try:
                 module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
-                module_evidence += calculation_evidence
                 if module == "blind_spots":
                     module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
                     module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
-                    module_evidence += "\nEXISTING DEFERRED TOOL CHECKS (avoid duplicates)\n" + _canonical([c.model_dump() for c in run.deferred_tool_checks])
                 severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
                 suffix = f"\nReturn zero to five prioritized findings. Every finding must cite exact evidence and use a valid SOURCE_ID. Severity guidance: {severity_rules}. Missing information alone cannot be major or critical without a demonstrated material consequence. If the supplied material is thin or incomplete, return zero findings outside the contribution module rather than generating generic requests."
                 final_instruction = prompt + suffix
@@ -228,13 +226,9 @@ class ReviewPipeline:
                         raw_path.write_text(value.model_dump_json(indent=2), encoding="utf-8")
                         return validate_discovery(value, m, sources)
                     return value
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(SYSTEM_GUARD + final_instruction)}, response_type, generate_findings)
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction)}, response_type, generate_findings)
                 if self.deep_discovery:
                     result = validate_discovery(result, module, sources)
-                    from .verification import verify_quote
-                    for check in result.deferred_tool_checks:
-                        anchored = all(verify_quote(e.quote, [s.model_dump() for s in sources], e.source_id).status == "supported" for e in check.evidence)
-                        run.deferred_tool_checks.append(check.model_copy(update={"module": module, "anchor_status": "anchored" if anchored else "unanchored"}))
                     run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
                     if result.search_incomplete or len(result.findings) == 20 or any(c.status == "not_checked" for c in result.checks):
                         run.partial = True
@@ -245,10 +239,9 @@ class ReviewPipeline:
                 if not self.deep_discovery:
                     run.coverage.append(f"{module}: assessed")
             except Exception as exc:
-                self.progress(f"review-{module}: failed ({type(exc).__name__})")
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (stage failed)")
-                run.stages.append(StageRecord(name=f"review-{module}", status="failed", error=f"{type(exc).__name__}: {exc}"))
+                run.stages.append(self._failed(f"review-{module}", exc))
         try:
             from .checks import run_statistical_checks
 
@@ -285,10 +278,10 @@ class ReviewPipeline:
             anchored = verify_findings(run.candidates, sources)
             pending = [f for f in anchored if f.status == "unresolved"]
             if pending:
-                compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim, "remedy": f.remedy, "quoted_evidence": [e.model_dump() for e in f.evidence]} for f in pending]
-                instruction = "Run a separate verification pass for each criticism using only its claim, proposed remedy, quoted evidence, and the untrusted sources. Actively seek defeating context. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include at least one separately selected exact quotation with its valid source_id in evidence; supported with empty evidence is forbidden. Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
+                compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim, "remedy": f.remedy, "quoted_evidence": [e.model_dump() for e in f.evidence], "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in pending]
+                instruction = "Run a separate verification pass for each criticism using its claim, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Actively seek defeating context. Open every cited external source (URL or DOI) and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Return in external_evidence only the external items you confirmed, plus any you found yourself, each with its URL or DOI and an exact quotation from that source. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include at least one separately selected exact quotation with its valid source_id in evidence; supported with empty evidence is forbidden. Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
                 verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt
-                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), **({"calculation_evidence": _hash(calculation_evidence)} if self.deep_discovery else {}), "instruction_hash": _hash(SYSTEM_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence + calculation_evidence, VerificationResponse), self.verifier_backend.identity)
+                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse), self.verifier_backend)
                 verification_artifact = stage.artifact
                 decisions = {}
                 for decision in verification.decisions:  # type: ignore[attr-defined]
@@ -317,10 +310,9 @@ class ReviewPipeline:
             run.metadata.verification_relationship = "not_run"
             if verification_artifact:
                 Path(verification_artifact).unlink(missing_ok=True)
-            self.progress(f"verification: failed ({type(exc).__name__})")
             run.findings = [f.model_copy(update={"status": "unverified", "verification": f"Verification failed: {type(exc).__name__}: {exc}"}) for f in run.candidates]
             run.partial = True
-            run.stages.append(StageRecord(name="verification", status="failed", error=f"{type(exc).__name__}: {exc}"))
+            run.stages.append(self._failed("verification", exc))
         editorial_artifact: str | None = None
         try:
             editorial_input = [f.model_dump() for f in run.findings]
@@ -334,7 +326,7 @@ class ReviewPipeline:
                 stage = StageRecord(name="editorial", status="completed")
             else:
                 instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. Apply the profile's severity guidance when selecting findings; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
-                decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input), "instruction_hash": _hash(SYSTEM_GUARD + instruction)}, EditorialResponse, lambda: self.backend.generate(instruction, "No additional manuscript evidence is supplied at editorial stage.", EditorialResponse))
+                decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse, lambda: self.backend.generate(instruction, "No additional manuscript evidence is supplied at editorial stage.", EditorialResponse))
                 editorial_artifact = stage.artifact
             editorial_rows = decisions.decisions  # type: ignore[attr-defined]
             if not insufficient and self.backend.name != "fixture" and decisions.reconciled_overview is None:  # type: ignore[union-attr]
@@ -431,12 +423,11 @@ class ReviewPipeline:
         except Exception as exc:
             if editorial_artifact:
                 Path(editorial_artifact).unlink(missing_ok=True)
-            self.progress(f"editorial: failed ({type(exc).__name__})")
             run.partial = True
             run.findings = [finding.model_copy(update={"editorial_disposition": "needs_review",
                                                         "editorial_reason": f"Editorial stage failed: {type(exc).__name__}: {exc}",
                                                         "merged_into": None}) for finding in run.findings]
-            run.stages.append(StageRecord(name="editorial", status="failed", error=f"{type(exc).__name__}: {exc}"))
+            run.stages.append(self._failed("editorial", exc))
         self.progress("render: started")
         render_all(run, out)
         self.progress("render: completed")

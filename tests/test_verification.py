@@ -127,3 +127,19 @@ def test_invalid_replacement_evidence_cannot_approve(evidence, original_quote):
                       evidence=[Evidence(source_id="main", quote=original_quote)])
     decision = {"f1": {"status": "supported", "evidence": evidence}}
     assert verify_findings([finding], [source()], decision)[0].status == "unresolved"
+
+
+def test_external_evidence_needs_a_manuscript_anchor_and_verifier_confirmation():
+    external = {"url": "https://doi.org/10.1/x", "doi": None, "quote": "Cited study reports d = 0.2.", "shows": "Cited effect is small."}
+    decision = {"status": "supported", "rationale": "ok", "remedy_status": "supported", "remedy_rationale": "",
+                "evidence": [{"source_id": "main", "quote": "The multilevel estimate was -0.25"}]}
+    only_external = Finding(id="a", module="m", claim="c", rationale="r", remedy="x", external_evidence=[external])
+    anchored = only_external.model_copy(update={"id": "b", "evidence": [Evidence(source_id="main", quote="The multilevel estimate was -0.25")]})
+    result = verify_findings([only_external, anchored], [source()], {
+        "a": {**decision, "evidence": [], "external_evidence": [external]},
+        "b": {**decision, "external_evidence": [external]},
+    })
+    assert result[0].status == "unresolved"
+    assert result[1].status == "llm_supported" and result[1].external_evidence[0].url == external["url"]
+    dropped = verify_findings([anchored], [source()], {"b": {**decision, "external_evidence": []}})[0]
+    assert dropped.status == "llm_supported" and dropped.external_evidence == []

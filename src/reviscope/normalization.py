@@ -255,9 +255,10 @@ def _backend(args: argparse.Namespace) -> Backend:
         from .openrouter_backend import OpenRouterBackend
         return OpenRouterBackend(args.model, timeout=args.timeout, max_tokens=args.max_tokens,
                                  max_cost_usd=args.max_cost_usd)
+    # Normalization restates the supplied review text only.
     if args.backend == "claude":
-        return ClaudeBackend(args.model, args.timeout, args.effort)
-    return CodexBackend(args.model, args.timeout, args.effort)
+        return ClaudeBackend(args.model, args.timeout, args.effort, tools=False)
+    return CodexBackend(args.model, args.timeout, args.effort, tools=False)
 
 
 def _write(payload: Mapping[str, Any], path: Path) -> None:
