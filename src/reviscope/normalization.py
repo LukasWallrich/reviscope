@@ -123,8 +123,6 @@ def _assemble_inventory(review: str, inventory: ReviewInventory, backend: Backen
             "issue_cap_reached": len(inventory.issues) >= max_issues,
         },
     }
-    if hasattr(backend, "calls"):
-        result["model_calls"] = list(backend.calls)
     return result
 
 
@@ -203,8 +201,6 @@ def audit_inventory(review: str, normalized: Mapping[str, Any], backend: Backend
         "comparison_eligible": eligible,
         "normalization": dict(normalized),
     }
-    if hasattr(backend, "calls"):
-        result["model_calls"] = list(backend.calls)
     return result
 
 
@@ -245,16 +241,9 @@ def validate_normalized_pair(candidate: Mapping[str, Any], reference: Mapping[st
     for field in ("normalization_schema_version", "prompt_version", "backend", "max_issues"):
         if left.get(field) != right.get(field):
             raise ValueError(f"normalized comparison inputs differ on {field}")
-    left_calls, right_calls = left.get("model_calls", []), right.get("model_calls", [])
-    if left_calls and right_calls and left_calls[-1].get("resolved_model") != right_calls[-1].get("resolved_model"):
-        raise ValueError("normalized comparison inputs used different resolved models")
 
 
 def _backend(args: argparse.Namespace) -> Backend:
-    if args.backend == "openrouter":
-        from .openrouter_backend import OpenRouterBackend
-        return OpenRouterBackend(args.model, timeout=args.timeout, max_tokens=args.max_tokens,
-                                 max_cost_usd=args.max_cost_usd)
     # Normalization restates the supplied review text only.
     if args.backend == "claude":
         return ClaudeBackend(args.model, args.timeout, args.effort, tools=False)
@@ -310,10 +299,8 @@ def register(subparsers: Any) -> None:
     revise.add_argument("--audit", required=True, type=Path)
     revise.add_argument("--output", required=True, type=Path)
     for child in (create, audit, revise):
-        child.add_argument("--backend", choices=["codex", "claude", "openrouter"], required=True)
+        child.add_argument("--backend", choices=["codex", "claude"], required=True)
         child.add_argument("--model", required=True)
         child.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
         child.add_argument("--timeout", type=int, default=900)
-        child.add_argument("--max-tokens", type=int, default=6000)
-        child.add_argument("--max-cost-usd", type=float, default=0.025)
         child.set_defaults(func=command)

@@ -70,5 +70,5 @@ def test_audit_rejects_inventory_from_different_review():
 def test_cli_registers_normalize_review():
     from reviscope.cli import parser
     args = parser().parse_args(["normalize-review", "create", "--review", "r.txt", "--output", "o.json",
-                                "--backend", "openrouter", "--model", "z-ai/glm-5.3-flash"])
-    assert args.max_tokens == 6000
+                                "--backend", "claude", "--model", "claude-opus-5-5"])
+    assert args.backend == "claude" and args.timeout == 900

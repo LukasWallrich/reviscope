@@ -2,6 +2,8 @@
 
 > **EARLY WORK IN PROGRESS — NOT VALIDATED FOR REAL-WORLD USE.** ReviScope is experimental research software. Its reviews can miss serious problems, invent or misstate criticisms, and express unjustified confidence. It has not been validated as a substitute for qualified human peer review and should not be used to make editorial, funding, employment, clinical, or other consequential decisions. Do not submit confidential or unpublished manuscripts unless you have checked that your use of the selected model service is authorized and appropriate for that material. Interfaces, profiles, and results may change without notice.
 
+**Uploads.** Unless a local GROBID server is running at `localhost:8070`, the metacheck stage uploads PDF, DOCX and converted text manuscripts to an online metacheck conversion server, and its causal-claims module sends the title and abstract to a hosted classifier. Use `--no-metacheck` for material that must not leave your machine or your chosen model service.
+
 An independent, modular manuscript-review alpha for quantitative social science, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
 The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
@@ -24,9 +26,9 @@ uv run reviscope review paper.pdf \
   --timeout 1800 --out runs/paper
 ```
 
-Luna at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
+`gpt-6-luna` at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
 
-Use `--verifier-backend claude --verifier-model fable` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification is a separate call to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
+Use `--verifier-backend claude --verifier-model claude-opus-5-5` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification is a separate call to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
 
 Review, verification and editorial calls run with tools: web search and fetching to check cited sources, related literature and novelty claims, and a sandboxed shell to recompute statistics with code. Shell writes are confined to a temporary directory per call, and the shell has no network access. Findings can cite external evidence (URL or DOI, quotation, and what it shows), but every finding must also anchor in an exact manuscript quotation, and the verifier re-opens external sources before a finding is published. Each stage records its tool calls in `review.json`; the report ends with a Tool use summary. Models are instructed not to consult reviews or commentary of the manuscript itself. Before using a run as benchmark evidence, audit it:
 
@@ -78,11 +80,11 @@ uv run reviscope evaluate fetch-corpus \
 uv run reviscope evaluate compare --paper-id PAPER_ID \
   --manuscript manuscript.txt --candidate runs/paper/review.json \
   --reference human-review.txt --reference-kind human_review \
-  --backend claude --model fable \
+  --backend claude --model claude-opus-5-5 \
   --effort high --timeout 1800 --output runs/eval/comparison.json
 ```
 
-Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run reviscope evaluate --help` for commands and [VALIDATION.md](docs/VALIDATION.md) for interpretation and corpus limitations.
+Declare comparator provenance with `--reference-kind`. Partial candidates are refused unless `--allow-partial` is supplied for a diagnostic run; these runs are labelled ineligible for scientific validation. Comparisons strip application metadata, swap presentation order, permit ties, and aggregate by paper. `evaluate verify` independently checks criticisms; `audit-sample` and `audit-summary` support separate random and targeted human audits. `planted-recall` imports the Dawes psychology benchmark's error CSV and scores explicitly adjudicated error matches. Run `uv run reviscope evaluate --help` for commands.
 
 ### Normalize and rank review pools
 
@@ -91,30 +93,30 @@ Declare comparator provenance with `--reference-kind`. Partial candidates are re
 ```bash
 uv run reviscope normalize-review create \
   --review human-review.txt --output runs/eval/human.normalized.json \
-  --backend openrouter --model z-ai/glm-5.3-flash \
-  --max-issues 40 --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
+  --backend codex --model gpt-6-luna --effort high \
+  --max-issues 40 --timeout 900
 
 uv run reviscope normalize-review audit \
   --review human-review.txt --inventory runs/eval/human.normalized.json \
   --output runs/eval/human.audit.json \
-  --backend claude --model fable --effort high \
+  --backend claude --model claude-opus-5-5 --effort high \
   --timeout 900
 
 uv run reviscope normalize-review revise \
   --review human-review.txt --inventory runs/eval/human.normalized.json \
   --audit runs/eval/human.audit.json \
   --output runs/eval/human.normalized-revised.json \
-  --backend openrouter --model z-ai/glm-5.3-flash \
-  --timeout 900 --max-tokens 6000 --max-cost-usd 0.025
+  --backend codex --model gpt-6-luna --effort high \
+  --timeout 900
 
 uv run reviscope normalize-review audit \
   --review human-review.txt --inventory runs/eval/human.normalized-revised.json \
   --output runs/eval/human.final-audit.json \
-  --backend claude --model fable --effort high \
+  --backend claude --model claude-opus-5-5 --effort high \
   --timeout 900
 ```
 
-The OpenRouter backend reads `OPENROUTER_API_KEY` from the environment; its reasoning level is fixed low, so `--effort` is omitted. `--max-cost-usd` is a conservative pre-call estimate enforced from configured token allowances, not a hard billing cap. The Claude audit does not use the OpenRouter token or cost controls. A revision must be audited again, as shown above; successful revision does not itself establish eligibility.
+Normalization, ranking and comparison calls run without tools; they read only the supplied texts. A revision must be audited again, as shown above; successful revision does not itself establish eligibility.
 
 An audit failure returns exit status 2. A normalized comparison is eligible only when every input passes deterministic and model-audit gates; do not rank the surviving subset. Normalization tests sensitivity to representation and does not repair weak comparators or selection bias.
 
@@ -123,24 +125,24 @@ An audit failure returns exit status 2. A normalized comparison is eligible only
 ```bash
 uv run reviscope rank-reviews \
   --manifest eval/corpus/review-pool.json \
-  --output runs/eval/ranks-fable.json \
-  --backend claude --model fable --effort high \
+  --output runs/eval/ranks-opus.json \
+  --backend claude --model claude-opus-5-5 --effort high \
   --presentations 3 --seed 20260907 --timeout 900
 
 uv run reviscope rank-reviews \
   --manifest eval/corpus/review-pool.json \
   --output runs/eval/ranks-sol.json \
-  --backend codex --model gpt-6-sol --effort high \
+  --backend codex --model gpt-6.1-sol --effort high \
   --presentations 3 --seed 20260907 --timeout 900
 
 uv run reviscope aggregate-review-ranks \
-  runs/eval/ranks-fable.json runs/eval/ranks-sol.json \
+  runs/eval/ranks-opus.json runs/eval/ranks-sol.json \
   --output runs/eval/ranks-combined.json
 ```
 
-Presentations and judges are repeated measurements of one paper, not additional papers. See [VALIDATION.md](docs/VALIDATION.md) for the full eligibility and interpretation rules and [OPEN_REVIEW_SAMPLING_FRAME.md](docs/OPEN_REVIEW_SAMPLING_FRAME.md) for defining a discipline-led target population separately from an archive-accessibility sample.
+Presentations and judges are repeated measurements of one paper, not additional papers. See [OPEN_REVIEW_SAMPLING_FRAME.md](docs/OPEN_REVIEW_SAMPLING_FRAME.md) for defining a discipline-led target population separately from an archive-accessibility sample.
 
-The [small pilot evaluation](docs/PILOT_EVALUATION.md) records observed real-paper results and limitations. It does not establish general human-equivalent performance or a low false-claim rate. LLM judging, known-error detection, and sampled human auditing answer different questions.
+LLM judging, known-error detection, and sampled human auditing answer different questions.
 
 The project is named **ReviScope**: evidence-grounded manuscript review for authors and peer reviewers, across disciplines. [Naming exploration](docs/naming/SHORTLIST.md) preserves the rejected and superseded directions that preceded the selection. The name records a product decision, not trademark or package-name clearance.
 
@@ -150,7 +152,5 @@ The project is named **ReviScope**: evidence-grounded manuscript review for auth
 uv run pytest -q
 uv build
 ```
-
-Implementation was delegated to GPT-5.6 Sol agents. Key decisions and integration code were independently reviewed using authenticated `claude -p --model fable` requests. [Review prompts, responses and dispositions](docs/design_reviews) are retained. See [acceptance criteria](docs/ACCEPTANCE.md) and [observed test results](docs/TEST_RESULTS.md).
 
 MIT licensed. Scientific inputs retain their own licenses; downloaded corpus files are excluded from version control.

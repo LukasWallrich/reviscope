@@ -12,7 +12,6 @@
   "metadata": {
     "validated": false,
     "version": "0.2.0",
-    "scientific_review": "Fable review 04",
     "selection_policy": "few_distinct_consequential_issues"
   }
 }

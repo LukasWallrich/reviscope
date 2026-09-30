@@ -23,7 +23,7 @@ class RankBackend:
 
 
 def test_listwise_ranking_deblinds_ties_and_summarizes_without_inflating_n():
-    reviews = [{"id": value, "text": f"Review {value}"} for value in ("human", "luna", "sol")]
+    reviews = [{"id": value, "text": f"Review {value}"} for value in ("human", "gpt-6-luna", "gpt-6.1-sol")]
     row = rank_once("Manuscript", reviews, RankBackend(), paper_id="p", seed=3, repetition=0)
     assert sorted(row["ranks"].values()) == [1.5, 1.5, 3.0]
     summary = summarize_rankings([row], [review["id"] for review in reviews])
@@ -45,7 +45,7 @@ def test_listwise_ranking_requires_every_label_exactly_once():
         rank_once("M", reviews, BadRankBackend(), paper_id="p", seed=1, repetition=0)
 
 
-def ranking_payload(backend="claude:fable:high", repetitions=(0, 1, 2)):
+def ranking_payload(backend="claude:claude-opus-5-5:high", repetitions=(0, 1, 2)):
     rows = [{"repetition": i, "ranks": {"human": 1, "ai": 2}} for i in repetitions]
     return {"ranking_config": {"backend": backend, "prompt_version": "v", "seed": 1,
                                 "presentations": 3, "condition": "original", "content_sha256": "x"},
@@ -67,7 +67,7 @@ def test_aggregate_rejects_duplicate_judge_and_partial_input(tmp_path):
     import pytest
     with pytest.raises(ValueError, match="duplicate judge"):
         aggregate_command(args)
-    second.write_text(__import__("json").dumps(ranking_payload("codex:sol:high", (0, 1))))
+    second.write_text(__import__("json").dumps(ranking_payload("codex:gpt-6.1-sol:high", (0, 1))))
     with pytest.raises(ValueError, match="incomplete"):
         aggregate_command(args)
 
@@ -78,7 +78,7 @@ def test_ranking_resume_calls_only_missing_presentations(tmp_path, monkeypatch):
     reviews = [{"id": f"r{i}", "kind": "human" if i < 4 else "ai",
                 "generator_model": None if i < 4 else "m", "text": str(i)} for i in range(7)]
     monkeypatch.setattr(module, "_load_manifest", lambda _path: ("p", "manuscript", reviews, "original"))
-    backend = type("Backend", (), {"identity": "claude:fable:high"})()
+    backend = type("Backend", (), {"identity": "claude:claude-opus-5-5:high"})()
     monkeypatch.setattr(module, "ClaudeBackend", lambda *args, **kwargs: backend)
     calls = []
     def fake_rank(_manuscript, rows, _backend, *, paper_id, seed, repetition):
@@ -87,7 +87,7 @@ def test_ranking_resume_calls_only_missing_presentations(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "rank_once", fake_rank)
     output = tmp_path / "rank.json"
     args = type("Args", (), {"manifest": tmp_path / "manifest.json", "output": output, "backend": "claude",
-                              "model": "fable", "timeout": 2, "effort": "high", "seed": 1, "presentations": 3})()
+                              "model": "claude-opus-5-5", "timeout": 2, "effort": "high", "seed": 1, "presentations": 3})()
     assert module.command(args) == 0 and calls == [0, 1, 2]
     payload = json.loads(output.read_text()); payload["judgments"] = payload["judgments"][:2]; payload["summary"] = None
     output.write_text(json.dumps(payload)); calls.clear()

@@ -149,7 +149,7 @@ def test_read_canonical_review_hides_provenance(tmp_path):
 
     from reviscope.render import to_markdown
     from reviscope.schemas import ReviewRun, RunMetadata
-    run = ReviewRun(metadata=RunMetadata(run_id="x", backend="codex", model="luna", profile="social",
+    run = ReviewRun(metadata=RunMetadata(run_id="x", backend="codex", model="gpt-6-luna", profile="social",
                     profile_hash="p", input_hash="i", output_dir="o"), sources=[])
     rendered = tmp_path / "rendered.md"
     rendered.write_text(to_markdown(run))
@@ -249,7 +249,7 @@ def test_revalidate_uses_current_quote_matcher_without_model_call():
 
 
 def test_verification_resume_rejects_changed_content_with_same_finding_id():
-    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    config = {"backend": "claude:claude-opus-5-5:high", "prompt_version": "v", "content_sha256": "new"}
     prior = {"verification_config": {**config, "content_sha256": "old"},
              "verifications": [{"finding_id": "same", "verdict": "supported"}]}
     import pytest
@@ -258,7 +258,7 @@ def test_verification_resume_rejects_changed_content_with_same_finding_id():
 
 
 def test_verification_resume_rejects_legacy_output_without_frozen_config():
-    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    config = {"backend": "claude:claude-opus-5-5:high", "prompt_version": "v", "content_sha256": "new"}
     prior = {"backend": config["backend"],
              "verifications": [{"finding_id": "same", "verdict": "supported"}]}
     import pytest
@@ -267,7 +267,7 @@ def test_verification_resume_rejects_legacy_output_without_frozen_config():
 
 
 def test_verification_resume_rejects_rows_outside_current_finding_set():
-    config = {"backend": "claude:Fable:high", "prompt_version": "v", "content_sha256": "new"}
+    config = {"backend": "claude:claude-opus-5-5:high", "prompt_version": "v", "content_sha256": "new"}
     prior = {"verification_config": config,
              "verifications": [{"finding_id": "removed", "verdict": "supported"}]}
     import pytest
