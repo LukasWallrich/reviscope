@@ -216,17 +216,35 @@ def cli_version(binary: str) -> str:
         return "unavailable"
 
 
+def _kill_group(process: subprocess.Popen[str]) -> tuple[str, str]:
+    """Kill the CLI's whole process group and return what it printed."""
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    try:
+        stdout, stderr = process.communicate(timeout=10)
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        stdout, stderr = "", ""
+    return stdout or "", stderr or ""
+
+
 def _execute(command: list[str], prompt: str, cwd: str, env: dict[str, str], timeout: int) -> tuple[int | None, str, str]:
-    """Run a CLI in its own process group; on timeout kill the whole group and return what it printed."""
+    """Run a CLI in its own process group. On timeout, kill the group and return what it printed;
+    on any other exception or interrupt, kill the group and re-raise with that output attached."""
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, cwd=cwd, env=env, start_new_session=True)
     try:
         stdout, stderr = process.communicate(prompt, timeout=timeout)
         return process.returncode, stdout, stderr
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        stdout, stderr = process.communicate()
-        return None, stdout or "", stderr or ""
+        stdout, stderr = _kill_group(process)
+        return None, stdout, stderr
+    except BaseException as exc:
+        stdout, _ = _kill_group(process)
+        exc.add_note(f"killed model subprocess group {process.pid}")
+        exc.partial_stdout = stdout  # type: ignore[attr-defined]
+        raise
 
 
 class SubprocessBackend(Backend):
@@ -258,6 +276,10 @@ class SubprocessBackend(Backend):
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout
 
+    def _record(self, calls: list[ToolCall]) -> None:
+        offset = len(self._tool_calls)
+        self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
+
     def _run(self, prompt: str, response_model: type[T]) -> str:
         started = datetime.now(timezone.utc)
         # A short path under /tmp: Claude Code falls back to a shared temp directory for long TMPDIR paths.
@@ -269,11 +291,14 @@ class SubprocessBackend(Backend):
                 schema_path = tmp / "schema.json"
                 schema_path.write_text(json.dumps(_strict_schema(response_model.model_json_schema())), encoding="utf-8")
                 command[-1:-1] = ["--output-schema", str(schema_path), "--output-last-message", str(output_path)]
-            returncode, stdout, stderr = _execute(command, prompt, str(tmp), self.environment(tmp), self.timeout)
+            try:
+                returncode, stdout, stderr = _execute(command, prompt, str(tmp), self.environment(tmp), self.timeout)
+            except BaseException as exc:  # interrupted: keep the tool calls printed so far
+                self._record(self._parse(getattr(exc, "partial_stdout", ""), started)[0])
+                raise
             calls, final = self._parse(stdout, started)
             output = output_path.read_text(encoding="utf-8") if output_path.is_file() else final
-        offset = len(self._tool_calls)
-        self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
+        self._record(calls)
         if returncode is None:
             raise TimeoutError(f"{self.name} timed out after {self.timeout} s ({len(calls)} tool calls recorded)")
         if returncode:

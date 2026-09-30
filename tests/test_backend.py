@@ -104,6 +104,22 @@ def test_timeout_keeps_partial_tool_calls_and_kills_the_process_group(tmp_path):
     assert not marker.exists()
 
 
+def test_interrupt_kills_the_process_group_and_keeps_tool_calls(tmp_path):
+    import os
+    import signal
+    import threading
+
+    marker = tmp_path / "child-alive"
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "WebFetch", "input": {"url": "https://example.org/"}}]}}
+    backend = ScriptBackend(f"echo '{json.dumps(use)}'; (sleep 3; touch {marker}) & sleep 30")
+    threading.Timer(1, os.kill, (os.getpid(), signal.SIGINT)).start()  # as Ctrl-C would
+    with pytest.raises(KeyboardInterrupt):
+        backend.generate("task", "evidence", Answer)
+    assert backend.take_tool_calls()[0].url == "https://example.org/"
+    time.sleep(3.5)
+    assert not marker.exists()
+
+
 def test_schema_repair_repeats_the_original_task_and_the_validation_error():
     prompts = []
 
