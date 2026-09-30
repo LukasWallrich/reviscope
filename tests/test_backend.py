@@ -130,3 +130,27 @@ def test_schema_repair_repeats_the_original_task_and_the_validation_error():
 
     assert Repairing("").generate("count the studies", "MANUSCRIPT TEXT", Answer).value == 3
     assert "count the studies" in prompts[1] and "MANUSCRIPT TEXT" in prompts[1] and "valid integer" in prompts[1]
+
+
+def test_managed_policy_that_widens_the_sandbox_blocks_tool_calls_and_changes_identity(tmp_path, monkeypatch):
+    from reviscope import backend as backend_module
+
+    claude_file, codex_file = tmp_path / "managed-settings.json", tmp_path / "requirements.toml"
+    monkeypatch.setattr(backend_module, "MANAGED_POLICY", {"claude": (claude_file,), "codex": (codex_file,)})
+    before = ClaudeBackend("m").identity
+    claude_file.write_text(json.dumps({"sandbox": {"network": {"strictAllowlist": True, "allowedDomains": []},
+                                                   "filesystem": {"allowRead": ["/usr/share"]}}}))
+    backend_module.check_managed_policy("claude")  # narrowing or neutral settings pass
+    assert ClaudeBackend("m").identity != before
+    for widening in ({"sandbox": {"excludedCommands": ["python3"]}}, {"sandbox": {"allowUnsandboxedCommands": True}},
+                     {"sandbox": {"filesystem": {"allowRead": ["~/.ssh"]}}}, {"sandbox": {"network": {"allowedDomains": ["example.org"]}}}):
+        claude_file.write_text(json.dumps(widening))
+        with pytest.raises(backend_module.PolicyError, match="widens the review sandbox"):
+            ClaudeBackend("m").generate("task", "evidence", Answer)
+    codex_file.write_text('[permissions.x]\nnetwork = { enabled = false }\n')
+    backend_module.check_managed_policy("codex")
+    for widening in ('sandbox_mode = "danger-full-access"\n', '[sandbox_workspace_write]\nnetwork_access = true\n',
+                     '[permissions.x.network]\nenabled = true\n', f'[permissions.x.filesystem]\n"{Path.home()}/.aws" = "read"\n'):
+        codex_file.write_text(widening)
+        with pytest.raises(backend_module.PolicyError):
+            backend_module.check_managed_policy("codex")

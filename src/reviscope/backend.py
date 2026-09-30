@@ -8,6 +8,7 @@ import re
 import signal
 import subprocess
 import tempfile
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
@@ -37,6 +38,83 @@ REVIEW_DOMAINS = ("pubpeer.com", "sciety.org", "publons.com", "prereview.org", "
 TOOL_OUTPUT_LIMIT = 4000
 ENV_ALLOWLIST = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "CODEX_HOME", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "LANG", "LC_ALL"}
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>\\\])]+")
+
+
+# Administrator policy files that the CLIs apply even in restricted modes and that can widen the sandbox.
+MANAGED_POLICY = {
+    "claude": (Path("/Library/Application Support/ClaudeCode/managed-settings.json"), Path("/etc/claude-code/managed-settings.json")),
+    "codex": (Path("/etc/codex/requirements.toml"), Path("/etc/codex/managed_config.toml"), Path.home() / ".codex/requirements.toml",
+              Path.home() / ".codex/managed_config.toml"),
+}
+
+
+class PolicyError(RuntimeError):
+    pass
+
+
+def policy_hash(binary: str) -> str:
+    """Hash of the managed policy files present for this CLI; part of the cache identity."""
+    digest = hashlib.sha256()
+    for path in MANAGED_POLICY.get(binary, ()):
+        if path.is_file():
+            digest.update(str(path).encode() + b"\0" + path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+CLAUDE_NETWORK_WIDENING = ("allowedDomains", "allowUnixSockets", "allowAllUnixSockets", "allowLocalBinding", "httpProxyPort", "socksProxyPort")
+
+
+def _under_home(value: Any) -> bool:
+    """Whether a policy path ("~/x", "//abs/x" or "/abs/x") lies in the home directory."""
+    text = str(value)
+    path, home = Path("/" + text.lstrip("/")), Path.home()
+    return text.startswith("~") or path == home or home in path.parents
+
+
+def _claude_widening(settings: dict[str, Any]) -> list[str]:
+    sandbox = settings.get("sandbox") if isinstance(settings.get("sandbox"), dict) else {}
+    network = sandbox.get("network") if isinstance(sandbox.get("network"), dict) else {}
+    filesystem = sandbox.get("filesystem") if isinstance(sandbox.get("filesystem"), dict) else {}
+    problems = []
+    if sandbox.get("excludedCommands"):
+        problems.append(f"sandbox.excludedCommands {sandbox['excludedCommands']}")
+    if sandbox.get("allowUnsandboxedCommands") is True or sandbox.get("enabled") is False:
+        problems.append("the Bash sandbox can be bypassed or is disabled")
+    problems += [f"sandbox.filesystem.allowRead {path}" for path in filesystem.get("allowRead") or [] if _under_home(path)]
+    problems += [f"sandbox.network.{key}" for key in CLAUDE_NETWORK_WIDENING if network.get(key)]
+    return problems
+
+
+def _codex_widening(value: Any, where: str = "") -> list[str]:
+    """Network access, full access, or home-directory filesystem grants anywhere in the TOML."""
+    problems = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            name = f"{where}.{key}" if where else key
+            if key == "network_access" and child is True or key == "enabled" and child is True and where.endswith("network"):
+                problems.append(name)
+            elif key == "sandbox_mode" and child == "danger-full-access":
+                problems.append(f"{name} = danger-full-access")
+            elif where.endswith("filesystem") and _under_home(key) and child in {"read", "write"}:
+                problems.append(f"{name} = {child}")
+            else:
+                problems += _codex_widening(child, name)
+    return problems
+
+
+def check_managed_policy(binary: str) -> None:
+    """Refuse a tool-enabled call when a managed policy file widens the shell sandbox."""
+    for path in MANAGED_POLICY.get(binary, ()):
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+            problems = _claude_widening(json.loads(text)) if binary == "claude" else _codex_widening(tomllib.loads(text))
+        except (OSError, ValueError) as exc:
+            raise PolicyError(f"cannot read managed policy {path}: {exc}") from exc
+        if problems:
+            raise PolicyError(f"managed policy {path} widens the review sandbox ({'; '.join(problems)}); "
+                              "tool-enabled review calls refuse to run under it")
 
 
 def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -271,7 +349,8 @@ class SubprocessBackend(Backend):
         """Model settings, CLI version and a hash of the complete command and environment policy."""
         placeholder = Path("/per-call-directory")
         config = json.dumps([self.command(placeholder), sorted(self.environment(placeholder)), self.guard])
-        return f"{super().identity}:{cli_version(self.binary)}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
+        return (f"{super().identity}:{cli_version(self.binary)}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
+                f":policy-{policy_hash(self.binary)}")
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout
@@ -281,6 +360,8 @@ class SubprocessBackend(Backend):
         self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
 
     def _run(self, prompt: str, response_model: type[T]) -> str:
+        if self.tools:
+            check_managed_policy(self.binary)
         started = datetime.now(timezone.utc)
         # A short path under /tmp: Claude Code falls back to a shared temp directory for long TMPDIR paths.
         with tempfile.TemporaryDirectory(prefix="reviscope-", dir="/tmp") as tmp_name:
