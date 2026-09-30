@@ -13,3 +13,8 @@ def test_verifier_effort_can_override_generation_effort():
 def test_verifier_effort_defaults_to_generation_effort_at_execution():
     args = parser().parse_args(["review", "paper.md", "--effort", "xhigh"])
     assert args.verifier_effort is None
+
+
+def test_review_defaults_to_high_effort_and_one_hour_timeout():
+    args = parser().parse_args(["review", "paper.md"])
+    assert (args.effort, args.timeout) == ("high", 3600)

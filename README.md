@@ -21,12 +21,12 @@ Requires Python 3.11+, and an authenticated Codex CLI or Claude CLI for model-ba
 uv sync --extra dev
 uv run reviscope profiles
 uv run reviscope review paper.pdf \
-  --backend codex --model gpt-6-luna --effort max \
+  --backend codex --model gpt-6-luna --effort high \
   --supplement appendix.pdf --preregistration registration.md \
-  --timeout 1800 --out runs/paper
+  --out runs/paper
 ```
 
-`gpt-6-luna` at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
+`gpt-6-luna` at high reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--effort max` is available. `--timeout` is per model call (default 3,600 seconds); long papers and high or max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
 
 Use `--verifier-backend claude --verifier-model claude-opus-5-5` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification is a separate call to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
 
@@ -51,7 +51,7 @@ Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.m
 
 ## Results and resume
 
-Each run writes `review.json`, `review.md`, `review.html`, timestamped `run.log`, and content-keyed stage artifacts. The default per-call deadline is 1,800 seconds; long max-effort stages can require substantially more than ten minutes. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work.
+Each run writes `review.json`, `review.md`, `review.html`, timestamped `run.log`, and content-keyed stage artifacts. The default per-call deadline is 3,600 seconds; a max-effort stage on a full paper can take about 20 minutes. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work.
 
 A quotation match establishes provenance; it does not establish the criticism's truth. `llm_supported` means the verifier judged the criticism supported. Unresolved findings remain labelled. Numerical checks are conservative leads with recorded applicability and coverage. Editorial rejection and merging do not erase the original finding or its evidential status.
 

@@ -229,7 +229,7 @@ def _execute(command: list[str], prompt: str, cwd: str, env: dict[str, str], tim
 class SubprocessBackend(Backend):
     binary: str
 
-    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None, tools: bool = True):
+    def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True):
         self.model, self.timeout, self.effort, self.tools = model, timeout, effort, tools
         self._tool_calls = []
 
