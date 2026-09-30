@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 from pathlib import Path
 
+from .metacheck import describe
 from .schemas import ReviewRun
 
 
@@ -54,8 +55,12 @@ def _metacheck(run: ReviewRun) -> list[str]:
     lines = ["### Metacheck screening", "",
              "Automated screening output from the metacheck R package, passed to the review modules as unverified leads. These lights are metacheck's own and are not verified findings.", ""]
     if record.status != "completed":
-        return lines + [f"metacheck: {record.reason}" if record.status == "skipped" else f"metacheck: {record.status}: {record.reason}", ""]
+        return lines + [describe(record), ""]
+    if record.text_conversion:
+        lines.append(f"Text conversion: {record.text_conversion}")
     lines.append(f"Conversion: {record.converter}")
+    if record.counts:
+        lines.append("Imported: " + ", ".join(f"{value} {key}" for key, value in record.counts.items()))
     lines.extend(f"Parse warning: {warning}" for warning in record.parse_warnings)
     lines.append("")
     for item in record.modules:

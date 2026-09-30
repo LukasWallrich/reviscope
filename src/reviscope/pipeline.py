@@ -203,14 +203,15 @@ class ReviewPipeline:
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
         modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
-        run.metacheck = self._metacheck(Path(manuscript), out)
+        run.metacheck = (MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material") if insufficient
+                         else self._metacheck(Path(manuscript), out))
         run.coverage.append(metacheck.describe(run.metacheck))
-        run.coverage.extend(f"metacheck: {note}" for note in run.metacheck.excluded)
         if run.metacheck.status == "failed":
             run.partial = True
         run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
                                       artifact=run.metacheck.output_dir, error=None if run.metacheck.status == "completed" else run.metacheck.reason))
-        leads = metacheck.leads(run.metacheck, modules)
+        leads, dropped = metacheck.leads(run.metacheck, modules)
+        run.coverage.extend(f"metacheck leads for {module}: {count} candidate row(s) not shown (character cap)" for module, count in dropped.items())
         for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))

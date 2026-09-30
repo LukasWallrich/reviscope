@@ -123,11 +123,11 @@ class MetacheckRecord(BaseModel):
     status: Literal["completed", "skipped", "not_checked", "failed"]
     reason: str | None = None
     output_dir: str | None = None
+    text_conversion: str | None = None
     converter: str | None = None
-    paper_doi: str | None = None
+    counts: dict[str, int] = Field(default_factory=dict)
     parse_warnings: list[str] = Field(default_factory=list)
     modules: list[MetacheckModule] = Field(default_factory=list)
-    excluded: list[str] = Field(default_factory=list)
 
 
 class RunMetadata(BaseModel):
