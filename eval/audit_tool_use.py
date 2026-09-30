@@ -12,10 +12,11 @@ Reads each run's review.json (every stage records its tool calls) and flags:
   title search alone is flagged, because the published original is the answer key.
 
 The paper is identified by matching the run's source sha256 against corpus manifests
-(`manuscript_sha256`, or `review_input_sha256` for planted-error papers). The open-review
-and empirical-pilot manifests are read by default; `--manifest` adds others. `--paper` names
-a manifest id instead of matching by hash, and `--title` / `--block` add identifiers for
-papers outside the manifests.
+(`manuscript_sha256`, or `review_input_sha256` for planted-error papers). The open-review,
+empirical-pilot and planted-error manifests are read by default; `--manifest` adds others.
+`--paper` names a manifest id (planted-error papers are `known-error-N`) instead of matching
+by hash, and `--title` / `--block` add identifiers for papers outside the manifests. Queries
+are checked against the entry's `title` and any `alt_titles`.
 
 Verdicts: `flagged` (a contamination candidate), `incomplete` (a model stage failed, lacks
 recorded provenance, has a call that never finished, or has a fetch whose opened page is not
@@ -35,8 +36,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from reviscope.backend import REVIEW_DOMAINS  # noqa: E402
 
-DEFAULT_MANIFESTS = [ROOT / "eval/corpus/open_peer_review.v1.json", ROOT / "eval/corpus/empirical_pilot.v1.json"]
-URL_FIELDS = ("doi", "article_url", "review_url", "review_urls", "manuscript_under_review_url", "archived_manuscript_url")
+DEFAULT_MANIFESTS = [ROOT / "eval/corpus/open_peer_review.v1.json", ROOT / "eval/corpus/empirical_pilot.v1.json",
+                     ROOT / "eval/corpus/known_errors.v1.json"]
+URL_FIELDS = ("doi", "article_url", "review_url", "review_urls", "manuscript_under_review_url", "archived_manuscript_url",
+              "original_urls", "answer_key_urls")
 REVIEW_PATHS = re.compile(r"peer[-_ ]?reviews?|referee|review[-_]history|decision[-_]letter|reviewer[-_]comments|"
                           r"/reviews?/|author[-_]response|elifesciences\.org/reviewed-preprints/.*reviews|"
                           r"dawes-institute/ai-peer-review-benchmark", re.I)
@@ -68,7 +71,8 @@ def load_papers(manifests: list[Path]) -> list[dict[str, Any]]:
                 blocks.extend(value if isinstance(value, list) else [value] if value else [])
             if planted and entry.get("url"):
                 blocks.append(entry["url"])
-            papers.append({"id": str(entry.get("id") or f"known-error-{entry['paper']}"), "title": entry.get("title"),
+            titles = [title for title in [entry.get("title"), *entry.get("alt_titles", [])] if title]
+            papers.append({"id": str(entry.get("id") or f"known-error-{entry['paper']}"), "titles": titles,
                            "sha256": {entry.get("manuscript_sha256"), entry.get("review_input_sha256")} - {None},
                            "blocks": blocks, "planted_errors": planted})
     return papers
@@ -87,7 +91,7 @@ def identify(run: dict[str, Any], papers: list[dict[str, Any]], paper_id: str | 
 def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> list[str]:
     blocks = [normal_url(b) for b in (paper or {}).get("blocks", [])]
     dois = [b for b in blocks if b.startswith("10.")] + [b.split("doi.org/", 1)[1] for b in blocks if "doi.org/" in b]
-    title = title_words((paper or {}).get("title") or "")
+    titles = [title_words(title) for title in (paper or {}).get("titles", [])]
     reasons = []
 
     def check_url(url: str, how: str, where: str, paths: bool = True) -> None:
@@ -117,7 +121,8 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> li
         if any(d in query.lower() for d in dois):
             reasons.append(f"{where}: search for the paper's DOI: {query!r}")
             continue
-        overlap = len(title & title_words(query)) / len(title) if title else 0
+        words = title_words(query)
+        overlap = max((len(title & words) / len(title) for title in titles if title), default=0)
         if overlap >= 0.6 and paper and paper["planted_errors"]:
             reasons.append(f"{where}: search for the planted-error paper's title (original is the answer key): {query!r}")
         elif overlap >= 0.6 and REVIEW_TERMS.search(query):
@@ -130,7 +135,7 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
     run = json.loads(review.read_text(encoding="utf-8"))
     paper = identify(run, papers, args.paper)
     if args.title or args.block:
-        paper = {"id": (paper or {}).get("id", "manual"), "title": args.title or (paper or {}).get("title"),
+        paper = {"id": (paper or {}).get("id", "manual"), "titles": [args.title] if args.title else (paper or {}).get("titles", []),
                  "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
     stages = run.get("stages", [])
     calls = [call for stage in stages for call in stage.get("tool_calls", [])]
