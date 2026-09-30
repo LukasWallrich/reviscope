@@ -14,11 +14,8 @@ from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
 from . import metacheck
+from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
 from .schemas import Evidence, ExternalCheck, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
-
-
-class FindingsResponse(BaseModel):
-    findings: list[Finding] = Field(max_length=5)
 
 
 class VerificationDecision(BaseModel):
@@ -105,17 +102,13 @@ PROVENANCE_VERSION = "2"
 class ReviewPipeline:
     STAGE_VERSION = "0.2.0a1"
 
-    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, max_findings: int = 12, run_metacheck: bool = True):
+    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
         self.verifier_backend = verifier_backend or self.backend
         if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
             raise ValueError("Review stages run only on tool-enabled backends; tools=False is for judges and normalizers")
         self.progress = progress or (lambda _: None)
-        if max_findings < 1:
-            raise ValueError("max_findings must be positive")
-        self.max_findings = max_findings
         self.profile, self.profile_hash = _load_profile(profile)
-        self.deep_discovery = bool(self.profile.metadata.get("coverage_first", False))
         self.run_metacheck = run_metacheck
 
     @staticmethod
@@ -220,7 +213,7 @@ class ReviewPipeline:
             excerpt = next(source for source in sources if source.kind == "manuscript").text.strip()[:300]
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
-        modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
+        modules = [*self.profile.modules, BLIND_SPOTS]
         if insufficient:
             skipped = MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material")
             run.metacheck, metacheck_fingerprint, leads = skipped, metacheck.fingerprint(skipped), {}
@@ -241,10 +234,7 @@ class ReviewPipeline:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
                 continue
-            prompt = self.profile.module_prompts.get(module)
-            if module == "blind_spots" and self.deep_discovery:
-                prompt = "Perform one blind-spot audit of the full manuscript against the existing candidate inventory and coverage ledger. Treat earlier findings as unverified leads, not facts. Search for overlooked claims, mechanisms, numerical assumptions and consequential omissions. Return only substantively new findings; do not paraphrase existing issues. Do not manufacture problems to fill gaps."
-
+            prompt = BLIND_SPOT_PROMPT if module == BLIND_SPOTS else self.profile.module_prompts.get(module)
             if not prompt:
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (profile has no prompt)")
@@ -254,39 +244,27 @@ class ReviewPipeline:
                 module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
                 if module in leads:
                     module_evidence += "\n\n" + leads[module]
-                if module == "blind_spots":
+                if module == BLIND_SPOTS:
                     module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
                     module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
                 severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
-                suffix = f"\nReturn zero to five prioritized findings. Every finding must cite exact evidence and use a valid SOURCE_ID. Severity guidance: {severity_rules}. Missing information alone cannot be major or critical without a demonstrated material consequence. If the supplied material is thin or incomplete, return zero findings outside the contribution module rather than generating generic requests."
-                final_instruction = prompt + suffix
-                response_type = FindingsResponse
-                if self.deep_discovery:
-                    from .discovery import DiscoveryResponse, discovery_instruction, validate_discovery
-                    final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
-                    response_type = DiscoveryResponse
-                def generate_findings(p=final_instruction, e=module_evidence, t=response_type, m=module):
-                    value = self.backend.generate(p, e, t)
-                    if self.deep_discovery:
-                        raw_dir = out / "raw-discovery"
-                        raw_dir.mkdir(exist_ok=True)
-                        raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": t.model_json_schema()})
-                        raw_path = raw_dir / f"{m}-{raw_key}.json"
-                        raw_path.write_text(value.model_dump_json(indent=2), encoding="utf-8")
-                        return validate_discovery(value, m, sources)
-                    return value
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, response_type, generate_findings)
-                if self.deep_discovery:
-                    result = validate_discovery(result, module, sources)
-                    run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
-                    if result.search_incomplete or len(result.findings) == 20 or any(c.status == "not_checked" for c in result.checks):
-                        run.partial = True
-                        run.coverage.append(f"{module}: discovery incomplete or resource ceiling reached")
-                for position, finding in enumerate(result.findings):  # type: ignore[attr-defined]
+                final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
+                def generate_findings(p=final_instruction, e=module_evidence, m=module):
+                    value = self.backend.generate(p, e, DiscoveryResponse)
+                    raw_dir = out / "raw-discovery"
+                    raw_dir.mkdir(exist_ok=True)
+                    raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": DiscoveryResponse.model_json_schema()})
+                    (raw_dir / f"{m}-{raw_key}.json").write_text(value.model_dump_json(indent=2), encoding="utf-8")
+                    return validate_discovery(value, m, sources)
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, DiscoveryResponse, generate_findings)
+                result = validate_discovery(result, module, sources)  # type: ignore[arg-type]
+                run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
+                if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
+                    run.partial = True
+                    run.coverage.append(f"{module}: discovery incomplete")
+                for position, finding in enumerate(result.findings):
                     run.candidates.append(finding.model_copy(update={"id": f"{module}:{position}:{finding.id or 'finding'}", "module": module, "status": "candidate", "confidence": None, "verification": None, "verifier_status": None, "verifier_rationale": None, "remedy_status": None, "remedy_verification": None, "editorial_disposition": "publish", "editorial_reason": None, "merged_into": None}))
                 run.stages.append(stage)
-                if not self.deep_discovery:
-                    run.coverage.append(f"{module}: assessed")
             except Exception as exc:
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (stage failed)")
@@ -379,7 +357,7 @@ class ReviewPipeline:
                 decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="completed")
             else:
-                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. Apply the profile's severity guidance when selecting findings; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
+                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. The number of published findings is not limited: never reject a finding or mark it needs_review because of how many other findings there are. Use the severity guidance to judge whether each finding is proportionately stated; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse, lambda: self.backend.generate(instruction, "No additional manuscript evidence is supplied at editorial stage.", EditorialResponse))
                 editorial_stage = stage
             editorial_rows = decisions.decisions  # type: ignore[attr-defined]
@@ -444,13 +422,6 @@ class ReviewPipeline:
                     finding = finding.model_copy(update={"editorial_disposition": "needs_review", "editorial_reason": f"Claim is not established by verification (status {finding.status}).", "merged_into": None})
                 quarantined.append(finding)
             run.findings = quarantined
-            rank = {"critical": 0, "major": 1, "minor": 2}
-            protected_targets = {f.merged_into for f in run.findings if f.editorial_disposition == "merged" and f.merged_into}
-            publishable = sorted((f for f in run.findings if f.editorial_disposition == "publish" and f.status != "contradicted"), key=lambda f: (0 if f.id in protected_targets else 1, -epistemic_rank.get(f.status, 0), rank[f.severity.value], f.id))
-            if len(protected_targets) > self.max_findings:
-                raise ValueError("Editorial merge targets exceed the configured publication cap")
-            overflow = {f.id for f in publishable[self.max_findings:]}
-            run.findings = [f.model_copy(update={"editorial_disposition": "cap", "editorial_reason": f"Below configured top-{self.max_findings} publication cap."}) if f.id in overflow else f for f in run.findings]
             final_by_id = {f.id: f for f in run.findings}
             repaired_findings = []
             merge_repair_needed = False
@@ -462,7 +433,9 @@ class ReviewPipeline:
                         finding = finding.model_copy(update={"editorial_disposition": "needs_review", "merged_into": None,
                                                              "editorial_reason": "Merge target was not publishable; retained for review."})
                 repaired_findings.append(finding)
-            run.findings = repaired_findings
+            # Reports and review.json list findings in this order: critical, major, minor.
+            severity_order = {"critical": 0, "major": 1, "minor": 2}
+            run.findings = sorted(repaired_findings, key=lambda f: severity_order[f.severity.value])
             if merge_repair_needed:
                 run.partial = True
                 run.coverage.append("editorial: invalid merge target was retained as needs_review")
@@ -493,7 +466,6 @@ def review(manuscript: str | Path, **kwargs: object) -> ReviewRun:
     profile = kwargs.pop("profile", "social_psychology_v2")
     verifier_backend = kwargs.pop("verifier_backend", None)
     progress = kwargs.pop("progress", None)
-    max_findings = kwargs.pop("max_findings", 12)
     run_metacheck = kwargs.pop("run_metacheck", True)
     return ReviewPipeline(backend=backend, profile=profile, verifier_backend=verifier_backend,
-                          progress=progress, max_findings=max_findings, run_metacheck=run_metacheck).run(manuscript, **kwargs)
+                          progress=progress, run_metacheck=run_metacheck).run(manuscript, **kwargs)

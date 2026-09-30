@@ -7,6 +7,7 @@ from reviscope.backend import Backend
 from reviscope.pipeline import ReviewPipeline
 from reviscope.profiles import load_profile
 from reviscope.schemas import Evidence, Finding, Profile, StudyMap
+from stubs import discovery_payload, is_blind_spot
 
 
 _DEFAULT_OVERVIEW = object()
@@ -32,14 +33,14 @@ class QualityBackend(Backend):
         if name == "StudyMap":
             return StudyMap(studies=[], research_question="q", design_summary="d",
                             contribution_summary="c", strengths=[])
-        if name == "FindingsResponse":
+        if name == "DiscoveryResponse":
             source_id = re.search(r"SOURCE_ID:\s*(\S+)", evidence).group(1)
             rows = []
-            for row in self.findings:
+            for row in ([] if is_blind_spot(instruction) else self.findings):
                 value = dict(row)
                 value["evidence"] = [{"source_id": source_id, "quote": value.pop("quote", "Evidence A.")}]
                 rows.append(value)
-            return response_model.model_validate({"findings": rows})
+            return response_model.model_validate(discovery_payload(instruction, rows))
         if name == "VerificationResponse":
             if self.fail_verification:
                 raise RuntimeError("verifier unavailable")
@@ -112,9 +113,9 @@ def test_effective_v2_severity_guidance_reaches_generation_and_editor(tmp_path):
     backend = QualityBackend(findings=[], editorial=[])
     ReviewPipeline(backend, load_profile("social_psychology_v2"), backend).run(
         paper(tmp_path), output_dir=tmp_path / "out")
-    generation = "\n".join(text for kind, text in backend.instructions if kind == "FindingsResponse")
+    generation = "\n".join(text for kind, text in backend.instructions if kind == "DiscoveryResponse")
     assert "invalidates a central result" in generation
-    assert "return zero findings" in generation.lower()
+    assert "no limit on the number of findings" in generation
 
 
 def test_merge_cannot_move_supported_finding_into_lower_support_target(tmp_path):
@@ -133,15 +134,19 @@ def test_merge_cannot_move_supported_finding_into_lower_support_target(tmp_path)
     assert strong.editorial_disposition == "needs_review" and strong.merged_into is None
 
 
-def test_publication_cap_prioritizes_support_before_severity(tmp_path):
-    generator = QualityBackend(findings=[candidate("weak", "major"),
-                                         candidate("strong", "minor", "Evidence B.")], editorial=keep_all)
-    verifier = QualityBackend(model="verifier", verification=lambda rows: [
-        decision(rows[0], "unresolved"), decision(rows[1], "supported")])
-    run = ReviewPipeline(generator, one_module(), verifier, max_findings=1).run(
-        paper(tmp_path), output_dir=tmp_path / "out")
+def test_every_supported_finding_is_published_in_severity_order(tmp_path):
+    severities = ["minor", "critical", "major", "minor", "major", "minor", "critical", "major", "minor",
+                  "major", "minor", "major", "minor", "critical"]
+    generator = QualityBackend(findings=[candidate(f"f{i}", severity, "Evidence A." if i % 2 else "Evidence B.")
+                                         for i, severity in enumerate(severities)], editorial=keep_all)
+    verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
+    run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     published = [item for item in run.findings if item.editorial_disposition == "publish"]
-    assert len(published) == 1 and "strong" in published[0].id
+    assert len(published) == len(severities)
+    order = [item.severity.value for item in published]
+    assert order == sorted(order, key=["critical", "major", "minor"].index)
+    headings = [line for line in (tmp_path / "out" / "review.md").read_text().splitlines() if line.startswith("### ")]
+    assert [line.split(":")[0] for line in headings[:3]] == ["### Critical"] * 3
 
 
 def test_uncertain_statistical_screening_lead_is_not_automatically_major(tmp_path):

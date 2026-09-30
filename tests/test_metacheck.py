@@ -8,6 +8,7 @@ from reviscope.cli import parser
 from reviscope.evaluation import strip_review_metadata
 from reviscope.pipeline import ReviewPipeline
 from reviscope.schemas import Profile, StudyMap
+from stubs import discovery_payload
 
 RUN_METACHECK = metacheck.run_metacheck  # conftest replaces the stage; these tests stub only its external calls
 
@@ -22,9 +23,9 @@ class CaptureBackend(Backend):
         kind = response_model.__name__
         if kind == "StudyMap":
             return StudyMap(studies=[], research_question="q", design_summary="d", contribution_summary="c", strengths=[])
-        if kind == "FindingsResponse":
+        if kind == "DiscoveryResponse":
             self.evidence[instruction.split()[1]] = evidence
-            return response_model.model_validate({"findings": []})
+            return response_model.model_validate(discovery_payload(instruction, []))
         return response_model.model_validate({"decisions": [], "reconciled_overview": {"design_summary": "d", "contribution_summary": "c", "strengths": []}})
 
 

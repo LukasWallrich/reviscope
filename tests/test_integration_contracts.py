@@ -12,6 +12,7 @@ from reviscope.pipeline import ReviewPipeline
 from reviscope.render import to_html
 from reviscope.render import to_markdown
 from reviscope.schemas import Evidence, Finding, Profile, StudyMap
+from stubs import discovery_payload
 
 
 class ScriptedBackend(Backend):
@@ -30,9 +31,9 @@ class ScriptedBackend(Backend):
         self.calls.append((response_model.__name__, instruction))
         if response_model.__name__ == "StudyMap":
             return StudyMap(studies=[], research_question="q", design_summary="d", contribution_summary="c", strengths=[])
-        if response_model.__name__ == "FindingsResponse":
+        if response_model.__name__ == "DiscoveryResponse":
             module = next((key for key in self.modules if key in instruction), "default")
-            return response_model.model_validate({"findings": self.modules.get(module, [])})
+            return response_model.model_validate(discovery_payload(instruction, self.modules.get(module, [])))
         if response_model.__name__ == "VerificationResponse":
             rows = self.verify(instruction) if callable(self.verify) else (self.verify or [])
             return response_model.model_validate({"decisions": rows})

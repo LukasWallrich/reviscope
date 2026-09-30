@@ -67,13 +67,13 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     paper = tmp_path / 'paper.txt'
     paper.write_text('24 of 60 people withdrew. ' + 'Study context. ' * 100)
     profile = Profile(id='deep-test', title='test', modules=['statistical_inference'],
-                      module_prompts={'statistical_inference': 'Review statistics.'},
-                      metadata={'coverage_first': True})
+                      module_prompts={'statistical_inference': 'Review statistics.'})
     backend = DiscoveryBackend()
-    pipeline = ReviewPipeline(backend, profile, max_findings=7)
+    pipeline = ReviewPipeline(backend, profile)
     run = pipeline.run(paper, output_dir=tmp_path / 'run')
     assert not run.partial
     assert len(run.candidates) == 7
+    assert sum(f.editorial_disposition == 'publish' for f in run.findings) == 7
     assert len(backend.calls) == 5
     blind = next(c for c in backend.calls if 'Perform one blind-spot audit' in c[1])
     assert 'statistical_inference issue 5' in blind[2] and 'COVERAGE LEDGER' in blind[2]
@@ -95,7 +95,7 @@ def test_omitted_coverage_retains_findings_but_marks_search_incomplete(tmp_path)
     paper = tmp_path / 'paper.txt'
     paper.write_text('24 of 60 people withdrew. ' + 'Context. ' * 200)
     profile = Profile(id='deep-test', title='test', modules=['statistical_inference'],
-                      module_prompts={'statistical_inference': 'Review.'}, metadata={'coverage_first': True})
+                      module_prompts={'statistical_inference': 'Review.'})
     run = ReviewPipeline(DiscoveryBackend(bad_coverage=True), profile).run(paper, output_dir=tmp_path / 'run')
     assert run.partial
     assert next(s for s in run.stages if s.name == 'review-statistical_inference').status == 'completed'

@@ -1,6 +1,7 @@
 """Coverage-first discovery: module prompts, response schema and coverage-ledger validation."""
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -18,6 +19,16 @@ TOPICS = {
     'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations'],
     'blind_spots': ['unexamined_claims_and_sections', 'omissions_with_consequences', 'unresolved_numerical_questions'],
 }
+DEFAULT_TOPICS = ['module_inferences', 'source_consistency', 'information_limits']
+
+# The blind-spot pass runs after every profile module, before verification.
+BLIND_SPOTS = 'blind_spots'
+BLIND_SPOT_PROMPT = ('Perform one blind-spot audit of the full manuscript against the existing candidate inventory '
+                     'and coverage ledger. Treat earlier findings as unverified leads, not facts. Search for overlooked '
+                     'claims, mechanisms, numerical assumptions and consequential omissions. Return only substantively '
+                     'new findings; do not paraphrase existing issues. Do not manufacture problems to fill gaps.')
+
+_CHECKS_LINE = 'Return exactly one checks entry for each of: '
 
 
 class CoverageCheck(BaseModel):
@@ -28,24 +39,22 @@ class CoverageCheck(BaseModel):
 
 
 class DiscoveryResponse(BaseModel):
-    # Resource ceiling, not an instruction to prioritize before coverage.
-    findings: list[Finding] = Field(max_length=20)
+    findings: list[Finding]
     checks: list[CoverageCheck] = Field(min_length=1)
     search_incomplete: bool
 
 
 def discovery_instruction(module: str, base: str) -> str:
-    topics = TOPICS.get(module, ['module_inferences', 'source_consistency', 'information_limits'])
-    return base + '''\nThese discovery rules override earlier requests for only a few prioritized findings.
-Audit the entire supplied manuscript within your assigned responsibility before selecting findings.
+    topics = TOPICS.get(module, DEFAULT_TOPICS)
+    return base + '''\nAudit the entire supplied manuscript within your assigned responsibility and return every
+distinct, justified issue you find. There is no quota and no limit on the number of findings.
 Keep each issue grounded in an exact quotation, a concrete consequence, and the strongest plausible
 alternative explanation or defeating context. An omission needs an inferential consequence, not merely
 a missing checklist item. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
-by default. Return all distinct justified issues within your responsibility; do not fill a quota.
-The schema's twenty-finding ceiling is a resource guard, not a target or publication limit. Set
-search_incomplete=true if that ceiling or another limit prevents a complete audit.
-Return exactly one checks entry for each of: ''' + ', '.join(topics) + '''.
+by default. Missing information alone cannot be major or critical without a demonstrated material
+consequence. Set search_incomplete=true if you could not complete the audit of your responsibility.
+''' + _CHECKS_LINE + ', '.join(topics) + '''.
 For assessed checks, explain what you compared and cite source evidence; empty findings do not imply
 coverage. Mark not_applicable, insufficient_evidence or not_checked with a reason when appropriate.
 Use your tools where they can settle a consequential question. Recompute reported statistics,
@@ -53,10 +62,17 @@ power and sample-size claims, percentages and sample flow with code, and state t
 assumptions you used. Open cited sources when the manuscript's use of them carries an inference, and
 search the literature before asserting or denying novelty or a missing body of work. Put what an
 external source shows in external_evidence with its URL or DOI and an exact quotation from that
-source. Every finding also needs at least one exact manuscript quotation in evidence. When a search is
+source. Every finding also needs at least one exact manuscript quotation in evidence, with a valid
+SOURCE_ID. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). When a search is
 inconclusive, say so rather than asserting an omission.
 Stay within the assigned module; do not repeat a cross-section contradiction outside your remit unless
 you identify a distinct consequence. Editorial selection happens after discovery and verification.'''
+
+
+def requested_checks(instruction: str) -> list[str]:
+    """Coverage check names that a discovery instruction asks for (used by offline backends)."""
+    match = re.search(re.escape(_CHECKS_LINE) + r'([^\n]*)\.\n', instruction)
+    return [name.strip() for name in match.group(1).split(',')] if match else DEFAULT_TOPICS
 
 
 def validate_discovery(result: DiscoveryResponse, module: str, sources: list[SourceDocument]):
@@ -65,7 +81,7 @@ def validate_discovery(result: DiscoveryResponse, module: str, sources: list[Sou
     A defective coverage claim is not evidence that a candidate criticism is false.
     The raw model response is retained by the caller before this normalization.
     """
-    expected = TOPICS.get(module, ['module_inferences', 'source_consistency', 'information_limits'])
+    expected = TOPICS.get(module, DEFAULT_TOPICS)
     by_name = {}
     for row in result.checks:
         by_name.setdefault(row.check, []).append(row)

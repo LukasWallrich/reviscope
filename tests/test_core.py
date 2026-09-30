@@ -4,7 +4,7 @@ from reviscope.backend import FixtureBackend
 from reviscope.ingest import ingest
 from reviscope.pipeline import ReviewPipeline
 from reviscope.schemas import Profile
-from reviscope.pipeline import FindingsResponse
+from reviscope.discovery import DiscoveryResponse
 from reviscope.render import to_html, to_markdown
 from pydantic import ValidationError
 import pytest
@@ -37,9 +37,10 @@ def test_partial_failure_still_renders(tmp_path: Path):
 
 
 def test_model_response_requires_explicit_abstention():
+    checks = [{"check": "module_inferences", "status": "not_applicable", "rationale": "None made."}]
     with pytest.raises(ValidationError):
-        FindingsResponse.model_validate({})
-    assert FindingsResponse.model_validate({"findings": []}).findings == []
+        DiscoveryResponse.model_validate({"checks": checks, "search_incomplete": False})
+    assert DiscoveryResponse.model_validate({"findings": [], "checks": checks, "search_incomplete": False}).findings == []
 
 
 def test_fixture_export_is_unmistakable_and_html_escaped(tmp_path: Path):

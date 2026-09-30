@@ -120,7 +120,7 @@ class Finding(BaseModel):
     verifier_rationale: str | None = None
     remedy_status: Literal["supported", "overreaching", "unresolved"] | None = None
     remedy_verification: str | None = None
-    editorial_disposition: Literal["publish", "merged", "rejected", "needs_review", "cap"] = "publish"
+    editorial_disposition: Literal["publish", "merged", "rejected", "needs_review"] = "publish"
     editorial_reason: str | None = None
     merged_into: str | None = None
 
