@@ -3,7 +3,8 @@
 Reads `reviews/<label>/paper-NN/planted-error-adjudication.<judge>.json` for every
 configuration. Each paper is placed in one group:
 - `clean`, `flagged`, `incomplete`: the verdict in the paper's `tool-audit.json`
-  (written by eval/run_known_errors.py) for a review with recorded tool calls;
+  (written by eval/run_known_errors.py) for a review with recorded tool calls. A
+  partial review is `incomplete` whatever its audit verdict;
 - `not_audited`: a review with recorded tool calls but no tool audit;
 - `external`: a stored review without tool-call provenance (the benchmark authors'
   reviews), which the audit cannot check.
@@ -72,7 +73,8 @@ def load_configuration(directory: Path, judge_model: str, root: Path) -> list[di
         rows = data["judgments"]
         if len(rows) != 10:
             raise ValueError(f"{path}: expected 10 judgments, found {len(rows)}")
-        papers.append({"paper": data["ground_truth"]["paper"], "group": tool_audit_group(path.parent, review, content),
+        group = "incomplete" if data["review"]["partial"] else tool_audit_group(path.parent, review, content)
+        papers.append({"paper": data["ground_truth"]["paper"], "group": group,
                        "partial": data["review"]["partial"],
                        "candidate_count": data["review"]["candidate_count"],
                        "published_count": data["review"]["published_count"],
