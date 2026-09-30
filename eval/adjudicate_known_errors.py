@@ -72,7 +72,10 @@ def load_review(review_path: Path, *, allow_partial: bool = False) -> tuple[str,
         issues = [{"id": f"issue-{index:02d}", "claim": item["subcategory"], "rationale": item["description"],
                    "quote": item["quote"], "category": item["category"], "severity": item["severity"]}
                   for index, item in enumerate(data["issues"], 1)]
-        return f"plain:{sha256(review_path)[:12]}", False, issues, issues
+        partial = bool(data.get("partial"))
+        if partial and not allow_partial:
+            raise ValueError("Refusing to score a partial review")
+        return f"plain:{sha256(review_path)[:12]}", partial, issues, issues
     run = ReviewRun.model_validate(data)
     if run.partial and not allow_partial:
         raise ValueError("Refusing to score a partial review")
@@ -113,9 +116,9 @@ def main() -> int:
     parser.add_argument("--allow-partial", action="store_true", help="Score an incomplete run for development diagnosis only; preserve its partial status")
     parser.add_argument("--paper", default="8", help="Paper identifier in the annotations CSV (default: 8)")
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--model", default="fable")
+    parser.add_argument("--model", choices=["claude-opus-5-5"], default="claude-opus-5-5")
     parser.add_argument("--effort", default="high")
-    parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument("--timeout", type=int, default=3600)
     args = parser.parse_args()
 
     run_id, partial, errors, candidates, published = load_inputs(args.review, args.annotations, args.paper, allow_partial=args.allow_partial)
@@ -154,7 +157,8 @@ The annotation is ground truth for this task; do not assess unrelated errors."""
         "schema_version": 1,
         "experimental_label": "development known-error smoke test; model-judged; not an accuracy estimate",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "judge": {"backend": backend.name, "model": backend.model, "effort": backend.effort, "identity": backend.identity},
+        "judge": {"backend": backend.name, "model": backend.model, "effort": backend.effort, "tools": backend.tools,
+                  "identity": backend.identity},
         "review": {"path": str(args.review.resolve()), "sha256": sha256(args.review), "run_id": run_id,
                    "candidate_count": len(candidates), "published_count": len(published), "partial": partial,
                    "partial_diagnostic_authorized": bool(partial and args.allow_partial)},

@@ -1,20 +1,29 @@
 """Single-call baseline review with the Dawes benchmark's taxonomy prompt.
 
 Sends `REVIEW_PROMPT` from the benchmark (commit 3d91883, benchmark/prompts.py)
-to one model call through the same tool-free backend the pipeline uses, and
-writes `{"issues": [...]}` in the benchmark's own review format.
+to one model call with the same tools as the pipeline's review stages (web
+search, fetching, sandboxed shell). Writes the benchmark's `{"issues": [...]}`
+format plus the provenance `eval/audit_tool_use.py` reads: `sources` (manuscript
+sha256) and one `review-plain` stage with every recorded tool call. A failed call
+still writes the file, with `partial: true`, a failed stage and the tool calls
+made before the failure.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
 
-from reviscope.backend import ClaudeBackend, CodexBackend
+from reviscope.backend import Backend, ClaudeBackend, CodexBackend
+
+MODELS = {"gpt-6-luna": CodexBackend, "gpt-6.1-sol": CodexBackend, "claude-opus-5-5": ClaudeBackend}
+STAGE = "review-plain"
 
 REVIEW_PROMPT = """You are an expert scientific peer reviewer with deep methodological expertise. \
 Review the following manuscript and identify all methodological, statistical, and conceptual issues.
@@ -59,26 +68,42 @@ class Issues(BaseModel):
     issues: list[Issue]
 
 
+def review(manuscript: Path, backend: Backend) -> dict[str, object]:
+    """Run the one-call review and return the review.json payload, failed or not."""
+    raw = manuscript.read_bytes()
+    stage: dict[str, object] = {"name": STAGE, "status": "completed"}
+    started = time.monotonic()
+    issues: list[dict[str, object]] = []
+    try:
+        issues = [item.model_dump() for item in backend.generate(REVIEW_PROMPT, raw.decode("utf-8"), Issues).issues]
+    except Exception as exc:  # keep the provenance of a failed call
+        stage.update(status="failed", error=f"{type(exc).__name__}: {exc}")
+    calls = [call.model_copy(update={"stage": STAGE}).model_dump(mode="json") for call in backend.take_tool_calls()]
+    stage.update(duration_seconds=round(time.monotonic() - started, 1), tool_calls=calls)
+    return {"generator": backend.identity, "prompt": "Dawes benchmark REVIEW_PROMPT (taxonomy-guided)",
+            "partial": stage["status"] == "failed",
+            "sources": [{"id": "manuscript", "path": str(manuscript.resolve()), "kind": "manuscript",
+                         "sha256": hashlib.sha256(raw).hexdigest()}],
+            "stages": [stage], "issues": issues}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manuscript", type=Path)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--backend", choices=["codex", "claude"], default="codex")
-    parser.add_argument("--model", default="gpt-6-luna")
-    parser.add_argument("--effort", default="max")
-    parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument("--model", choices=sorted(MODELS), default="gpt-6-luna")
+    parser.add_argument("--effort", default="high")
+    parser.add_argument("--timeout", type=int, default=3600, help="per-call timeout in seconds")
     args = parser.parse_args()
 
-    backend = (CodexBackend if args.backend == "codex" else ClaudeBackend)(args.model, args.timeout, args.effort)
-    result = backend.generate(REVIEW_PROMPT, args.manuscript.read_text(encoding="utf-8"), Issues)
-    payload = {"generator": backend.identity, "prompt": "Dawes benchmark REVIEW_PROMPT (taxonomy-guided)",
-               **result.model_dump()}
+    payload = review(args.manuscript, MODELS[args.model](args.model, args.timeout, args.effort))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     temporary.replace(args.output)
-    print(f"{len(result.issues)} issues -> {args.output}")
-    return 0
+    stage = payload["stages"][0]
+    print(f"{stage['status']}: {len(payload['issues'])} issues, {len(stage['tool_calls'])} tool calls -> {args.output}")
+    return 1 if payload["partial"] else 0
 
 
 if __name__ == "__main__":
