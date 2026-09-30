@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "purpose": "Identity records of the 10 Dawes planted-error benchmark papers, used by eval/run_known_errors.py and eval/audit_tool_use.py. `original_urls` and `answer_key_urls` are pages whose content reveals the planted errors: the published original, its preprint and OSF files, and the benchmark repository.",
+  "entries": [
+    {
+      "paper": "1",
+      "title": "The influence of social dominance orientation and right-wing authoritarianism on environmentalism: A five-year cross-lagged analysis",
+      "doi": "10.1371/journal.pone.0219067",
+      "original_urls": [
+        "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0219067",
+        "https://doi.org/10.31219/osf.io/sbrpz",
+        "https://osf.io/sbrpz",
+        "https://osf.io/t5ruh"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/1.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/1.docx",
+      "sha256": "a240ab289cdec49b435ea52f71fec143386656dca0848d65ed7a46a37adf84ae",
+      "review_input_sha256": "101e3196fc43ba700a39889c8bb74e977294144245a27fe4568756bed89c6ece",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "2",
+      "title": "Revisiting and Rethinking the Identifiable Victim Effect: Replication and Extension of Small, Loewenstein, and Slovic (2007)",
+      "doi": "10.1525/collabra.90203",
+      "original_urls": [
+        "https://online.ucpress.edu/collabra/article/9/1/90203/199223/Revisiting-and-Rethinking-the-Identifiable-Victim",
+        "https://osf.io/k29fm"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/2.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/2.docx",
+      "sha256": "d4428ea5edcbae1f9f0dfbd8d02f82337e7fb229c89ed28de15d0ab129af3d39",
+      "review_input_sha256": "b362e97e1de4b6c16a61fd71a4061a6598703ecd119707d207726f09873a811a",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "3",
+      "title": "Causal understanding is not necessary for the improvement of culturally evolving technology",
+      "doi": "10.1038/s41562-019-0567-9",
+      "original_urls": [
+        "https://www.nature.com/articles/s41562-019-0567-9",
+        "https://doi.org/10.31234/osf.io/nm5sh",
+        "https://osf.io/nm5sh",
+        "https://osf.io/j5r43"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/3.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/3.docx",
+      "sha256": "6eecb08046424c7f7746581d3847aecaede35556fd12fdbb7b87da808fbdf8d0",
+      "review_input_sha256": "e5ffdea4687b61398093ec738617c824e19b51d6f7211596daaf8568ae3a0ab6",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "4",
+      "title": "Can Text Messages Identify Suicide Risk in Real Time? A Within-Subjects Pilot Examination of Temporally Sensitive Markers of Suicide Risk",
+      "doi": "10.1177/2167702620906146",
+      "original_urls": [
+        "https://journals.sagepub.com/doi/10.1177/2167702620906146",
+        "https://doi.org/10.31219/osf.io/6r2nq",
+        "https://osf.io/6r2nq",
+        "https://osf.io/buxps"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/4.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/4.docx",
+      "sha256": "cae76fb9c884b3ce57eb340cb5d4eab65e09713bdaf226d58ec69d0aafda62de",
+      "review_input_sha256": "3a6db23a329dcd61c4c5e2ed721ab91665e15e295b4b8e71e355731ba3ec1cfa",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "5",
+      "title": "Self-Esteem, Self-Disclosure, Self-Expression, and Connection on Facebook: A Collaborative Replication Meta-Analysis",
+      "doi": "10.24839/2325-7342.JN23.2.98",
+      "original_urls": [
+        "https://www.psichi.org/page/232JNSpecialIssue18",
+        "https://doi.org/10.31234/osf.io/sx742",
+        "https://osf.io/sx742",
+        "https://osf.io/guh42"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/5.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/5.docx",
+      "sha256": "b6e89846267f5d8d5a76c4ec621fa9cef416e9e9531412ed7d6a89b07c96b6b5",
+      "review_input_sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "6",
+      "title": "Incivility begets incivility: Understanding the relationship between experienced and enacted incivility with customers over time",
+      "doi": "10.1007/s10869-022-09795-2",
+      "original_urls": [
+        "https://link.springer.com/article/10.1007/s10869-022-09795-2",
+        "https://osf.io/vmj6p",
+        "https://osf.io/5gnjm"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/6.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/6.docx",
+      "sha256": "4a8016f89841dfe5512a1d778a286ec8b82a11de0bdb4ff7667643c3ad3bed9e",
+      "review_input_sha256": "541e83d8816301cb5b0a9d0075ba7cb041b5193ac7667b514bdcd91609ac2a91",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "7",
+      "title": "Seeing Ɔ, remembering C: Illusions in short-term memory",
+      "doi": "10.1371/journal.pone.0283257",
+      "original_urls": [
+        "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0283257",
+        "https://osf.io/dfbva"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/7.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/7.docx",
+      "sha256": "444d8c6ecd680136c337000a72ab1ec85fd493e8cfdeccd3d882fb752be7ffd6",
+      "review_input_sha256": "79ab80c20627018e129da7f431f7efcf9891fa92e3aa927bbf1ba575944601bc",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "8",
+      "title": "Protecting against misinformation: Evaluating the effectiveness of three techniques to reduce memory conformity",
+      "doi": "10.1111/bjop.12712",
+      "original_urls": [
+        "https://bpspsychub.onlinelibrary.wiley.com/doi/10.1111/bjop.12712",
+        "https://osf.io/adhw7"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/8.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/8.docx",
+      "sha256": "ff6be1bc0baa9213a7d7f581be214a050656557e6c154af5e1e28ea1c4fc2836",
+      "review_input_sha256": "3dec70f50ac9dee4e2aca9a32bcf56ba7519adfde19f4af68e2c3394693a2f3d",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "9",
+      "title": "Moral Incongruence and Addiction: A Registered Report",
+      "doi": "10.1037/adb0000876",
+      "original_urls": [
+        "https://psycnet.apa.org/doi/10.1037/adb0000876",
+        "https://osf.io/mz53s"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/9.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/9.docx",
+      "sha256": "bdcf9eae9f91c526636a1b23e20e74fc620678f9587da5196507e63e81e69578",
+      "review_input_sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    },
+    {
+      "paper": "10",
+      "title": "Skilled readers' sensitivity to meaningful regularities in English writing",
+      "alt_titles": [
+        "Statistical information encoded in English writing"
+      ],
+      "doi": "10.1016/j.cognition.2018.09.013",
+      "original_urls": [
+        "https://www.sciencedirect.com/science/article/pii/S001002771830249X",
+        "https://osf.io/hpdjg"
+      ],
+      "answer_key_urls": [
+        "https://github.com/Dawes-Institute/ai-peer-review-benchmark",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/original%20papers/10.docx",
+        "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/error_insertions.csv"
+      ],
+      "commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+      "url": "https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/3d9188343eebd4312d3bfbde6822cfa4eaf32fb4/modified%20papers/10.docx",
+      "sha256": "0184da727c9429aef19e8e27d39dc2d185ed872770936064087c4df6b4e0b90f",
+      "review_input_sha256": "d71cbddf969106491f96117b82904524083ece4da221d807bf841612e75002ab",
+      "license": "CC BY 4.0 per upstream source manifest",
+      "generation_input": "manuscript.review-input.txt",
+      "labels": "ground_truth/error_insertions.csv; never pass to generation"
+    }
+  ]
+}
