@@ -34,6 +34,7 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--out", default="review-run")
     review.add_argument("--quiet", action="store_true")
     review.add_argument("--max-findings", type=int, default=12)
+    review.add_argument("--no-metacheck", action="store_true", help="skip the metacheck screening stage (runs by default)")
     review.set_defaults(func=_review_command)
     register_evaluation(sub)
     register_normalization(sub)
@@ -70,7 +71,7 @@ def _review_command(args: argparse.Namespace) -> int:
                 handle.write(line + "\n")
             if not args.quiet:
                 print(message, file=sys.stderr, flush=True)
-        run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress, max_findings=args.max_findings).run(args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
+        run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress, max_findings=args.max_findings, run_metacheck=not args.no_metacheck).run(args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

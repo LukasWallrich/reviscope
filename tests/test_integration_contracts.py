@@ -222,7 +222,7 @@ def test_pdf_blank_page_warning_and_docx_table_order(monkeypatch, tmp_path):
     extracted = ingest(pdf)
     assert extracted.pages[1].text == ""
     assert "page(s): 2" in extracted.extraction_warnings[0]
-    assert ReviewPipeline(FixtureBackend()).run(pdf, output_dir=tmp_path / "pdf-out").partial
+    assert ReviewPipeline(FixtureBackend(), run_metacheck=False).run(pdf, output_dir=tmp_path / "pdf-out").partial
 
     document = Document()
     document.add_paragraph("before")

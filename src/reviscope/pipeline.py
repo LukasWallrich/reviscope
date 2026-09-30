@@ -13,7 +13,8 @@ from pydantic import BaseModel, Field, TypeAdapter
 from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
-from .schemas import Evidence, ExternalEvidence, Finding, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
+from . import metacheck
+from .schemas import Evidence, ExternalEvidence, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
 
 
 class FindingsResponse(BaseModel):
@@ -100,7 +101,7 @@ def _load_profile(profile: str | Path | Profile) -> tuple[Profile, str]:
 class ReviewPipeline:
     STAGE_VERSION = "0.2.0a1"
 
-    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, max_findings: int = 12):
+    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, max_findings: int = 12, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="max")
         self.verifier_backend = verifier_backend or self.backend
         self.progress = progress or (lambda _: None)
@@ -109,6 +110,7 @@ class ReviewPipeline:
         self.max_findings = max_findings
         self.profile, self.profile_hash = _load_profile(profile)
         self.deep_discovery = bool(self.profile.metadata.get("coverage_first", False))
+        self.run_metacheck = run_metacheck
 
     @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
@@ -143,6 +145,15 @@ class ReviewPipeline:
         elapsed = time.monotonic() - started
         self.progress(f"{name}: completed in {elapsed:.1f}s ({len(calls)} tool calls)")
         return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, tool_calls=calls)
+
+    def _metacheck(self, manuscript: Path, out: Path) -> MetacheckRecord:
+        if not self.run_metacheck:
+            return MetacheckRecord(status="skipped", reason="skipped by flag")
+        self.progress("metacheck: started")
+        started = time.monotonic()
+        record = metacheck.run_metacheck(manuscript, out, self.progress)
+        self.progress(f"metacheck: {record.status} in {time.monotonic() - started:.1f}s")
+        return record
 
     def _failed(self, name: str, exc: Exception) -> StageRecord:
         self.progress(f"{name}: failed ({type(exc).__name__})")
@@ -190,6 +201,14 @@ class ReviewPipeline:
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
         modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
+        run.metacheck = self._metacheck(Path(manuscript), out)
+        run.coverage.append(metacheck.describe(run.metacheck))
+        run.coverage.extend(f"metacheck: {note}" for note in run.metacheck.excluded)
+        if run.metacheck.status == "failed":
+            run.partial = True
+        run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
+                                      artifact=run.metacheck.output_dir, error=None if run.metacheck.status == "completed" else run.metacheck.reason))
+        leads = metacheck.leads(run.metacheck, modules)
         for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
@@ -205,6 +224,8 @@ class ReviewPipeline:
                 continue
             try:
                 module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
+                if module in leads:
+                    module_evidence += "\n\n" + leads[module]
                 if module == "blind_spots":
                     module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
                     module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
@@ -226,7 +247,7 @@ class ReviewPipeline:
                         raw_path.write_text(value.model_dump_json(indent=2), encoding="utf-8")
                         return validate_discovery(value, m, sources)
                     return value
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction)}, response_type, generate_findings)
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": _hash(leads.get(module, ""))}, response_type, generate_findings)
                 if self.deep_discovery:
                     result = validate_discovery(result, module, sources)
                     run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
@@ -440,5 +461,6 @@ def review(manuscript: str | Path, **kwargs: object) -> ReviewRun:
     verifier_backend = kwargs.pop("verifier_backend", None)
     progress = kwargs.pop("progress", None)
     max_findings = kwargs.pop("max_findings", 12)
+    run_metacheck = kwargs.pop("run_metacheck", True)
     return ReviewPipeline(backend=backend, profile=profile, verifier_backend=verifier_backend,
-                          progress=progress, max_findings=max_findings).run(manuscript, **kwargs)
+                          progress=progress, max_findings=max_findings, run_metacheck=run_metacheck).run(manuscript, **kwargs)

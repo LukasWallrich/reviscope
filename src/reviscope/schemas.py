@@ -108,6 +108,28 @@ class StageRecord(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
 
 
+class MetacheckModule(BaseModel):
+    module: str
+    status: str
+    traffic_light: str | None = None
+    n_rows: int = 0
+    error: str | None = None
+    summary_text: str | None = None
+
+
+class MetacheckRecord(BaseModel):
+    """Provenance of the metacheck screening stage. Module lights are metacheck's own output."""
+
+    status: Literal["completed", "skipped", "not_checked", "failed"]
+    reason: str | None = None
+    output_dir: str | None = None
+    converter: str | None = None
+    paper_doi: str | None = None
+    parse_warnings: list[str] = Field(default_factory=list)
+    modules: list[MetacheckModule] = Field(default_factory=list)
+    excluded: list[str] = Field(default_factory=list)
+
+
 class RunMetadata(BaseModel):
     run_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -134,6 +156,7 @@ class ReviewRun(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)
     coverage: list[str] = Field(default_factory=list)
+    metacheck: MetacheckRecord | None = None
     partial: bool = False
 
 

@@ -36,6 +36,8 @@ Review, verification and editorial calls run with tools: web search and fetching
 
 The audit identifies the benchmark paper by source hash and flags searches or fetches that could expose its human reviews. Ranking, comparison and normalization judges run without tools.
 
+Before the review modules, a deterministic stage screens the manuscript with the [metacheck](https://github.com/scienceverse/metacheck) R package (requires `Rscript` and metacheck 0.1.0). It runs the default module set plus the modules its rubrics use, writes the output to `metacheck/` in the run directory, and gives each review module the relevant module tables and rubric as unverified leads; statistics modules go to statistical inference, causal claims to interpretation, reference checks to contribution, and open-practice, preregistration, repository, conflict-of-interest and funding checks to design. A module that failed is passed on as "could not check". The report shows each module's original traffic light in a separate Metacheck screening section. PDF and DOCX input is converted by a local GROBID at `localhost:8070` when it is running; otherwise metacheck uploads the manuscript to an online conversion server, and the run records which one was used. The causal-claims module sends the title and abstract to a hosted classifier. Markdown and plain-text manuscripts are recorded as not checked, because metacheck reads only PDF, DOCX, GROBID XML and metacheck JSON. Skip the stage with `--no-metacheck`; the report then says "metacheck: skipped by flag". The R wrapper scripts and rubrics are vendored from the metacheck agent skill in `src/reviscope/vendor/metacheck/`.
+
 A deterministic installation demonstration needs no model or credentials:
 
 ```bash

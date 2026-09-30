@@ -32,6 +32,7 @@ def to_markdown(run: ReviewRun) -> str:
             lines.append(f"> External source: “{ext.quote}” — {ext.url or ext.doi or 'source not recorded'}; shows: {ext.shows}")
         lines.append("")
     lines.extend(["## Coverage and audit", ""])
+    lines.extend(_metacheck(run))
     lines.extend(f"- {item}" for item in run.coverage)
     lines.append("")
     for stage in run.stages:
@@ -44,6 +45,23 @@ def to_markdown(run: ReviewRun) -> str:
         for finding in set_aside:
             lines.append(f"- `{finding.id}` — epistemic `{finding.status}`, editorial `{finding.editorial_disposition}`: {finding.editorial_reason or finding.verification or 'No reason recorded.'}")
     return "\n".join(lines) + "\n"
+
+
+def _metacheck(run: ReviewRun) -> list[str]:
+    record = run.metacheck
+    if record is None:
+        return []
+    lines = ["### Metacheck screening", "",
+             "Automated screening output from the metacheck R package, passed to the review modules as unverified leads. These lights are metacheck's own and are not verified findings.", ""]
+    if record.status != "completed":
+        return lines + [f"metacheck: {record.reason}" if record.status == "skipped" else f"metacheck: {record.status}: {record.reason}", ""]
+    lines.append(f"Conversion: {record.converter}")
+    lines.extend(f"Parse warning: {warning}" for warning in record.parse_warnings)
+    lines.append("")
+    for item in record.modules:
+        state = f"light {item.traffic_light or 'none'}, {item.n_rows} row(s)" if item.status == "ok" else f"could not check ({item.status}: {item.error or 'no reason recorded'})"
+        lines.append(f"- `{item.module}` — {state}")
+    return lines + [""]
 
 
 def _tool_use(run: ReviewRun) -> list[str]:
