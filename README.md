@@ -6,12 +6,9 @@
 
 An independent, modular manuscript-review alpha for quantitative social science, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
-The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
+The default `social_psychology` profile covers quantitative social psychology. It extends `quantitative_social_science`, whose reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
 
-The experimental `social_psychology_v3` profile adds coverage-first discovery,
-genre-aware interpretation and one blind-spot audit.
-Use `--profile social_psychology_v3` to try it; the baseline default remains v2
-pending evaluation. See [the v3 contract](docs/DISCOVERY_V3.md).
+Discovery is coverage-first: each module audits its whole responsibility, records a coverage check per topic, and returns every distinct, justified issue; one blind-spot pass follows. No stage limits the number of findings. See [discovery and verification](docs/DISCOVERY.md).
 
 ## Install and run
 
@@ -53,7 +50,7 @@ Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.m
 
 Each run writes `review.json`, `review.md`, `review.html`, timestamped `run.log`, and content-keyed stage artifacts. The default per-call deadline is 3,600 seconds; a max-effort stage on a full paper can take about 20 minutes. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work.
 
-A quotation match establishes provenance; it does not establish the criticism's truth. `llm_supported` means the verifier judged the criticism supported. Unresolved findings remain labelled. Numerical checks are conservative leads with recorded applicability and coverage. Editorial rejection and merging do not erase the original finding or its evidential status.
+A quotation match establishes provenance; it does not establish the criticism's truth. A quotation shortened with an ellipsis anchors when every segment of at least three words occurs in the named source, in order; the evidence location marks it as elided. Quotations that do not anchor are dropped from a finding's evidence and listed in its verification note. A finding is published, with status `llm_supported`, when the verifier supports it and at least one anchored manuscript quotation exists, from the generating model or from the verifier. Published findings are ordered critical, major, minor, and their number is not limited. Concerns that the verifier could neither establish nor rule out appear in a separate report section, "Concerns the verifier could not confirm", with the verifier's reason; they keep status `unresolved`. Contradicted findings are set aside. Numerical checks are conservative leads with recorded applicability and coverage. Editorial rejection and merging do not erase the original finding or its evidential status.
 
 Exit status is 0 for successful commands, 1 for invalid input, and 2 for a partial review or evaluation. Partial reports explicitly identify failed or unavailable stages. Empty findings do not establish that a paper is sound.
 
@@ -66,7 +63,7 @@ uv run reviscope review paper.md \
   --profile examples/education_profile --out runs/custom-review
 ```
 
-Inherit from `quantitative_social_science_v2` to reuse the revised authored methods, verification, severity, and editorial rules. These rules passed engineering and adversarial prompt review but have not established scientific validity. Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/reviscope/profiles).
+Inherit from `quantitative_social_science` to reuse the authored methods, verification, severity, and editorial rules. These rules passed engineering and adversarial prompt review but have not established scientific validity. Profiles are ordinary local data files, not runtime monkey patches. Their effective inherited content is resolved before review and recorded in the cache identity. See [architecture](docs/ARCHITECTURE.md) and [profile resources](src/reviscope/profiles).
 
 ## Evaluate
 

@@ -30,17 +30,18 @@ flowchart TD
     Extract --> Map[Describe studies and assess material sufficiency]
     Extract --> Metacheck[metacheck screening: deterministic R modules]
     Metacheck -->|unverified leads| Modules
-    Map --> Modules[Apply methodological and discipline modules with web search, fetching and a sandboxed shell]
+    Map --> Modules[Coverage-first discovery per methodological and discipline module, with web search, fetching and a sandboxed shell]
     Profile[Inherited discipline profile] --> Modules
-    Modules --> Anchor[Anchor candidate quotations to sources]
+    Modules --> Blind[Blind-spot pass over the candidate inventory and coverage ledger]
+    Blind --> Anchor[Anchor candidate quotations to sources]
     Anchor --> Verify[Check claims and remedies in a separate model call]
     Profile --> Verify
-    Verify --> Editorial[Select distinct issues and reconcile overview]
+    Verify --> Editorial[Merge duplicates, set aside unsupported findings, reconcile overview]
     Editorial --> Report[JSON, Markdown, HTML and audit records]
     Report --> Eval[Separate human comparison and known-error evaluation]
 ```
 
-The default is `social_psychology_v2`. The original profiles remain available for development baselines. A different model family can perform verification; the report records whether this is a same-model call, a different model in the same family, or a different model family. Quote anchoring does not establish the criticism's truth. Unsupported advice is withheld independently of the factual criticism. Failed verification cannot be overridden by editorial selection.
+The default profile is `social_psychology`, which extends `quantitative_social_science`. No stage limits the number of findings; published findings are ordered by severity. A finding is published when the verifier supports it and at least one quotation from the manuscript anchors, from either the generating model or the verifier; quotations that do not anchor are dropped and recorded. Concerns the verifier judges unresolved on the evidence appear in a separate report section with its reason. See [discovery and verification](DISCOVERY.md). A different model family can perform verification; the report records whether this is a same-model call, a different model in the same family, or a different model family. Quote anchoring does not establish the criticism's truth. Unsupported advice is withheld independently of the factual criticism. Failed verification cannot be overridden by editorial selection.
 
 Generation and evaluation are separate processes. The reviewer receives the supplied manuscript sources and profile, never historical reviews or benchmark error annotations. The evaluator receives final published substantive content with pipeline provenance removed for blinding; it retains the manuscript and comparator provenance in separate audit artifacts.
 
