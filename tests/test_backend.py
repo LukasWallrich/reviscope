@@ -57,6 +57,7 @@ def test_review_backends_sandbox_the_shell_and_judges_have_no_tools():
     claude = claude_backend.command(tmp)
     settings = json.loads(claude[claude.index("--settings") + 1])["sandbox"]
     assert settings["failIfUnavailable"] and not settings["allowUnsandboxedCommands"]
+    assert "Bash" in claude[claude.index("--allowedTools") + 1].split(",")  # no one can answer a permission prompt
     assert settings["filesystem"]["denyRead"] == ["~/"] and settings["network"] == {"strictAllowlist": True, "allowedDomains": []}
     assert f"WebFetch(domain:{REVIEW_DOMAINS[0]})" in json.loads(claude[claude.index("--settings") + 1])["permissions"]["deny"]
     assert claude_backend.environment(tmp)["CLAUDE_CODE_TMPDIR"] == str(tmp)

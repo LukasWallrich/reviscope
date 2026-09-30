@@ -342,8 +342,9 @@ def claude_settings() -> str:
 class ClaudeBackend(SubprocessBackend):
     """Claude Code in restricted safe mode (no user settings, hooks, instructions, MCP servers or saved
     session). With tools, calls get WebSearch, WebFetch and a sandboxed Bash (claude_settings) whose
-    temporary files stay in the per-call directory. tools=False is for judges and normalizers that
-    must read only the supplied text."""
+    temporary files stay in the per-call directory. Bash is pre-approved because nobody can answer a
+    permission prompt here; the sandbox, not the prompt, confines it. tools=False is for judges and
+    normalizers that must read only the supplied text."""
 
     name, binary = "claude", "claude"
 
@@ -351,7 +352,7 @@ class ClaudeBackend(SubprocessBackend):
         cmd = ["claude", "-p", "--restricted", "--safe-mode", "--no-session-persistence", "--strict-mcp-config", "--permission-prompts", "none"]
         if self.tools:
             cmd += ["--output-format", "stream-json", "--verbose", "--tools", "Bash,WebSearch,WebFetch",
-                    "--allowedTools", "WebSearch,WebFetch", "--settings", claude_settings()]
+                    "--allowedTools", "Bash,WebSearch,WebFetch", "--settings", claude_settings()]
         else:
             cmd += ["--output-format", "text", "--tools", ""]
         if self.model:
