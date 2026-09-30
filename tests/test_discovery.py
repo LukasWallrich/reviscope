@@ -44,10 +44,13 @@ class DiscoveryBackend(Backend):
                 'checks': rows, 'search_incomplete': False,
             })
         if kind == 'VerificationResponse':
+            self._tool_calls = [ToolCall(backend='test', sequence=0, kind='fetch', name='web_fetch',
+                                         url=EXTERNAL['url'], timestamp=datetime.now(timezone.utc))]
             candidates = json.loads(instruction.split('CANDIDATES\n')[1].split('\nDISCIPLINE RULES')[0])
             return response_model.model_validate({'decisions': [{
                 'finding_id': c['finding_id'], 'status': 'supported', 'rationale': 'Checked',
-                'evidence': c['quoted_evidence'], 'external_evidence': c['external_evidence'],
+                'evidence': c['quoted_evidence'],
+                'external_checks': [{'locator': e['url'], 'verdict': 'confirmed', 'rationale': 'Opened it'} for e in c['external_evidence']],
                 'remedy_status': 'supported', 'remedy_rationale': 'Small fix',
             } for c in candidates]})
         if kind == 'EditorialResponse':
@@ -79,8 +82,8 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert published.editorial_disposition == 'publish' and published.status == 'llm_supported'
     assert published.external_evidence[0].url == EXTERNAL['url']
     markdown = (tmp_path / 'run/review.md').read_text()
-    assert 'External source: “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
-    assert '1 tool calls: 1 search' in markdown and '“medium effect size benchmark”' in markdown
+    assert 'External source (confirmed): “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
+    assert '2 tool calls: 1 search, 1 fetch' in markdown and '“medium effect size benchmark”' in markdown
     count = len(backend.calls)
     rerun = pipeline.run(paper, output_dir=tmp_path / 'run')
     assert len(backend.calls) == count

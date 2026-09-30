@@ -129,17 +129,28 @@ def test_invalid_replacement_evidence_cannot_approve(evidence, original_quote):
     assert verify_findings([finding], [source()], decision)[0].status == "unresolved"
 
 
-def test_external_evidence_needs_a_manuscript_anchor_and_verifier_confirmation():
-    external = {"url": "https://doi.org/10.1/x", "doi": None, "quote": "Cited study reports d = 0.2.", "shows": "Cited effect is small."}
+def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source():
+    from datetime import datetime, timezone
+    from reviscope.schemas import ToolCall
+    quote = "The multilevel estimate was -0.25"
+    supplement = SourceDocument(id="supp", path="s.pdf", kind="supplement", sha256="y", text="Supplement says 42 items.")
+    external = {"url": "https://doi.org/10.1/X", "doi": None, "quote": "Cited study reports d = 0.2.", "shows": "Cited effect is small."}
     decision = {"status": "supported", "rationale": "ok", "remedy_status": "supported", "remedy_rationale": "",
-                "evidence": [{"source_id": "main", "quote": "The multilevel estimate was -0.25"}]}
-    only_external = Finding(id="a", module="m", claim="c", rationale="r", remedy="x", external_evidence=[external])
-    anchored = only_external.model_copy(update={"id": "b", "evidence": [Evidence(source_id="main", quote="The multilevel estimate was -0.25")]})
-    result = verify_findings([only_external, anchored], [source()], {
-        "a": {**decision, "evidence": [], "external_evidence": [external]},
-        "b": {**decision, "external_evidence": [external]},
-    })
-    assert result[0].status == "unresolved"
-    assert result[1].status == "llm_supported" and result[1].external_evidence[0].url == external["url"]
-    dropped = verify_findings([anchored], [source()], {"b": {**decision, "external_evidence": []}})[0]
-    assert dropped.status == "llm_supported" and dropped.external_evidence == []
+                "evidence": [{"source_id": "main", "quote": quote}],
+                "external_checks": [{"locator": "https://doi.org/10.1/x", "verdict": "confirmed", "rationale": "opened"}]}
+    fetch = ToolCall(backend="t", sequence=0, kind="fetch", name="WebFetch", url="https://doi.org/10.1/x", timestamp=datetime.now(timezone.utc))
+    supplement_only = Finding(id="s", module="m", claim="c", rationale="r", remedy="x",
+                              evidence=[Evidence(source_id="supp", quote="Supplement says 42 items.")])
+    cited = Finding(id="e", module="m", claim="c", rationale="r", remedy="x", evidence=[Evidence(source_id="main", quote=quote)],
+                    external_evidence=[external])
+    supp_decision = {**decision, "evidence": [{"source_id": "supp", "quote": "Supplement says 42 items."}], "external_checks": []}
+    result = verify_findings([supplement_only, cited], [source(), supplement], {"s": supp_decision, "e": decision}, verifier_calls=[fetch])
+    assert result[0].status == "unresolved" and "manuscript itself" in result[0].verification
+    assert result[1].status == "llm_supported" and result[1].external_evidence[0].check == "confirmed"
+    unchecked = verify_findings([cited], [source()], {"e": decision}, verifier_calls=[])[0]
+    assert unchecked.status == "unresolved" and unchecked.external_evidence[0].check == "unchecked"
+    refuted = verify_findings([cited], [source()], {"e": {**decision, "external_checks": [
+        {"locator": external["url"], "verdict": "refuted", "rationale": "says d = 0.8"}]}}, verifier_calls=[fetch])[0]
+    assert refuted.status == "unresolved" and refuted.external_evidence[0].check == "refuted"
+    with pytest.raises(ValueError, match="url or doi"):
+        Finding(id="x", module="m", claim="c", rationale="r", remedy="x", external_evidence=[{"quote": "q", "shows": "s"}])

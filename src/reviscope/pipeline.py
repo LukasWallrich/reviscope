@@ -14,7 +14,7 @@ from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
 from . import metacheck
-from .schemas import Evidence, ExternalEvidence, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
+from .schemas import Evidence, ExternalCheck, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
 
 
 class FindingsResponse(BaseModel):
@@ -26,7 +26,7 @@ class VerificationDecision(BaseModel):
     status: Literal["supported", "contradicted", "unresolved"]
     rationale: str
     evidence: list[Evidence] = Field(default_factory=list)
-    external_evidence: list[ExternalEvidence] = Field(default_factory=list)
+    external_checks: list[ExternalCheck] = Field(default_factory=list)
     remedy_status: Literal["supported", "overreaching", "unresolved"] = "unresolved"
     remedy_rationale: str = ""
 
@@ -129,9 +129,9 @@ class ReviewPipeline:
         artifact = out / "stages" / f"{name}-{key}.json"
         tools_artifact = artifact.with_suffix(".tools.json")
         artifact.parent.mkdir(parents=True, exist_ok=True)
-        if artifact.is_file():
+        if artifact.is_file() and tools_artifact.is_file():  # a stage without its provenance sidecar is rerun
             self.progress(f"{name}: cache hit")
-            calls = TOOL_CALLS.validate_json(tools_artifact.read_bytes()) if tools_artifact.is_file() else []
+            calls = TOOL_CALLS.validate_json(tools_artifact.read_bytes())
             return model_type.model_validate_json(artifact.read_text()), StageRecord(name=name, status="cached", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=0, tool_calls=calls)
         self.progress(f"{name}: started")
         started = time.monotonic()
@@ -153,13 +153,19 @@ class ReviewPipeline:
             return MetacheckRecord(status="skipped", reason="skipped by flag")
         self.progress("metacheck: started")
         started = time.monotonic()
-        record = metacheck.run_metacheck(manuscript, out, self.progress)
+        try:
+            record = metacheck.run_metacheck(manuscript, out, self.progress)
+        except Exception as exc:  # screening must never abort the review
+            record = MetacheckRecord(status="failed", reason=f"{type(exc).__name__}: {exc}")
         self.progress(f"metacheck: {record.status} in {time.monotonic() - started:.1f}s")
         return record
 
-    def _failed(self, name: str, exc: Exception) -> StageRecord:
+    def _failed(self, name: str, exc: Exception, stage: StageRecord | None = None) -> StageRecord:
+        """Failed-stage record keeping the tool calls of the model call, including when the call
+        returned but its output was rejected afterwards (`stage`)."""
         self.progress(f"{name}: failed ({type(exc).__name__})")
-        return StageRecord(name=name, status="failed", error=f"{type(exc).__name__}: {exc}", tool_calls=getattr(exc, "tool_calls", []))
+        calls = getattr(exc, "tool_calls", None) or (stage.tool_calls if stage else [])
+        return StageRecord(name=name, status="failed", error=f"{type(exc).__name__}: {exc}", tool_calls=calls)
 
     def run(self, manuscript: str | Path, *, supplements: list[str | Path] | None = None, preregistrations: list[str | Path] | None = None, output_dir: str | Path = "review-run") -> ReviewRun:
         out = Path(output_dir).resolve()
@@ -185,7 +191,7 @@ class ReviewPipeline:
         evidence = self._evidence(sources)
         if len(evidence) > 150_000:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
-        verification_artifact: str | None = None
+        verification_stage: StageRecord | None = None
         try:
             study_instruction = "Extract the research question, claimed contribution, overall design, distinct studies, and concrete evidence-based strengths. Describe the contribution as the manuscript claims it; later stages assess novelty. Anchor claims in exact quotations with valid SOURCE_ID values. This is descriptive synthesis, not fault-finding."
             result, stage = self._cached(out, "study_map", {"sources": input_hash, "instruction_hash": _hash(REVIEW_GUARD + study_instruction)}, StudyMap, lambda: self.backend.generate(study_instruction, evidence, StudyMap))
@@ -204,12 +210,14 @@ class ReviewPipeline:
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
         modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
         run.metacheck = (MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material") if insufficient
-                         else self._metacheck(Path(manuscript), out))
+                         else self._metacheck(Path(sources[0].path), out))
         run.coverage.append(metacheck.describe(run.metacheck))
-        if run.metacheck.status == "failed":
+        run.coverage.extend(f"metacheck {m.module}: {warning[:200]}" for m in run.metacheck.modules if m.status == "partial" for warning in m.warnings)
+        if run.metacheck.status in {"failed", "partial"}:
             run.partial = True
-        run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
+        run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "partial": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
                                       artifact=run.metacheck.output_dir, error=None if run.metacheck.status == "completed" else run.metacheck.reason))
+        metacheck_fingerprint = metacheck.fingerprint(run.metacheck)
         leads, dropped = metacheck.leads(run.metacheck, modules)
         run.coverage.extend(f"metacheck leads for {module}: {count} candidate row(s) not shown (character cap)" for module, count in dropped.items())
         for module in modules:
@@ -250,7 +258,7 @@ class ReviewPipeline:
                         raw_path.write_text(value.model_dump_json(indent=2), encoding="utf-8")
                         return validate_discovery(value, m, sources)
                     return value
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": _hash(leads.get(module, ""))}, response_type, generate_findings)
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence) if self.deep_discovery else _hash(run.study_map.model_dump()), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, response_type, generate_findings)
                 if self.deep_discovery:
                     result = validate_discovery(result, module, sources)
                     run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
@@ -303,10 +311,10 @@ class ReviewPipeline:
             pending = [f for f in anchored if f.status == "unresolved"]
             if pending:
                 compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim, "remedy": f.remedy, "quoted_evidence": [e.model_dump() for e in f.evidence], "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in pending]
-                instruction = "Run a separate verification pass for each criticism using its claim, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Actively seek defeating context. Open every cited external source (URL or DOI) and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Return in external_evidence only the external items you confirmed, plus any you found yourself, each with its URL or DOI and an exact quotation from that source. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include at least one separately selected exact quotation with its valid source_id in evidence; supported with empty evidence is forbidden. Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
+                instruction = "Run a separate verification pass for each criticism using its claim, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include at least one separately selected exact quotation with its valid source_id in evidence; supported with empty evidence is forbidden. Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
                 verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt
-                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse), self.verifier_backend)
-                verification_artifact = stage.artifact
+                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), "evidence": _hash(evidence), "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse), self.verifier_backend)
+                verification_stage = stage
                 decisions = {}
                 for decision in verification.decisions:  # type: ignore[attr-defined]
                     decisions[decision.finding_id] = decision.model_dump()
@@ -319,7 +327,7 @@ class ReviewPipeline:
                     if stage.artifact:
                         Path(stage.artifact).unlink(missing_ok=True)
                     raise ValueError(f"Verifier omitted finding IDs: {', '.join(sorted(missing_ids))}")
-                run.findings = verify_findings(run.candidates, sources, decisions, run.metadata.verification_relationship)
+                run.findings = verify_findings(run.candidates, sources, decisions, run.metadata.verification_relationship, stage.tool_calls)
                 run.stages.append(stage)
             else:
                 run.findings = anchored
@@ -332,12 +340,12 @@ class ReviewPipeline:
             run.stages.append(StageRecord(name="verification", status="skipped", error="Verification component unavailable"))
         except Exception as exc:
             run.metadata.verification_relationship = "not_run"
-            if verification_artifact:
-                Path(verification_artifact).unlink(missing_ok=True)
+            if verification_stage and verification_stage.artifact:
+                Path(verification_stage.artifact).unlink(missing_ok=True)
             run.findings = [f.model_copy(update={"status": "unverified", "verification": f"Verification failed: {type(exc).__name__}: {exc}"}) for f in run.candidates]
             run.partial = True
-            run.stages.append(self._failed("verification", exc))
-        editorial_artifact: str | None = None
+            run.stages.append(self._failed("verification", exc, verification_stage))
+        editorial_stage: StageRecord | None = None
         try:
             editorial_input = [f.model_dump() for f in run.findings]
             if insufficient:
@@ -351,7 +359,7 @@ class ReviewPipeline:
             else:
                 instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. Apply the profile's severity guidance when selecting findings; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse, lambda: self.backend.generate(instruction, "No additional manuscript evidence is supplied at editorial stage.", EditorialResponse))
-                editorial_artifact = stage.artifact
+                editorial_stage = stage
             editorial_rows = decisions.decisions  # type: ignore[attr-defined]
             if not insufficient and self.backend.name != "fixture" and decisions.reconciled_overview is None:  # type: ignore[union-attr]
                 raise ValueError("Editorial stage omitted the reconciled overview")
@@ -410,8 +418,8 @@ class ReviewPipeline:
             for finding in edited:
                 if finding.status == "contradicted":
                     finding = finding.model_copy(update={"editorial_disposition": "rejected", "editorial_reason": "Claim was contradicted during verification.", "merged_into": None})
-                elif finding.status in {"candidate", "unverified"}:
-                    finding = finding.model_copy(update={"editorial_disposition": "needs_review", "editorial_reason": "Claim lacks a completed verification decision.", "merged_into": None})
+                elif finding.status in {"candidate", "unverified", "unresolved"}:
+                    finding = finding.model_copy(update={"editorial_disposition": "needs_review", "editorial_reason": f"Claim is not established by verification (status {finding.status}).", "merged_into": None})
                 quarantined.append(finding)
             run.findings = quarantined
             rank = {"critical": 0, "major": 1, "minor": 2}
@@ -445,13 +453,13 @@ class ReviewPipeline:
             if self.backend.name == "fixture":
                 self.progress("editorial: completed in 0.0s")
         except Exception as exc:
-            if editorial_artifact:
-                Path(editorial_artifact).unlink(missing_ok=True)
+            if editorial_stage and editorial_stage.artifact:
+                Path(editorial_stage.artifact).unlink(missing_ok=True)
             run.partial = True
             run.findings = [finding.model_copy(update={"editorial_disposition": "needs_review",
                                                         "editorial_reason": f"Editorial stage failed: {type(exc).__name__}: {exc}",
                                                         "merged_into": None}) for finding in run.findings]
-            run.stages.append(self._failed("editorial", exc))
+            run.stages.append(self._failed("editorial", exc, editorial_stage))
         self.progress("render: started")
         render_all(run, out)
         self.progress("render: completed")

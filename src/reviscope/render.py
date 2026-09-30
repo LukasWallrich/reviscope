@@ -17,7 +17,7 @@ def to_markdown(run: ReviewRun) -> str:
     if not run.study_map.strengths:
         lines.append("No specific strengths summary was available.")
     lines.extend(["", "## Findings", ""])
-    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "contradicted"}]
+    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
     if not kept:
         lines.append("No supported substantive findings were produced.")
     for finding in kept:
@@ -30,7 +30,7 @@ def to_markdown(run: ReviewRun) -> str:
             where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
             lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
         for ext in finding.external_evidence:
-            lines.append(f"> External source: “{ext.quote}” — {ext.url or ext.doi or 'source not recorded'}; shows: {ext.shows}")
+            lines.append(f"> External source ({ext.check}): “{ext.quote}” — {ext.locator}; shows: {ext.shows}")
         lines.append("")
     lines.extend(["## Coverage and audit", ""])
     lines.extend(_metacheck(run))
@@ -54,8 +54,10 @@ def _metacheck(run: ReviewRun) -> list[str]:
         return []
     lines = ["### Metacheck screening", "",
              "Automated screening output from the metacheck R package, passed to the review modules as unverified leads. These lights are metacheck's own and are not verified findings.", ""]
-    if record.status != "completed":
+    if record.status not in {"completed", "partial"}:
         return lines + [describe(record), ""]
+    if record.reason:
+        lines.append(f"Run errors: {record.reason}")
     if record.text_conversion:
         lines.append(f"Text conversion: {record.text_conversion}")
     lines.append(f"Conversion: {record.converter}")
@@ -64,7 +66,9 @@ def _metacheck(run: ReviewRun) -> list[str]:
     lines.extend(f"Parse warning: {warning}" for warning in record.parse_warnings)
     lines.append("")
     for item in record.modules:
-        state = f"light {item.traffic_light or 'none'}, {item.n_rows} row(s)" if item.status == "ok" else f"could not check ({item.status}: {item.error or 'no reason recorded'})"
+        state = (f"light {item.traffic_light or 'none'}, {item.n_rows} row(s)" if item.status == "ok" else
+                 f"light {item.traffic_light or 'none'}, {item.n_rows} row(s), partly could not check" if item.status == "partial" else
+                 f"could not check ({item.status}: {item.error or 'no reason recorded'})")
         lines.append(f"- `{item.module}` — {state}")
     return lines + [""]
 

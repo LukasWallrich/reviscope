@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 import unicodedata
-from typing import Any, Iterable, Literal, Mapping
+from typing import Any, Iterable, Literal, Mapping, Sequence
 
-from .schemas import Evidence, ExternalEvidence, Finding, SourceDocument
+from .schemas import Evidence, ExternalEvidence, Finding, SourceDocument, ToolCall
 
 @dataclass(frozen=True)
 class QuoteVerification:
@@ -89,14 +89,43 @@ def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_
     return QuoteVerification("unanchored", None, None, None, reason)
 
 
+def _locator(value: str) -> str:
+    value = value.strip().lower().split("#", 1)[0]
+    value = re.sub(r"^https?://", "", value)
+    value = re.sub(r"^(www\.|dx\.)?doi\.org/", "", value)
+    return re.sub(r"^www\.", "", value).rstrip("/")
+
+
+def touched(locator: str, calls: Sequence[ToolCall]) -> bool:
+    """True if a recorded search or fetch opened, queried or listed this URL or DOI."""
+    wanted = _locator(locator)
+    return bool(wanted) and any(
+        wanted in _locator(text) for call in calls if call.kind in {"search", "fetch"} and not call.error
+        for text in (call.url, call.query, *call.result_urls) if text)
+
+
+def check_external(items: Sequence[ExternalEvidence], checks: Sequence[Mapping[str, Any]],
+                   calls: Sequence[ToolCall]) -> list[ExternalEvidence]:
+    """Confirmed needs the verifier's `confirmed` verdict and a recorded tool call on the locator."""
+    verdicts = {_locator(str(row.get("locator", ""))): row.get("verdict") for row in checks if isinstance(row, Mapping)}
+    checked = []
+    for item in items:
+        verdict = verdicts.get(_locator(item.locator))
+        state = ("refuted" if verdict == "refuted" else
+                 "confirmed" if verdict == "confirmed" and touched(item.locator, calls) else "unchecked")
+        checked.append(item.model_copy(update={"check": state}))
+    return checked
+
+
 def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocument],
                     model_results: Mapping[str, Mapping[str, Any]] | None = None,
-                    relationship: str = "separate_verification_pass") -> list[Finding]:
+                    relationship: str = "separate_verification_pass",
+                    verifier_calls: Sequence[ToolCall] = ()) -> list[Finding]:
     """Apply anchors and optional separate-pass claim decisions without dropping findings.
 
-    Only manuscript quotations (`evidence`) are anchored here; a finding needs at least one.
-    External evidence cannot be substring-checked, so once a verifier decision exists the
-    finding carries only the external items the verifier reports having confirmed.
+    Every finding needs at least one anchored quotation from the manuscript itself; supplements
+    and preregistrations add support but cannot carry a finding alone. A finding that cites
+    external evidence can be supported only if at least one external item is confirmed.
     """
     source_list = list(sources)
     source_maps = [{"source_id": source.id, "text": source.text} for source in source_list]
@@ -143,9 +172,15 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
                 "source_char_end": anchor.source_char_end if anchor.status == "supported" else None,
             }))
         anchor_failed = not anchors or any(item.status == "unanchored" for item in anchors)
+        manuscript_anchored = any(anchor.status == "supported" and anchor.source_id in source_by_id
+                                  and source_by_id[anchor.source_id].kind == "manuscript" for anchor in anchors)
+        external = check_external(finding.external_evidence, decision.get("external_checks", []) if decision else [], verifier_calls)
         if anchor_failed:
             status = "unresolved"
             rationale = "At least one cited quotation could not be anchored in its named source."
+        elif not manuscript_anchored:
+            status = "unresolved"
+            rationale = "No cited quotation comes from the manuscript itself; supplementary sources cannot carry a finding alone."
         elif finding.status in {"recomputed", "verified_deterministic"}:
             status = finding.status
             rationale = finding.verification or "The claim was established by a deterministic check."
@@ -159,6 +194,9 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
             if status == "supported" and not verifier_grounded:
                 status = "unresolved"
                 rationale = "The model selected supported, but its separately selected evidence was absent or could not be anchored."
+            elif status == "supported" and external and not any(item.check == "confirmed" for item in external):
+                status = "unresolved"
+                rationale = "The claim cites external evidence, but no external item was confirmed by the verifier with a recorded fetch or search of its URL or DOI."
             elif status == "supported":
                 status = "llm_supported"
         trace = "; ".join(
@@ -170,10 +208,8 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
                f"provenance=deterministic_quote_anchor+{relationship}" if decision else
                "provenance=deterministic_quote_anchor"]
         )
-        external = ([ExternalEvidence.model_validate(item) for item in decision.get("external_evidence", [])]
-                    if decision else finding.external_evidence)
-        if decision and (finding.external_evidence or external):
-            trace += f"; external_evidence={len(external)} confirmed by verifier ({len(finding.external_evidence)} cited in discovery)"
+        if external:
+            trace += "; external_evidence=" + ", ".join(f"{item.locator}: {item.check}" for item in external)
         remedy_status = (str(decision.get("remedy_status")) if decision and
                          decision.get("remedy_status") in {"supported", "overreaching", "unresolved"} else None)
         remedy_verification = str(decision.get("remedy_rationale", "")) if decision else None

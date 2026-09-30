@@ -232,3 +232,37 @@ def test_pdf_blank_page_warning_and_docx_table_order(monkeypatch, tmp_path):
     docx = tmp_path / "paper.docx"
     document.save(docx)
     assert ingest(docx).text.splitlines() == ["before", "left | right", "after"]
+
+
+def test_rejected_verifier_output_keeps_its_tool_calls(tmp_path):
+    from datetime import datetime, timezone
+    from reviscope.schemas import ToolCall
+
+    class SearchingVerifier(ScriptedBackend):
+        def generate(self, instruction, evidence, response_model):
+            self._tool_calls = [ToolCall(backend="t", sequence=0, kind="search", name="s", query="q", timestamp=datetime.now(timezone.utc))]
+            return super().generate(instruction, evidence, response_model)
+
+    paper = manuscript(tmp_path)
+    generator = ScriptedBackend(modules={"RUN a": _fix_source_ids([finding()], ingest(paper).id)})
+    verifier = SearchingVerifier(verify=[{"finding_id": "unknown", "status": "supported", "rationale": "x"}])
+    run = ReviewPipeline(generator, profile("a"), verifier).run(paper, output_dir=tmp_path / "out")
+    stage = next(stage for stage in run.stages if stage.name == "verification")
+    assert stage.status == "failed" and stage.tool_calls[0].query == "q"
+
+
+def test_supplement_only_finding_is_never_rendered_as_a_finding(tmp_path):
+    paper = manuscript(tmp_path)
+    supplement = tmp_path / "supp.md"
+    supplement.write_text("Supplement sentence only. " * 5)
+    supp_id = ingest(supplement, "supplement").id
+    rows = [Finding(id="s", module="x", claim="Supplement-based concern", rationale="r", remedy="fix",
+                    evidence=[Evidence(source_id=supp_id, quote="Supplement sentence only.")]).model_dump()]
+    verify = lambda _instruction: [{"finding_id": "a:0:s", "status": "supported", "rationale": "ok",
+                                    "evidence": [{"source_id": supp_id, "quote": "Supplement sentence only."}]}]
+    run = ReviewPipeline(ScriptedBackend(modules={"RUN a": rows}), profile("a"), ScriptedBackend(verify=verify)).run(
+        paper, supplements=[supplement], output_dir=tmp_path / "out")
+    finding_row = run.findings[0]
+    assert finding_row.status == "unresolved" and finding_row.editorial_disposition == "needs_review"
+    rendered = to_markdown(run)
+    assert "### " + "Major: Supplement-based concern" not in rendered and "`a:0:s`" in rendered
