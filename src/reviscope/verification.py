@@ -97,11 +97,17 @@ def _locator(value: str) -> str:
 
 
 def touched(locator: str, calls: Sequence[ToolCall]) -> bool:
-    """True if a recorded search or fetch opened, queried or listed this URL or DOI."""
+    """True if a recorded fetch opened this URL or DOI, or a search query named it.
+
+    A locator that only appears in the result list of an unrelated search does not count."""
     wanted = _locator(locator)
+
+    def texts(call: ToolCall) -> tuple[str | None, ...]:
+        return (call.url, call.query, *call.result_urls) if call.kind == "fetch" else (call.query,)
+
     return bool(wanted) and any(
         wanted in _locator(text) for call in calls if call.kind in {"search", "fetch"} and not call.error
-        for text in (call.url, call.query, *call.result_urls) if text)
+        for text in texts(call) if text)
 
 
 def check_external(items: Sequence[ExternalEvidence], checks: Sequence[Mapping[str, Any]],

@@ -154,3 +154,18 @@ def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source()
     assert refuted.status == "unresolved" and refuted.external_evidence[0].check == "refuted"
     with pytest.raises(ValueError, match="url or doi"):
         Finding(id="x", module="m", claim="c", rationale="r", remedy="x", external_evidence=[{"quote": "q", "shows": "s"}])
+
+
+def test_external_source_counts_as_checked_only_when_opened_or_named_in_a_query():
+    from datetime import datetime, timezone
+    from reviscope.schemas import ToolCall
+    from reviscope.verification import touched
+
+    def call(kind, **fields):
+        return ToolCall(backend="t", sequence=0, kind=kind, name=kind, timestamp=datetime.now(timezone.utc), **fields)
+
+    listed = call("search", query="stereotyping disorder", result_urls=["https://pubmed.ncbi.nlm.nih.gov/21474762/"])
+    assert not touched("https://pubmed.ncbi.nlm.nih.gov/21474762/", [listed])
+    assert touched("https://pubmed.ncbi.nlm.nih.gov/21474762/", [call("fetch", result_urls=["https://pubmed.ncbi.nlm.nih.gov/21474762"])])
+    assert touched("10.1126/science.1201068", [call("search", query='"10.1126/science.1201068" retraction')])
+    assert not touched("10.1126/science.1201068", [call("fetch", url="https://doi.org/10.1126/science.1201068", error=True)])
