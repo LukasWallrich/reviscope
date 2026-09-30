@@ -54,6 +54,9 @@ def test_audit_warns_but_does_not_flag_a_cited_paper_search_sharing_title_words(
     assert result["verdict"] == "clean" and "title words" in result["warnings"][0]
     flagged = audit(run_file(tmp_path, [call(0, "search", query="moral incongruence and addiction registered report")]), title=title)
     assert flagged["verdict"] == "flagged"
+    excluded = audit(run_file(tmp_path, [call(0, "search", query='"PPMI" "unique to" -"Moral Incongruence and Addiction" -registered'),
+                                         call(1, "fetch", output="[]")]), title=title)
+    assert excluded["verdict"] == "clean" and not excluded["warnings"]
 
 
 def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(tmp_path):
