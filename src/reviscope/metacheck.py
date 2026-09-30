@@ -190,10 +190,12 @@ def _rows(mc_dir: Path, module: str) -> list[dict[str, Any]]:
 
 
 def _counts(mc_dir: Path, module: str) -> dict[str, Any]:
-    """The module's own summary_table counts for the paper (e.g. references vs linked citations)."""
+    """The module's own summary_table counts and flags for the paper (e.g. references vs linked
+    citations). List columns repeat row text and are left to the rows."""
     table = _read(mc_dir / "modules" / f"{module}.json").get("summary_table")
     row = table[0] if isinstance(table, list) and table and isinstance(table[0], dict) else {}
-    return {key: value for key, value in row.items() if key != "paper_id" and value not in (None, "", [], {})}
+    return {key: value for key, value in row.items()
+            if key != "paper_id" and isinstance(value, (int, float, bool, str)) and value != ""}
 
 
 def reuse_key(manuscript: Path) -> dict[str, str]:
