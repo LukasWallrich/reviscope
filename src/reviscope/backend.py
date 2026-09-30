@@ -155,8 +155,11 @@ def _codex_calls(item: dict[str, Any], sequence: int, started: datetime) -> list
         if url:
             return [ToolCall(**base, sequence=sequence, kind="fetch", url=url, query=action.get("pattern"),
                              output=_truncate(results), result_urls=_urls(results))]
-        queries = [q for q in [*(action.get("queries") or []), action.get("query"), item.get("query")] if q]
-        queries = list(dict.fromkeys(queries)) or [None]
+        # `action.query` abbreviates a batch as its first query plus "..."; `queries` holds the batch.
+        queries = list(dict.fromkeys(action.get("queries") or [q for q in (action.get("query"), item.get("query")) if q]))
+        if not queries:
+            # Opening earlier results by reference: no query, the opened pages are in the results.
+            return [ToolCall(**base, sequence=sequence, kind="fetch", output=_truncate(results), result_urls=_urls(results))]
         return [ToolCall(**base, sequence=sequence + i, kind="search", query=query,
                          output=_truncate(results) if i == 0 else "", result_urls=_urls(results) if i == 0 else [])
                 for i, query in enumerate(queries)]

@@ -25,13 +25,15 @@ def test_codex_event_stream_yields_search_exec_and_final_message():
 
 def test_codex_parser_keeps_every_query_and_marks_failed_or_unfinished_calls():
     events = [
-        {"type": "item.completed", "item": {"id": "1", "type": "web_search", "action": {"type": "search", "queries": ["effect sizes", "paper title reviews"]}}},
+        {"type": "item.completed", "item": {"id": "1", "type": "web_search", "action": {"type": "search", "query": "effect sizes ...", "queries": ["effect sizes", "paper title reviews"]}}},
         {"type": "item.completed", "item": {"id": "2", "type": "command_execution", "command": "rm x", "status": "declined", "exit_code": None}},
+        {"type": "item.completed", "item": {"id": "4", "type": "web_search", "action": {"type": "open_page"}, "results": [{"url": "https://pubmed.ncbi.nlm.nih.gov/21474762/"}]}},
         {"type": "item.started", "item": {"id": "3", "type": "command_execution", "command": "python3 slow.py"}},
     ]
     calls, _ = parse_codex_events("\n".join(json.dumps(e) for e in events), NOW)
     assert [c.query for c in calls[:2]] == ["effect sizes", "paper title reviews"]
-    assert calls[2].error and calls[3].error and "incomplete" in calls[3].output
+    assert calls[2].error and calls[4].error and "incomplete" in calls[4].output
+    assert calls[3].kind == "fetch" and calls[3].result_urls == ["https://pubmed.ncbi.nlm.nih.gov/21474762/"]
 
 
 def test_claude_event_stream_pairs_tool_uses_with_results_and_records_refusals():
