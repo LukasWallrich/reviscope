@@ -16,6 +16,13 @@ class QuoteVerification:
     source_char_start: int | None
     source_char_end: int | None
     reason: str
+    elided: bool = False
+
+
+# An elision mark after normalization ("…" folds to "..."): three or more dots, optionally
+# spaced or bracketed. Each quoted segment around it must be at least this many words long.
+_ELLIPSIS = re.compile(r"\s*\[?\s*(?:\.\s*){3,}\]?\s*")
+MIN_ELIDED_SEGMENT_WORDS = 3
 
 
 def _normalize_with_offsets(text: str) -> tuple[str, list[int]]:
@@ -68,24 +75,55 @@ def _numeric_boundaries_ok(text: str, start: int, needle: str) -> bool:
     return True
 
 
+def _find(normalized: str, needle: str, search_from: int = 0) -> int:
+    """First match of needle at or after search_from that does not cut through a number; -1 if none."""
+    while (start := normalized.find(needle, search_from)) >= 0:
+        if _numeric_boundaries_ok(normalized, start, needle):
+            return start
+        search_from = start + 1
+    return -1
+
+
+def _find_elided(normalized: str, segments: list[str]) -> tuple[int, int] | None:
+    """Span from the first to the last segment when every segment occurs in order without overlap."""
+    position, first = 0, None
+    for segment in segments:
+        start = _find(normalized, segment, position)
+        if start < 0:
+            return None
+        first = start if first is None else first
+        position = start + len(segment)
+    return (first, position) if first is not None else None
+
+
 def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_id: str | None = None) -> QuoteVerification:
-    """Match exact text modulo whitespace. Numeric tokens must match byte-for-byte."""
+    """Match exact text modulo whitespace. Numeric tokens must match byte-for-byte.
+
+    A quotation shortened with an ellipsis anchors when each segment around the ellipsis is at
+    least MIN_ELIDED_SEGMENT_WORDS words long and all segments occur in the same source, in order.
+    """
     needle, _ = _normalize_with_offsets(quote.strip())
     if not needle:
         return QuoteVerification("unanchored", None, None, None, "No quotation was supplied.")
+    segments = [part for part in _ELLIPSIS.split(needle) if part.strip()] if _ELLIPSIS.search(needle) else []
+    segments_usable = bool(segments) and all(len(part.split()) >= MIN_ELIDED_SEGMENT_WORDS for part in segments)
     for index, source in enumerate(sources):
         text = source if isinstance(source, str) else str(source.get("text", ""))
         sid = str(index) if isinstance(source, str) else str(source.get("source_id", source.get("id", index)))
         if source_id is not None and sid != str(source_id):
             continue
         normalized, offsets = _normalize_with_offsets(text)
-        search_from = 0
-        while (start := normalized.find(needle, search_from)) >= 0:
-            if _numeric_boundaries_ok(normalized, start, needle):
-                end_index = start + len(needle) - 1
-                return QuoteVerification("supported", sid, offsets[start], offsets[end_index] + 1, "Quotation matched the cited source modulo whitespace.")
-            search_from = start + 1
+        start = _find(normalized, needle)
+        if start >= 0:
+            return QuoteVerification("supported", sid, offsets[start], offsets[start + len(needle) - 1] + 1,
+                                     "Quotation matched the cited source modulo whitespace.")
+        if segments_usable and (span := _find_elided(normalized, segments)):
+            return QuoteVerification("supported", sid, offsets[span[0]], offsets[span[1] - 1] + 1,
+                                     f"Elided quotation: all {len(segments)} segments matched the cited source in order.",
+                                     elided=True)
     reason = "Quotation was not found in the specified source." if source_id else "Quotation was not found in any supplied source."
+    if segments and not segments_usable:
+        reason += f" An elided quotation anchors only when every segment has at least {MIN_ELIDED_SEGMENT_WORDS} words."
     return QuoteVerification("unanchored", None, None, None, reason)
 
 
@@ -125,15 +163,51 @@ def check_external(items: Sequence[ExternalEvidence], checks: Sequence[Mapping[s
     return checked
 
 
+_VERDICTS = {"supported", "contradicted", "unresolved"}
+_DETERMINISTIC = {"recomputed", "verified_deterministic"}
+
+
+def _verifier_evidence(rows: Any) -> tuple[list[Evidence], list[str]]:
+    """Well-formed verifier quotations, plus a trace note for each malformed row."""
+    if rows is None:
+        return [], []
+    if not isinstance(rows, list):
+        return [], ["verifier_evidence=ignored: not a list"]
+    items, notes = [], []
+    for index, row in enumerate(rows):
+        if (isinstance(row, Mapping) and isinstance(row.get("quote"), str) and row["quote"].strip()
+                and isinstance(row.get("source_id"), str)):
+            items.append(Evidence(source_id=row["source_id"], quote=row["quote"]))
+        else:
+            notes.append(f"verifier_quote[{index}]=ignored: malformed row")
+    return items, notes
+
+
+def _grounded(item: Evidence, anchor: QuoteVerification, source: SourceDocument | None) -> Evidence:
+    """Evidence with deterministic page and character location; model-supplied locations are discarded."""
+    page = None
+    if source is not None:
+        pages = [page_text.page for page_text in source.pages
+                 if verify_quote(item.quote, [{"source_id": source.id, "text": page_text.text}], source.id).status == "supported"]
+        page = pages[0] if len(pages) == 1 else None
+    location = f"source characters {anchor.source_char_start}:{anchor.source_char_end}"
+    return item.model_copy(update={"page": page, "location": location + (" (elided quotation)" if anchor.elided else ""),
+                                   "source_char_start": anchor.source_char_start,
+                                   "source_char_end": anchor.source_char_end})
+
+
 def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocument],
                     model_results: Mapping[str, Mapping[str, Any]] | None = None,
                     relationship: str = "separate_verification_pass",
                     verifier_calls: Sequence[ToolCall] = ()) -> list[Finding]:
-    """Apply anchors and optional separate-pass claim decisions without dropping findings.
+    """Anchor quotations and apply the separate verifier's decisions without dropping findings.
 
-    Every finding needs at least one anchored quotation from the manuscript itself; supplements
-    and preregistrations add support but cannot carry a finding alone. A finding that cites
-    external evidence can be supported only if at least one external item is confirmed and none is refuted.
+    Evidence is every quotation that anchors in its named source: the generator's, plus the
+    verifier's own when it supports the claim. Quotations that fail to anchor are dropped from the
+    evidence and listed in the verification note. A finding is publishable (`llm_supported`) when
+    the verifier supports it and at least one anchored quotation comes from the manuscript itself;
+    supplements and preregistrations add support but cannot carry a finding alone. A finding that
+    cites external evidence also needs at least one item confirmed and none refuted.
     """
     source_list = list(sources)
     source_maps = [{"source_id": source.id, "text": source.text} for source in source_list]
@@ -141,92 +215,64 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
     source_by_id = {source.id: source for source in source_list}
     verified: list[Finding] = []
     for finding in findings:
-        original_anchors = [verify_quote(item.quote, source_maps, item.source_id) for item in finding.evidence]
         decision = decisions.get(finding.id)
-        verifier_evidence = decision.get("evidence", []) if decision else []
-        # Reject malformed rows too: silently filtering them could turn a partially
-        # invalid evidence set into an apparently fully grounded one.
-        verifier_anchors = [
-            verify_quote(item["quote"], source_maps, item["source_id"])
-            for item in verifier_evidence
-        ] if isinstance(verifier_evidence, list) and all(
-            isinstance(item, Mapping) and isinstance(item.get("quote"), str)
-            and isinstance(item.get("source_id"), str) for item in verifier_evidence
-        ) else []
-        verifier_grounded = bool(verifier_anchors) and all(
-            anchor.status == "supported" for anchor in verifier_anchors)
-        use_verifier_evidence = bool(
-            decision and decision.get("status") == "supported" and verifier_grounded
-            and finding.status not in {"recomputed", "verified_deterministic"})
-        # Candidates remain unchanged in the run audit. Downstream editorial and
-        # rendering receive only the evidence that actually supports approval.
-        selected_evidence = [Evidence(source_id=item["source_id"], quote=item["quote"])
-                             for item in verifier_evidence] if use_verifier_evidence else finding.evidence
-        anchors = verifier_anchors if use_verifier_evidence else original_anchors
-        grounded_evidence = []
-        for item, anchor in zip(selected_evidence, anchors):
-            page = None
-            source = source_by_id.get(item.source_id)
-            if anchor.status == "supported" and source is not None:
-                page_matches = [page_text.page for page_text in source.pages
-                                if verify_quote(item.quote, [{"source_id": source.id, "text": page_text.text}], source.id).status == "supported"]
-                if len(page_matches) == 1:
-                    page = page_matches[0]
-            grounded_evidence.append(item.model_copy(update={
-                "page": page,
-                "location": (f"source characters {anchor.source_char_start}:{anchor.source_char_end}"
-                             if anchor.status == "supported" else None),
-                "source_char_start": anchor.source_char_start if anchor.status == "supported" else None,
-                "source_char_end": anchor.source_char_end if anchor.status == "supported" else None,
-            }))
-        anchor_failed = not anchors or any(item.status == "unanchored" for item in anchors)
-        manuscript_anchored = any(anchor.status == "supported" and anchor.source_id in source_by_id
-                                  and source_by_id[anchor.source_id].kind == "manuscript" for anchor in anchors)
+        raw_verdict = decision.get("status") if decision else None
+        verdict = (raw_verdict if raw_verdict in _VERDICTS else "unresolved") if decision else None
+        deterministic = finding.status in _DETERMINISTIC
+        quoted = [("quote", index, item) for index, item in enumerate(finding.evidence)]
+        trace: list[str] = []
+        if verdict == "supported" and not deterministic:
+            verifier_items, notes = _verifier_evidence(decision.get("evidence"))
+            quoted += [("verifier_quote", index, item) for index, item in enumerate(verifier_items)]
+            trace += notes
+        evidence: list[Evidence] = []
+        spans: set[tuple[str | None, int | None, int | None]] = set()
+        for label, index, item in quoted:
+            anchor = verify_quote(item.quote, source_maps, item.source_id)
+            if anchor.status != "supported":
+                excerpt = item.quote if len(item.quote) <= 120 else item.quote[:117] + "..."
+                trace.append(f"{label}[{index}]=dropped: {anchor.reason} Quotation: “{excerpt}”")
+                continue
+            trace.append(f"{label}[{index}]={'supported (elided)' if anchor.elided else 'supported'}: {anchor.reason}")
+            span = (anchor.source_id, anchor.source_char_start, anchor.source_char_end)
+            if span not in spans:
+                spans.add(span)
+                evidence.append(_grounded(item, anchor, source_by_id.get(item.source_id)))
+        manuscript_anchored = any(source_by_id[item.source_id].kind == "manuscript"
+                                  for item in evidence if item.source_id in source_by_id)
         external = check_external(finding.external_evidence, decision.get("external_checks", []) if decision else [], verifier_calls)
-        if anchor_failed:
-            status = "unresolved"
-            rationale = "At least one cited quotation could not be anchored in its named source."
+        verifier_rationale = str(decision.get("rationale") or "The verifier supplied no rationale.") if decision else None
+        if not evidence:
+            status, rationale = "unresolved", "No cited quotation could be anchored in its named source."
         elif not manuscript_anchored:
             status = "unresolved"
-            rationale = "No cited quotation comes from the manuscript itself; supplementary sources cannot carry a finding alone."
-        elif finding.status in {"recomputed", "verified_deterministic"}:
+            rationale = "No anchored quotation comes from the manuscript itself; supplementary sources cannot carry a finding alone."
+        elif deterministic:
             status = finding.status
             rationale = finding.verification or "The claim was established by a deterministic check."
         elif decision is None:
             status = "unresolved"
             rationale = "Evidence quotations were checked, but the substantive claim has not received a separate verification pass."
+        elif verdict != "supported":
+            status, rationale = verdict, verifier_rationale
+        elif any(item.check == "refuted" for item in external):
+            status, rationale = "unresolved", "The verifier refuted at least one cited external source."
+        elif external and not any(item.check == "confirmed" for item in external):
+            status = "unresolved"
+            rationale = ("The claim cites external evidence, but no external item was confirmed by the verifier "
+                         "with a recorded fetch or search of its URL or DOI.")
         else:
-            raw_status = decision.get("status", "unresolved")
-            status = raw_status if raw_status in {"supported", "contradicted", "unresolved"} else "unresolved"
-            rationale = str(decision.get("rationale", "The separate verification pass supplied no rationale."))
-            if status == "supported" and not verifier_grounded:
-                status = "unresolved"
-                rationale = "The model selected supported, but its separately selected evidence was absent or could not be anchored."
-            elif status == "supported" and any(item.check == "refuted" for item in external):
-                status = "unresolved"
-                rationale = "The verifier refuted at least one cited external source."
-            elif status == "supported" and external and not any(item.check == "confirmed" for item in external):
-                status = "unresolved"
-                rationale = "The claim cites external evidence, but no external item was confirmed by the verifier with a recorded fetch or search of its URL or DOI."
-            elif status == "supported":
-                status = "llm_supported"
-        trace = "; ".join(
-            [f"quote[{i}]={anchor.status}: {anchor.reason}" for i, anchor in enumerate(anchors)]
-            + ([f"original_quote[{i}]={anchor.status}: {anchor.reason}"
-                for i, anchor in enumerate(original_anchors)]
-               + ["evidence=separately_selected_verifier_evidence"] if use_verifier_evidence else [])
-            + [f"claim={status}: {rationale}",
-               f"provenance=deterministic_quote_anchor+{relationship}" if decision else
-               "provenance=deterministic_quote_anchor"]
-        )
+            status, rationale = "llm_supported", verifier_rationale
+        trace += [f"claim={status}: {rationale}",
+                  f"provenance=deterministic_quote_anchor+{relationship}" if decision else "provenance=deterministic_quote_anchor"]
         if external:
-            trace += "; external_evidence=" + ", ".join(f"{item.locator}: {item.check}" for item in external)
+            trace.append("external_evidence=" + ", ".join(f"{item.locator}: {item.check}" for item in external))
         remedy_status = (str(decision.get("remedy_status")) if decision and
                          decision.get("remedy_status") in {"supported", "overreaching", "unresolved"} else None)
         remedy_verification = str(decision.get("remedy_rationale", "")) if decision else None
-        verified.append(finding.model_copy(update={"status": status, "verification": trace,
-                                                   "evidence": grounded_evidence,
-                                                   "external_evidence": external,
+        verified.append(finding.model_copy(update={"status": status, "verification": "; ".join(trace),
+                                                   "evidence": evidence, "external_evidence": external,
+                                                   "verifier_status": verdict, "verifier_rationale": verifier_rationale,
                                                    "remedy_status": remedy_status,
                                                    "remedy_verification": remedy_verification}))
     return verified

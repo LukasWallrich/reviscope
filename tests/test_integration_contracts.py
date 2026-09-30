@@ -108,8 +108,10 @@ def test_corrected_verifier_quotes_reach_editorial_and_published_output(tmp_path
     assert run.findings[0].editorial_disposition == "publish"
     assert run.candidates[0].evidence[0].quote == "Invented generator quotation."
     published = to_markdown(run).split("## Coverage and audit", 1)[0]
-    assert "Quoted source sentence." in published
-    assert "Invented generator quotation." not in published
+    quoted_lines = [line for line in published.splitlines() if line.startswith("> ")]
+    assert any("Quoted source sentence." in line for line in quoted_lines)
+    assert not any("Invented generator quotation." in line for line in quoted_lines)
+    assert "quote[0]=dropped" in run.findings[0].verification
 
 
 @pytest.mark.parametrize("mode", ["unknown", "duplicate", "missing"])

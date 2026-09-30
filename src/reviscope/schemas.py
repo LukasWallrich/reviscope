@@ -114,6 +114,10 @@ class Finding(BaseModel):
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)
     verification: str | None = None
+    # The separate verifier's own verdict and reason, kept apart from `status`, which also
+    # reflects quote anchoring and external-source checks.
+    verifier_status: Literal["supported", "contradicted", "unresolved"] | None = None
+    verifier_rationale: str | None = None
     remedy_status: Literal["supported", "overreaching", "unresolved"] | None = None
     remedy_verification: str | None = None
     editorial_disposition: Literal["publish", "merged", "rejected", "needs_review", "cap"] = "publish"

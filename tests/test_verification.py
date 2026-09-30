@@ -67,11 +67,47 @@ def test_bad_anchor_overrides_model_approval():
     assert result[0].status == "unresolved"
 
 
-def test_model_support_requires_anchored_independent_evidence():
+def test_anchored_generator_quote_suffices_when_verifier_supports():
     finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
                       evidence=[Evidence(source_id="main", quote="estimate was −0.25")])
     decision = {"f1": {"status": "supported", "rationale": "yes", "evidence": []}}
-    assert verify_findings([finding], [source()], decision)[0].status == "unresolved"
+    result = verify_findings([finding], [source()], decision)[0]
+    assert result.status == "llm_supported" and result.verifier_status == "supported"
+
+
+def test_one_failed_quote_is_dropped_without_blocking_the_finding():
+    finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
+                      evidence=[Evidence(source_id="main", quote="estimate was 99"),
+                                Evidence(source_id="main", quote="SE = 0.10")])
+    decision = {"f1": {"status": "supported", "rationale": "yes", "evidence": []}}
+    result = verify_findings([finding], [source()], decision)[0]
+    assert result.status == "llm_supported"
+    assert [item.quote for item in result.evidence] == ["SE = 0.10"]
+    assert "quote[0]=dropped" in result.verification and "“estimate was 99”" in result.verification
+    assert "quote[1]=supported" in result.verification
+
+
+def test_elided_quotation_anchors_when_every_segment_occurs_in_order():
+    text = ("Participants were recruited from a university pool in 2021. Of these, 24 were excluded "
+            "for failing attention checks, leaving a final sample of 176 students.")
+    doc = source(text).model_dump()
+    elided = verify_quote("Participants were recruited from a university pool … leaving a final sample of 176 students.", [doc], "main")
+    assert elided.status == "supported" and elided.elided
+    assert text[elided.source_char_start:elided.source_char_end].startswith("Participants were")
+    assert text[elided.source_char_start:elided.source_char_end].endswith("176 students.")
+    assert verify_quote("Participants were recruited ... [...] 24 were excluded for failing", [doc], "main").elided
+    assert not verify_quote("Participants were recruited from a university pool", [doc], "main").elided
+    for bad in ("leaving a final sample ... Participants were recruited",  # out of order
+                "Participants were recruited ... 176",                     # segment shorter than three words
+                "Participants were recruited ... final sample of 17",       # cuts through a number
+                "Participants were recruited ... from a college pool"):     # segment not in source
+        assert verify_quote(bad, [doc], "main").status == "unanchored", bad
+    finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
+                      evidence=[Evidence(source_id="main", quote="Of these, 24 were excluded... a final sample of 176 students.")])
+    result = verify_findings([finding], [source(text)], {"f1": {"status": "supported", "rationale": "yes"}})[0]
+    assert result.status == "llm_supported"
+    assert result.evidence[0].location.endswith("(elided quotation)")
+    assert "quote[0]=supported (elided)" in result.verification
 
 
 def test_model_support_with_independent_evidence_is_kept_as_supported():
@@ -96,7 +132,7 @@ def test_numeric_sign_and_effect_change_cannot_anchor():
     assert verify_quote("estimate was +0.25", [source().model_dump()], "main").status == "unanchored"
 
 
-def test_valid_verifier_evidence_rescues_bad_generator_quotes_with_fresh_locations():
+def test_anchored_verifier_quote_carries_a_finding_whose_generator_quotes_all_fail():
     finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
                       evidence=[Evidence(source_id="main", quote="estimate was 99")])
     original = finding.model_dump()
@@ -110,23 +146,37 @@ def test_valid_verifier_evidence_rescues_bad_generator_quotes_with_fresh_locatio
     assert ev.page == 4
     assert source().text[ev.source_char_start:ev.source_char_end] == ev.quote
     assert ev.location == f"source characters {ev.source_char_start}:{ev.source_char_end}"
-    assert "original_quote[0]=unanchored" in result.verification
+    assert "quote[0]=dropped" in result.verification and "verifier_quote[0]=supported" in result.verification
     assert finding.model_dump() == original
 
 
-@pytest.mark.parametrize("evidence", [
-    [], None, [None], [{"quote": "SE = 0.10"}],
-    [{"source_id": "other", "quote": "SE = 0.10"}],
-    [{"source_id": "main", "quote": "SE = 0.20"}],
-    [{"source_id": "main", "quote": "SE = 0.10"}, None],
-    [{"source_id": "main", "quote": "SE = 0.10"}, {"source_id": "main", "quote": "invented"}],
+@pytest.mark.parametrize("evidence, verifier_anchors", [
+    ([], False), (None, False), ([None], False), ([{"quote": "SE = 0.10"}], False),
+    ([{"source_id": "other", "quote": "SE = 0.10"}], False),
+    ([{"source_id": "main", "quote": "SE = 0.20"}], False),
+    ([{"source_id": "main", "quote": "SE = 0.10"}, None], True),
+    ([{"source_id": "main", "quote": "SE = 0.10"}, {"source_id": "main", "quote": "invented"}], True),
 ])
-@pytest.mark.parametrize("original_quote", ["invented", "SE = 0.10"])
-def test_invalid_replacement_evidence_cannot_approve(evidence, original_quote):
+@pytest.mark.parametrize("generator_anchors, original_quote", [(False, "invented"), (True, "SE = 0.10")])
+def test_support_needs_one_anchored_manuscript_quote_from_either_side(evidence, verifier_anchors,
+                                                                      generator_anchors, original_quote):
     finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
                       evidence=[Evidence(source_id="main", quote=original_quote)])
     decision = {"f1": {"status": "supported", "evidence": evidence}}
-    assert verify_findings([finding], [source()], decision)[0].status == "unresolved"
+    result = verify_findings([finding], [source()], decision)[0]
+    assert result.status == ("llm_supported" if generator_anchors or verifier_anchors else "unresolved")
+    assert all(item.location for item in result.evidence) and len(result.evidence) <= 1
+
+
+def test_verifier_quotes_are_not_evidence_for_a_claim_it_does_not_support():
+    finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
+                      evidence=[Evidence(source_id="main", quote="estimate was −0.25")])
+    decision = {"f1": {"status": "unresolved", "rationale": "The design section does not say.",
+                       "evidence": [{"source_id": "main", "quote": "SE = 0.10"}]}}
+    result = verify_findings([finding], [source()], decision)[0]
+    assert (result.status, result.verifier_status) == ("unresolved", "unresolved")
+    assert result.verifier_rationale == "The design section does not say."
+    assert [item.quote for item in result.evidence] == ["estimate was −0.25"]
 
 
 def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source():
