@@ -2,8 +2,9 @@
 
 Runs the metacheck R package through the vendored skill scripts (`vendor/metacheck`) on the
 manuscript, records per-module status and traffic lights, and turns module tables into
-compact, unverified leads for the review modules. A module that did not complete is passed
-on as "could not check", never as clean.
+unverified leads for the review modules. Rows a module itself marks as fine, and rows that
+repeat another module's output, are filtered out and counted; every other row is passed on
+whole. A module that did not complete is passed on as "could not check", never as clean.
 """
 from __future__ import annotations
 
@@ -46,19 +47,59 @@ RUBRICS = {
 }
 # Location and bookkeeping columns; the candidate_id already identifies the row.
 DROP_COLUMNS = {"item_id", "paper_id", "text_id", "paragraph_id", "section_id", "page_number", "formatted",
-                "header", "section_type", "bib_id", "expanded", "contents"}
+                "header", "section_type", "bib_id"}
 # Warnings that mean a module's online lookups partly failed (see mc_run.R FETCH_FAIL and soft_warnings).
 LOOKUP_FAILURE = re.compile(r"could not connect|could not resolve|download failed|cannot open URL|status was|timed? ?out|"
                             r"HTTP [45][0-9]{2}|failed to perform|could not be checked|No reference could be matched|"
                             r"No internet connection|Ran without failed upstream", re.I)
 PANDOC_READER = "markdown-raw_tex-raw_attribute-raw_html-tex_math_dollars-tex_math_single_backslash-latex_macros"
 LIGHT_ORDER = {"red": 0, "yellow": 1, None: 2, "info": 3, "green": 4, "na": 5}
-LEADS_LIMIT, MAX_CELL, RUBRIC_FALLBACK = 15_000, 300, 1_500
 LEADS_HEADER = """METACHECK SCREENING LEADS (UNVERIFIED)
 Automated candidates from the metacheck R package for your module. They are leads, not evidence:
 check each one against the manuscript (and with your tools) before raising it, and cite the
 manuscript, not the lead. A module marked "could not check" was not checked; do not treat it as
-clean. Rows are JSON; empty fields are omitted. A row with repo_error could not be checked."""
+clean. Rows are JSON; empty fields are omitted. A row with repo_error could not be checked.
+Rows the module itself marks as fine, and rows repeated under another module, are not listed;
+each module heading gives their number and the rule that removed them."""
+ACCURACY_FLAGS = ("doi_mismatch", "year_mismatch", "title_mismatch", "author_mismatch")
+CODE_ISSUE_KEYS = ("checked", "parse_error", "code_abs_path", "loaded_files_missing", "percentage_comment", "library_max_between")
+
+
+def _effect_size_coherent(row: dict[str, Any]) -> bool:
+    column = {"t-test": "d_coherence", "F-test": "eta_coherence"}.get(row.get("test"))
+    values = row.get(column) if column else None
+    return (bool(row.get("es")) and isinstance(values, str)
+            and all(value.strip() == "match_under_assumptions" for value in values.split(";")))
+
+
+def _code_file_clean(row: dict[str, Any]) -> bool:
+    if not all(key in row for key in CODE_ISSUE_KEYS) or row.get("error"):
+        return False
+    between = row["library_max_between"]
+    return (row["checked"] is True and row["parse_error"] is not True and row["code_abs_path"] == 0
+            and row["loaded_files_missing"] == 0 and isinstance(row["percentage_comment"], (int, float))
+            and row["percentage_comment"] > 0 and (between is None or between <= 3))
+
+
+# Rows that are not candidates, by metacheck's own flags (module source, metacheck 0.1.0). A rule
+# drops a row only when its flags positively say "fine"; a missing or unexpected value keeps it.
+NOT_CANDIDATE: dict[str, tuple[str, Callable[[dict[str, Any]], bool]]] = {
+    "stat_check": ("recomputed p-value consistent with the reported test (error = false)",
+                   lambda row: row.get("error") is False),
+    "stat_p_exact": ("p-value reported exactly and not as zero (imprecise = false, zero = false)",
+                     lambda row: row.get("imprecise") is False and row.get("zero") is False),
+    "stat_effect_size": ("reported effect size matches the test statistic (coherence match_under_assumptions)",
+                         _effect_size_coherent),
+    "ref_accuracy": ("CrossRef match found with no mismatch flag set",
+                     lambda row: row.get("no_match") is False and not any(row.get(flag) is True for flag in ACCURACY_FLAGS)),
+    "ref_summary": ("merges the ref_accuracy, ref_pubpeer, ref_replication and ref_retraction rows, which are listed under those modules",
+                    lambda row: True),
+    "code_check": ("code file checked with no issue flag (parse error, absolute path, missing file, no comments, scattered imports)",
+                   _code_file_clean),
+}
+# all_p_values flags nothing (rubric urls_pvalues.md); stat_p_exact holds the same extracted p-values with
+# their sentence and precision flags, and stat_p_nonsig lists the non-significant ones.
+P_VALUE_DUPLICATE = "p-value extraction inventory; the same p-values are listed with flags under stat_p_exact and stat_p_nonsig"
 
 
 class MetacheckError(RuntimeError):
@@ -148,6 +189,13 @@ def _rows(mc_dir: Path, module: str) -> list[dict[str, Any]]:
     return [row for row in table if isinstance(row, dict)] if isinstance(table, list) else []
 
 
+def _counts(mc_dir: Path, module: str) -> dict[str, Any]:
+    """The module's own summary_table counts for the paper (e.g. references vs linked citations)."""
+    table = _read(mc_dir / "modules" / f"{module}.json").get("summary_table")
+    row = table[0] if isinstance(table, list) and table and isinstance(table[0], dict) else {}
+    return {key: value for key, value in row.items() if key != "paper_id" and value not in (None, "", [], {})}
+
+
 def reuse_key(manuscript: Path) -> dict[str, str]:
     """Earlier screening output is reused only when all of these match."""
     scripts = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((VENDOR / "scripts").glob("*.R")))).hexdigest()
@@ -190,7 +238,8 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
         status_rows = _read(mc_dir / "run_status.json").get("modules")
         if not isinstance(status_rows, list):
             raise MetacheckError("run_status.json has no module list")
-        modules = [_module(mc_dir, row) for row in status_rows if isinstance(row, dict) and isinstance(row.get("module"), str)]
+        modules = _count_filtered(mc_dir, [_module(mc_dir, row) for row in status_rows
+                                           if isinstance(row, dict) and isinstance(row.get("module"), str)])
     except (MetacheckError, subprocess.TimeoutExpired, OSError, ValueError) as exc:
         return MetacheckRecord(status="failed", reason="; ".join([*errors, str(exc)]), output_dir=str(mc_dir))
     counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
@@ -216,6 +265,33 @@ def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
         status = "partial"
     return MetacheckModule(module=name, status=status, traffic_light=details.get("traffic_light"), n_rows=len(rows),
                            error=row.get("error"), summary_text=details.get("summary_text"), warnings=warnings)
+
+
+def candidate_rows(mc_dir: Path, modules: list[MetacheckModule]) -> dict[str, tuple[list[dict[str, Any]], int, str | None]]:
+    """Per checked module: rows passed on as leads, number filtered out, and the rule that filtered them."""
+    checked = {m.module for m in modules if m.status in {"ok", "partial"}}
+    out: dict[str, tuple[list[dict[str, Any]], int, str | None]] = {}
+    for item in modules:
+        if item.module not in checked:
+            continue
+        rows = _rows(mc_dir, item.module)
+        if item.module == "all_p_values" and {"stat_p_exact", "stat_p_nonsig"} <= checked:
+            listed = {(row.get("item_id"), row.get("text")) for row in _rows(mc_dir, "stat_p_exact")}
+            rule, drop = P_VALUE_DUPLICATE, lambda row: (row.get("item_id"), row.get("text")) in listed
+        elif item.module in NOT_CANDIDATE:
+            rule, drop = NOT_CANDIDATE[item.module]
+        else:
+            out[item.module] = (rows, 0, None)
+            continue
+        kept = [row for row in rows if not drop(row)]
+        out[item.module] = (kept, len(rows) - len(kept), rule if len(kept) < len(rows) else None)
+    return out
+
+
+def _count_filtered(mc_dir: Path, modules: list[MetacheckModule]) -> list[MetacheckModule]:
+    rows = candidate_rows(mc_dir, modules)
+    return [m.model_copy(update={"n_filtered": rows[m.module][1], "filter_rule": rows[m.module][2]}) if m.module in rows else m
+            for m in modules]
 
 
 def fingerprint(record: MetacheckRecord) -> str:
@@ -261,62 +337,53 @@ def _compact(module: str, row: dict[str, Any]) -> str:
     for key, value in row.items():
         if key in DROP_COLUMNS or key in out or value is None or (isinstance(value, (str, list, dict)) and not value):
             continue
-        out[key] = value[:MAX_CELL] + "..." if isinstance(value, str) and len(value) > MAX_CELL else value
+        out[key] = value
     return json.dumps(out, ensure_ascii=False)
 
 
 def _rubric_excerpt(name: str) -> str:
-    """Purpose and known failure modes of a rubric; its procedure assumes the skill's helper scripts."""
+    """Purpose and known failure modes of a rubric, or its introduction if it has neither section;
+    its procedure assumes the skill's helper scripts."""
     text = (VENDOR / "references" / name).read_text(encoding="utf-8")
-    parts = [part for part in re.split(r"(?m)^(?=## )", text) if part.startswith(("## Purpose", "## Known failure modes"))]
-    excerpt = "".join(parts) if parts else text[:RUBRIC_FALLBACK]
+    sections = re.split(r"(?m)^(?=## )", text)
+    parts = [part for part in sections if part.startswith(("## Purpose", "## Known failure modes"))]
+    excerpt = "".join(parts) if parts else sections[0]
     return f"RUBRIC {name} (excerpt)\n{excerpt.strip()}"
 
 
-def leads(record: MetacheckRecord | None, review_modules: list[str]) -> tuple[dict[str, str], dict[str, int]]:
-    """Lead text per review module and the number of rows each lost to LEADS_LIMIT.
+def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str, str]:
+    """Lead text per review module.
 
     Modules are taken red first, then yellow, failed, info, green; each adds its header, the
-    rubric excerpt if it has candidates or failed, then rows while the budget allows."""
+    rubric excerpt if it has candidates or failed, then every candidate row."""
     if record is None or record.status not in {"completed", "partial"} or not record.output_dir:
-        return {}, {}
+        return {}
     mc_dir = Path(record.output_dir)
+    candidates = candidate_rows(mc_dir, record.modules)
     texts: dict[str, list[str]] = {}
-    dropped: dict[str, int] = {}
     ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status in {"ok", "partial"} else None, 2))
     for item in ordered:
         target = route(item.module, review_modules)
         if target is None:
             continue
         parts = texts.setdefault(target, [LEADS_HEADER])
-        used = sum(len(part) + 2 for part in parts)
-        checked = item.status in {"ok", "partial"}
-        rows = _rows(mc_dir, item.module) if checked else []
+        checked = item.module in candidates
+        rows, filtered, rule = candidates.get(item.module, ([], 0, None))
         if checked:
             block = [f"## {item.module}: metacheck light {item.traffic_light or 'none'}; {len(rows)} candidate row(s)"]
+            if filtered:
+                block[0] += f"; {filtered} further row(s) not listed: {rule}"
             if item.status == "partial":
-                block[0] += "; partly could not check: " + "; ".join(item.warnings)[:MAX_CELL]
+                block[0] += "; partly could not check: " + "; ".join(item.warnings)
             if item.summary_text:
-                block.append(item.summary_text.strip()[:MAX_CELL])
+                block.append(item.summary_text.strip())
+            if counts := _counts(mc_dir, item.module):
+                block.append("Module counts: " + json.dumps(counts, ensure_ascii=False))
         else:
             block = [f"## {item.module}: could not check ({item.status}: {item.error or 'no reason recorded'})"]
         rubric = RUBRICS.get(item.module)
         if rubric and (rows or not checked) and not any(f"RUBRIC {rubric} (excerpt)" in part for part in parts):
             block.append(_rubric_excerpt(rubric))
-        text = "\n".join(block)
-        if used + len(text) > LEADS_LIMIT:
-            parts.append(block[0] + f" (details and rows not shown: leads are capped at {LEADS_LIMIT:,} characters)")
-            dropped[target] = dropped.get(target, 0) + len(rows)
-            continue
-        shown = 0
-        for row in rows:
-            line = _compact(item.module, row)
-            if used + len(text) + len(line) + 1 > LEADS_LIMIT - 200:  # room for the cap note
-                break
-            text += "\n" + line
-            shown += 1
-        if shown < len(rows):
-            text += f"\n({len(rows) - shown} further {item.module} row(s) not shown: leads are capped at {LEADS_LIMIT:,} characters)"
-            dropped[target] = dropped.get(target, 0) + len(rows) - shown
-        parts.append(text)
-    return {target: "\n\n".join(parts) for target, parts in texts.items()}, dropped
+        block.extend(_compact(item.module, row) for row in rows)
+        parts.append("\n".join(block))
+    return {target: "\n\n".join(parts) for target, parts in texts.items()}

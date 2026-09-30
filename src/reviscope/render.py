@@ -66,8 +66,9 @@ def _metacheck(run: ReviewRun) -> list[str]:
     lines.extend(f"Parse warning: {warning}" for warning in record.parse_warnings)
     lines.append("")
     for item in record.modules:
-        state = (f"light {item.traffic_light or 'none'}, {item.n_rows} row(s)" if item.status == "ok" else
-                 f"light {item.traffic_light or 'none'}, {item.n_rows} row(s), partly could not check" if item.status == "partial" else
+        filtered = f" ({item.n_filtered} filtered as not a candidate: {item.filter_rule})" if item.n_filtered else ""
+        state = (f"light {item.traffic_light or 'none'}, {item.n_rows} row(s){filtered}" if item.status == "ok" else
+                 f"light {item.traffic_light or 'none'}, {item.n_rows} row(s){filtered}, partly could not check" if item.status == "partial" else
                  f"could not check ({item.status}: {item.error or 'no reason recorded'})")
         lines.append(f"- `{item.module}` — {state}")
     return lines + [""]

@@ -36,7 +36,9 @@ def module(name, status, light, rows, error=None, warnings=()):
 OUTPUTS = [
     module("stat_check", "ok", "red", [{"candidate_id": "p:stat_check:t3", "text": "t(20) = 2.1, p = .20", "computed_p": 0.048,
                                         "error": True, "text_id": 3, "formatted": "dropped"},
-                                       {"candidate_id": "p:stat_check:t4", "text": "F(0, 9) = 0", "computed_p": 0.0, "df1": 0, "error": False}]),
+                                       {"candidate_id": "p:stat_check:t4", "text": "F(0, 9) = 0", "computed_p": 0.0, "df1": 0, "error": True,
+                                        "decision_error": False},
+                                       {"candidate_id": "p:stat_check:t5", "text": "t(30) = 2.5, p = .018", "error": False}]),
     module("repo_check", "ok", "yellow", [{"candidate_id": "p:repo_check:r1", "repo_url": "https://osf.io/abc", "repo_error": "HTTP 404"}],
            warnings=["Repository could not be checked: https://osf.io/abc - HTTP 404"]),
     module("causal_claims", "failed", None, [], "classifier unreachable"),
@@ -93,7 +95,8 @@ def test_leads_are_routed_compacted_and_failures_marked(tmp_path, monkeypatch):
     assert "METACHECK SCREENING LEADS (UNVERIFIED)" in stats and "RUBRIC stat_check_triage.md (excerpt)" in stats
     assert '"candidate_id": "p:stat_check:t3", "module": "stat_check", "text": "t(20) = 2.1, p = .20", "computed_p": 0.048' in stats
     assert "formatted" not in stats and "## Procedure" not in stats
-    assert '"computed_p": 0.0, "df1": 0, "error": false' in stats  # zeroes and false are data, not empty fields
+    assert '"computed_p": 0.0, "df1": 0, "error": true, "decision_error": false' in stats  # zeroes and false are data, not empty fields
+    assert "p:stat_check:t5" not in stats and "1 further row(s) not listed: recomputed p-value consistent" in stats
     design = backend.evidence["design"]
     assert "repo_check: metacheck light yellow; 1 candidate row(s); partly could not check: Repository could not be checked" in design
     assert {m.module: m.status for m in run.metacheck.modules}["repo_check"] == "partial" and any(line.startswith("metacheck repo_check: Repository") for line in run.coverage)
@@ -105,21 +108,76 @@ def test_leads_are_routed_compacted_and_failures_marked(tmp_path, monkeypatch):
     assert run.metacheck.counts == {"sections": 5, "refs": 25}
     assert any("could not check: causal_claims" in line for line in run.coverage)
     report = (tmp_path / "run" / "review.md").read_text()
-    assert "### Metacheck screening" in report and "`stat_check` — light red, 2 row(s)" in report
+    assert "### Metacheck screening" in report and "`stat_check` — light red, 3 row(s) (1 filtered as not a candidate: recomputed" in report
+    assert any(line.startswith("metacheck stat_check: 1 of 3 row(s) filtered as not a candidate") for line in run.coverage)
     assert "`causal_claims` — could not check" in report
     assert "Metacheck" not in strip_review_metadata(report)  # judges see findings only
     ReviewPipeline(CaptureBackend(), profile()).run(paper, output_dir=tmp_path / "run")
     assert calls.count("mc_import.R") == 1  # same input: import reused
 
 
-def test_leads_are_capped_and_the_cap_is_reported(tmp_path, monkeypatch):
-    rows = [{"candidate_id": f"p:all_p_values:t{i}", "text": "p = .04 " * 30} for i in range(200)]
-    stub(monkeypatch, [], [module("all_p_values", "ok", "info", rows)])
+def test_every_candidate_row_is_passed_on_whole(tmp_path, monkeypatch):
+    rows = [{"candidate_id": f"p:power:r{i}", "text": f"paragraph {i} " + "power analysis " * 500} for i in range(200)]
+    stub(monkeypatch, [], [module("power", "ok", "yellow", rows)])
     backend = CaptureBackend()
-    run = ReviewPipeline(backend, profile()).run(manuscript(tmp_path), output_dir=tmp_path / "run")
-    leads = backend.evidence["statistical_inference"].split("METACHECK SCREENING LEADS", 1)[1]
-    assert len(leads) <= metacheck.LEADS_LIMIT and "further all_p_values row(s) not shown" in leads
-    assert any(line.startswith("metacheck leads for statistical_inference:") for line in run.coverage)
+    ReviewPipeline(backend, profile()).run(manuscript(tmp_path), output_dir=tmp_path / "run")
+    stats = backend.evidence["statistical_inference"]
+    assert all(f'"candidate_id": "p:power:r{i}", "module": "power", "text": {json.dumps(row["text"])}' in stats
+               for i, row in enumerate(rows))
+
+
+FILTER_CASES = {  # module: (row, passed on as a lead)
+    "stat_check": [({"error": False}, False), ({"error": True}, True), ({"error": None}, True)],
+    "stat_p_exact": [({"imprecise": False, "zero": False}, False), ({"imprecise": True, "zero": False}, True),
+                     ({"imprecise": False, "zero": True}, True), ({"imprecise": None, "zero": False}, True)],
+    "stat_effect_size": [({"test": "t-test", "es": "d = 0.5", "d_coherence": "match_under_assumptions"}, False),
+                         ({"test": "F-test", "es": "eta = .1; eta = .2", "eta_coherence": "match_under_assumptions; no_match"}, True),
+                         ({"test": "t-test", "es": "d = 0.5", "d_coherence": "indeterminate"}, True),
+                         ({"test": "t-test", "d_coherence": "match_under_assumptions"}, True)],  # no effect size reported
+    "ref_accuracy": [({"no_match": False, "doi_mismatch": False, "year_mismatch": None}, False),
+                     ({"no_match": False, "year_mismatch": True}, True), ({"no_match": True}, True), ({"doi_mismatch": False}, True)],
+    "ref_summary": [({"retractionwatch": "Retraction"}, False)],
+    "code_check": [({"checked": True, "parse_error": False, "code_abs_path": 0, "loaded_files_missing": 0,
+                     "percentage_comment": 0.2, "library_max_between": None}, False),
+                   ({"checked": True, "parse_error": False, "code_abs_path": 0, "loaded_files_missing": 1,
+                     "percentage_comment": 0.2, "library_max_between": None}, True),
+                   ({"checked": False, "file_name": "late.R"}, True)],  # beyond the file limit: not checked
+    "ref_retraction": [({"retractionwatch": "Retraction"}, True)],
+}
+
+
+def test_rows_are_filtered_only_when_the_module_marks_them_fine(tmp_path):
+    from reviscope.schemas import MetacheckModule, MetacheckRecord
+
+    (tmp_path / "modules").mkdir()
+    modules = []
+    for name, cases in FILTER_CASES.items():
+        rows = [{"candidate_id": f"p:{name}:r{i}", **row} for i, (row, _) in enumerate(cases)]
+        (tmp_path / "modules" / f"{name}.json").write_text(json.dumps(module(name, "ok", "yellow", rows)))
+        modules.append(MetacheckModule(module=name, status="ok", traffic_light="yellow", n_rows=len(rows)))
+    counted = {m.module: m for m in metacheck._count_filtered(tmp_path, modules)}
+    record = MetacheckRecord(status="completed", output_dir=str(tmp_path), modules=list(counted.values()))
+    text = metacheck.leads(record, ["contribution", "design", "statistical_inference"])
+    text = "\n".join(text.values())
+    for name, cases in FILTER_CASES.items():
+        dropped = sum(not kept for _, kept in cases)
+        assert counted[name].n_filtered == dropped and (counted[name].filter_rule is not None) == bool(dropped)
+        for i, (_, kept) in enumerate(cases):
+            assert (f'"candidate_id": "p:{name}:r{i}"' in text) == kept, (name, i)
+    assert "## ref_accuracy: metacheck light yellow; 3 candidate row(s); 1 further row(s) not listed: CrossRef match found" in text
+
+
+def test_p_value_inventory_is_kept_unless_the_flagging_modules_ran(tmp_path):
+    from reviscope.schemas import MetacheckModule
+
+    (tmp_path / "modules").mkdir()
+    p_row = {"item_id": "t3", "text": "p = .03", "p_value": 0.03}
+    for name in ("all_p_values", "stat_p_exact", "stat_p_nonsig"):
+        (tmp_path / "modules" / f"{name}.json").write_text(json.dumps(module(name, "ok", "info", [{"candidate_id": f"p:{name}:t3", **p_row}])))
+    ran = [MetacheckModule(module=name, status="ok") for name in ("all_p_values", "stat_p_exact", "stat_p_nonsig")]
+    assert metacheck.candidate_rows(tmp_path, ran)["all_p_values"][1] == 1
+    failed = [ran[0], ran[1], MetacheckModule(module="stat_p_nonsig", status="failed")]
+    assert metacheck.candidate_rows(tmp_path, failed)["all_p_values"][1:] == (0, None)
 
 
 def test_text_manuscript_is_typeset_before_import(tmp_path, monkeypatch):

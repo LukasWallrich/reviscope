@@ -136,6 +136,8 @@ class MetacheckModule(BaseModel):
     status: str
     traffic_light: str | None = None
     n_rows: int = 0
+    n_filtered: int = 0  # rows not passed on as leads; filter_rule says why
+    filter_rule: str | None = None
     error: str | None = None
     summary_text: str | None = None
     warnings: list[str] = Field(default_factory=list)

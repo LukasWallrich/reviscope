@@ -218,8 +218,9 @@ class ReviewPipeline:
         run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "partial": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
                                       artifact=run.metacheck.output_dir, error=None if run.metacheck.status == "completed" else run.metacheck.reason))
         metacheck_fingerprint = metacheck.fingerprint(run.metacheck)
-        leads, dropped = metacheck.leads(run.metacheck, modules)
-        run.coverage.extend(f"metacheck leads for {module}: {count} candidate row(s) not shown (character cap)" for module, count in dropped.items())
+        leads = metacheck.leads(run.metacheck, modules)
+        run.coverage.extend(f"metacheck {m.module}: {m.n_filtered} of {m.n_rows} row(s) filtered as not a candidate ({m.filter_rule})"
+                            for m in run.metacheck.modules if m.n_filtered)
         for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
