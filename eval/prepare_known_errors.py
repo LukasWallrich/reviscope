@@ -20,6 +20,7 @@ from reviscope.ingest import _docx
 COMMIT = "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4"
 RAW = f"https://raw.githubusercontent.com/Dawes-Institute/ai-peer-review-benchmark/{COMMIT}/"
 BANNER = "BENCHMARK ARTIFACT"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def fetch(relative: str, target: Path) -> str:
@@ -44,7 +45,7 @@ def review_input(docx: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path("runs/known-errors-all"))
+    parser.add_argument("--root", type=Path, default=ROOT / "runs" / "known-errors-all")
     args = parser.parse_args()
 
     labels = args.root / "ground_truth" / "error_insertions.csv"
