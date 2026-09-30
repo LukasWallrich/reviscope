@@ -83,7 +83,7 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert published.external_evidence[0].url == EXTERNAL['url']
     markdown = (tmp_path / 'run/review.md').read_text()
     assert 'External source (confirmed): “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
-    assert '2 tool calls: 1 search, 1 fetch' in markdown and '“medium effect size benchmark”' in markdown
+    assert '2 tool calls: 1 search, 1 fetch' in markdown and '- `verification`: 1 fetch' in markdown
     count = len(backend.calls)
     rerun = pipeline.run(paper, output_dir=tmp_path / 'run')
     assert len(backend.calls) == count

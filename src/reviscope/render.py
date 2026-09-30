@@ -76,11 +76,16 @@ def _metacheck(run: ReviewRun) -> list[str]:
 def _tool_use(run: ReviewRun) -> list[str]:
     calls = [call for stage in run.stages for call in stage.tool_calls]
     counts = {kind: sum(call.kind == kind for call in calls) for kind in ("search", "fetch", "exec", "other")}
-    lines = ["", "### Tool use", "", f"{len(calls)} tool calls: " + ", ".join(f"{n} {kind}" for kind, n in counts.items()) + "."]
-    for call in calls:
-        if call.kind in {"search", "fetch"}:
-            target = " ".join(part for part in (call.query and f"“{call.query}”", call.url) if part)
-            lines.append(f"- `{call.stage}` {call.kind}: {target or call.name}{' (refused or failed)' if call.error else ''}")
+    lines = ["", "### Tool use", "", f"{len(calls)} tool calls: " + ", ".join(f"{n} {kind}" for kind, n in counts.items()) + ". "
+             "Every query, command and output is recorded in review.json.", ""]
+    for stage in run.stages:
+        if stage.tool_calls:
+            stage_counts = ", ".join(f"{n} {kind}" for kind in counts if (n := sum(c.kind == kind for c in stage.tool_calls)))
+            lines.append(f"- `{stage.name}`: {stage_counts}")
+    opened = [(url, call.error) for call in calls if call.kind == "fetch" for url in ([call.url] if call.url else call.result_urls)]
+    if opened:
+        lines.extend(["", "Pages opened:", ""])
+        lines.extend(f"- {url}{' (refused or failed)' if error else ''}" for url, error in dict.fromkeys(opened))
     return lines
 
 
