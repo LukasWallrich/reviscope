@@ -98,6 +98,10 @@ def _load_profile(profile: str | Path | Profile) -> tuple[Profile, str]:
     return value, _hash(value.model_dump())
 
 
+# Format of the tool-call sidecars and the event parsing behind them; a change invalidates cached stages.
+PROVENANCE_VERSION = "2"
+
+
 class ReviewPipeline:
     STAGE_VERSION = "0.2.0a1"
 
@@ -124,7 +128,7 @@ class ReviewPipeline:
     def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
         """Run or reuse one model stage. Tool calls are stored in a sidecar next to the artifact."""
         backend = backend or self.backend
-        components = {"stage": name, "version": self.STAGE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend.identity, "profile": self.profile_hash}
+        components = {"stage": name, "version": self.STAGE_VERSION, "provenance": PROVENANCE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend.identity, "profile": self.profile_hash}
         key = _hash(components)
         artifact = out / "stages" / f"{name}-{key}.json"
         tools_artifact = artifact.with_suffix(".tools.json")
