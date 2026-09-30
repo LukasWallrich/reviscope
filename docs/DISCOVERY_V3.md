@@ -37,8 +37,10 @@ the model to recompute reported statistics, power and sample-size claims and sam
 with code, to open cited sources whose use carries an inference, and to search the
 literature before asserting or denying novelty or missing work. What an external source
 shows goes into a finding's `external_evidence` (URL or DOI, exact quotation, what it
-shows). Every finding also needs an anchored manuscript quotation. The verifier re-opens
-external sources and returns only the items it confirmed; only those reach the report.
+shows). Every finding also needs an anchored quotation from the manuscript itself. The
+verifier re-opens each external source and returns a verdict per item. An item counts as
+confirmed only when the verifier says so and its recorded tool calls touched that URL or DOI;
+a finding whose external items are all unchecked or refuted cannot be supported.
 
 Each stage records its tool calls (search queries, fetched URLs, shell commands and
 truncated outputs) in `review.json` and in a sidecar next to the cached stage artifact,
