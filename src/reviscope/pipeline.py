@@ -104,6 +104,8 @@ class ReviewPipeline:
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology_v2", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, max_findings: int = 12, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="max")
         self.verifier_backend = verifier_backend or self.backend
+        if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
+            raise ValueError("Review stages run only on tool-enabled backends; tools=False is for judges and normalizers")
         self.progress = progress or (lambda _: None)
         if max_findings < 1:
             raise ValueError("max_findings must be positive")

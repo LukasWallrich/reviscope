@@ -2,6 +2,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
+from reviscope.pipeline import ReviewPipeline
 from reviscope.backend import REVIEW_DOMAINS, ClaudeBackend, CodexBackend, FixtureBackend, parse_claude_events, parse_codex_events
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -38,3 +41,5 @@ def test_review_backends_enable_sandboxed_tools_and_judges_do_not():
     assert 'web_search="disabled"' in judge.command and judge.identity == "codex:m:low"
     assert codex.identity.startswith("codex:m:low:tools-")
     assert FixtureBackend().take_tool_calls() == []
+    with pytest.raises(ValueError, match="tool-enabled"):
+        ReviewPipeline(judge)

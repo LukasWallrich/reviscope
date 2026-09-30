@@ -1,8 +1,5 @@
 import json
 import re
-
-import pytest
-
 from datetime import datetime, timezone
 
 from reviscope.backend import Backend
