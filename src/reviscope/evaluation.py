@@ -634,7 +634,7 @@ def _backend_from_args(args: argparse.Namespace) -> Any:
 def _add_backend_args(parser: Any) -> None:
     parser.add_argument("--backend", choices=["codex", "claude"], default="codex")
     parser.add_argument("--model", required=True, help="explicit judge/verifier model for reproducible evaluation")
-    parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="max")
+    parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
     parser.add_argument("--timeout", type=int, default=300)
 
 
