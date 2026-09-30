@@ -7,6 +7,7 @@ on as "could not check", never as clean.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import re
@@ -46,13 +47,18 @@ RUBRICS = {
 # Location and bookkeeping columns; the candidate_id already identifies the row.
 DROP_COLUMNS = {"item_id", "paper_id", "text_id", "paragraph_id", "section_id", "page_number", "formatted",
                 "header", "section_type", "bib_id", "expanded", "contents"}
+# Warnings that mean a module's online lookups partly failed (see mc_run.R FETCH_FAIL and soft_warnings).
+LOOKUP_FAILURE = re.compile(r"could not connect|could not resolve|download failed|cannot open URL|status was|timed? ?out|"
+                            r"HTTP [45][0-9]{2}|failed to perform|could not be checked|No reference could be matched|"
+                            r"No internet connection|Ran without failed upstream", re.I)
+PANDOC_READER = "markdown-raw_tex-raw_attribute-raw_html-tex_math_dollars-tex_math_single_backslash-latex_macros"
 LIGHT_ORDER = {"red": 0, "yellow": 1, None: 2, "info": 3, "green": 4, "na": 5}
 LEADS_LIMIT, MAX_CELL, RUBRIC_FALLBACK = 15_000, 300, 1_500
 LEADS_HEADER = """METACHECK SCREENING LEADS (UNVERIFIED)
 Automated candidates from the metacheck R package for your module. They are leads, not evidence:
 check each one against the manuscript (and with your tools) before raising it, and cite the
 manuscript, not the lead. A module marked "could not check" was not checked; do not treat it as
-clean. Rows are JSON; fields that are false or empty are omitted."""
+clean. Rows are JSON; empty fields are omitted. A row with repo_error could not be checked."""
 
 
 class MetacheckError(RuntimeError):
@@ -66,17 +72,32 @@ def run_r(script: str, args: list[str]) -> tuple[dict[str, Any], str]:
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError:
-        payload = {"status": "error", "message": result.stderr[-1000:].strip() or f"no JSON output (exit {result.returncode})"}
+        payload = None
+    if not isinstance(payload, dict):
+        payload = {"status": "error", "message": result.stderr[-1000:].strip() or f"no JSON object in output (exit {result.returncode})"}
     if result.returncode or payload.get("status") != "ok":
         raise MetacheckError(f"{script}: {payload.get('message', 'failed')}")
     return payload, result.stderr
+
+
+@functools.cache
+def package_version() -> str:
+    """Installed metacheck version; part of the reuse key for earlier screening output."""
+    result = subprocess.run(["Rscript", "-e", 'cat(as.character(utils::packageVersion("metacheck")))'],
+                            capture_output=True, text=True, timeout=120)
+    if result.returncode or not result.stdout.strip():
+        raise MetacheckError(f"metacheck R package not available: {result.stderr[-300:].strip()}")
+    return result.stdout.strip()
 
 
 def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
     """Typeset a text or Markdown manuscript as PDF for GROBID.
 
     metacheck 0.1.0 routes DOCX through a bibr call that fails, so text goes to PDF. Plain-text
-    lines that name a standard section become Markdown headings."""
+    lines that name a standard section become Markdown headings. The manuscript is untrusted:
+    the Markdown reader drops raw TeX, TeX math and macro definitions, a filter replaces images
+    by their captions so TeX never opens a linked file, pandoc runs in its sandbox, and tectonic
+    runs in untrusted mode."""
     for tool in ("pandoc", "tectonic"):
         if shutil.which(tool) is None:
             raise MetacheckError(f"{tool} not found on PATH; needed to convert {manuscript.suffix} input")
@@ -91,11 +112,13 @@ def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
             else:
                 lines.append(line)
         text = "\n".join(lines)
-    source, pdf = directory / "manuscript.md", directory / "manuscript.pdf"
+    source, pdf, no_images = directory / "manuscript.md", directory / "manuscript.pdf", directory / "no-images.lua"
     source.write_text(text, encoding="utf-8")
-    result = subprocess.run(["pandoc", "-f", "markdown", "-t", "pdf", "--pdf-engine=tectonic",
-                             "-V", "mainfont=STIX Two Text", "-V", "geometry:margin=2.5cm", str(source), "-o", str(pdf)],
-                            capture_output=True, text=True, timeout=R_TIMEOUT)
+    no_images.write_text("function Image(image) return image.caption end\n", encoding="utf-8")
+    result = subprocess.run(["pandoc", "--sandbox", "-f", PANDOC_READER, "--lua-filter", str(no_images), "-t", "pdf", "--pdf-engine=tectonic",
+                             "--pdf-engine-opt=--untrusted", "-V", "mainfont=STIX Two Text", "-V", "geometry:margin=2.5cm",
+                             str(source), "-o", str(pdf)],
+                            capture_output=True, text=True, timeout=R_TIMEOUT, cwd=directory)
     if result.returncode or not pdf.is_file():
         raise MetacheckError(f"pandoc could not typeset {manuscript.name}: {result.stderr[-500:].strip()}")
     return pdf, f"pandoc Markdown to PDF (tectonic){f', {marked} section headings marked' if marked else ''}"
@@ -113,15 +136,27 @@ def _converter(suffix: str, log: str) -> str:
 
 
 def _read(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise MetacheckError(f"{path.name} does not hold a JSON object")
+    return value
 
 
 def _rows(mc_dir: Path, module: str) -> list[dict[str, Any]]:
     path = mc_dir / "modules" / f"{module}.json"
-    return (_read(path).get("table") or []) if path.is_file() else []
+    table = _read(path).get("table") if path.is_file() else None
+    return [row for row in table if isinstance(row, dict)] if isinstance(table, list) else []
+
+
+def reuse_key(manuscript: Path) -> dict[str, str]:
+    """Earlier screening output is reused only when all of these match."""
+    scripts = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((VENDOR / "scripts").glob("*.R")))).hexdigest()
+    return {"sha256": hashlib.sha256(manuscript.read_bytes()).hexdigest(), "suffix": manuscript.suffix.lower(),
+            "scripts": scripts, "metacheck": package_version()}
 
 
 def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] = lambda _: None) -> MetacheckRecord:
+    """Screen the manuscript. Every error becomes a failed or partial record; it never raises."""
     suffix = manuscript.suffix.lower()
     if suffix not in METACHECK_SUFFIXES | TEXT_SUFFIXES:
         return MetacheckRecord(status="not_checked", reason=f"unsupported input type ({suffix or 'no extension'})")
@@ -129,11 +164,13 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
         return MetacheckRecord(status="failed", reason="Rscript not found on PATH")
     mc_dir = out / "metacheck"
     provenance = mc_dir / "reviscope.json"
-    sha = hashlib.sha256(manuscript.read_bytes()).hexdigest()
+    errors: list[str] = []
     try:
-        if not (provenance.is_file() and _read(provenance).get("sha256") == sha and (mc_dir / "paper.rds").is_file()):
+        key = reuse_key(manuscript)
+        previous = _read(provenance) if provenance.is_file() else {}
+        if previous.get("key") != key or not (mc_dir / "paper.rds").is_file():
             if mc_dir.exists():
-                shutil.rmtree(mc_dir)  # output of a different input; module results would not apply
+                shutil.rmtree(mc_dir)  # output for other input or another metacheck version; none of it applies
             (mc_dir / "input").mkdir(parents=True)
             source, text_conversion = manuscript, None
             if suffix in TEXT_SUFFIXES:
@@ -141,35 +178,67 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
                 source, text_conversion = text_to_pdf(manuscript, mc_dir / "input")
             progress("metacheck: importing manuscript")
             _, log = run_r("mc_import.R", ["--file", str(source), "--run-dir", str(mc_dir), "--crossref-lookup"])
-            provenance.write_text(json.dumps({"sha256": sha, "text_conversion": text_conversion,
+            provenance.write_text(json.dumps({"key": key, "text_conversion": text_conversion,
                                               "converter": _converter(source.suffix.lower(), log)}), encoding="utf-8")
         for modules in ("default", EXTRA_MODULES):
             progress(f"metacheck: running {'default' if modules == 'default' else 'extra'} modules")
-            run_r("mc_run.R", ["--run-dir", str(mc_dir), "--modules", modules])
-    except (MetacheckError, subprocess.TimeoutExpired, OSError) as exc:
-        return MetacheckRecord(status="failed", reason=str(exc), output_dir=str(mc_dir))
-    summary, conversion = _read(mc_dir / "import_summary.json"), _read(provenance)
-    counts = summary.get("counts") or {}
-    modules = []
-    for row in _read(mc_dir / "run_status.json")["modules"]:
-        details = _read(mc_dir / "modules" / f"{row['module']}.json")
-        modules.append(MetacheckModule(module=row["module"], status=row["status"], traffic_light=details.get("traffic_light"),
-                                       n_rows=len(details.get("table") or []), error=row.get("error"),
-                                       summary_text=details.get("summary_text")))
-    return MetacheckRecord(status="completed", output_dir=str(mc_dir), text_conversion=conversion.get("text_conversion"),
-                           converter=conversion.get("converter"), parse_warnings=list(summary.get("parse_warnings") or []),
-                           counts={key: counts[key] for key in ("sections", "sentences", "refs", "xrefs_bibr") if key in counts},
+            try:
+                run_r("mc_run.R", ["--run-dir", str(mc_dir), "--modules", modules])
+            except (MetacheckError, subprocess.TimeoutExpired) as exc:
+                errors.append(f"{'default' if modules == 'default' else 'extra'} modules: {exc}")
+        conversion, summary = _read(provenance), _read(mc_dir / "import_summary.json")
+        status_rows = _read(mc_dir / "run_status.json").get("modules")
+        if not isinstance(status_rows, list):
+            raise MetacheckError("run_status.json has no module list")
+        modules = [_module(mc_dir, row) for row in status_rows if isinstance(row, dict) and isinstance(row.get("module"), str)]
+    except (MetacheckError, subprocess.TimeoutExpired, OSError, ValueError) as exc:
+        return MetacheckRecord(status="failed", reason="; ".join([*errors, str(exc)]), output_dir=str(mc_dir))
+    counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
+    return MetacheckRecord(status="partial" if errors else "completed", reason="; ".join(errors) or None, output_dir=str(mc_dir),
+                           text_conversion=conversion.get("text_conversion"), converter=conversion.get("converter"),
+                           parse_warnings=[str(w) for w in summary.get("parse_warnings") or []],
+                           counts={key: counts[key] for key in ("sections", "sentences", "refs", "xrefs_bibr") if isinstance(counts.get(key), int)},
                            modules=modules)
+
+
+def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
+    """Module status from run_status.json and its output file. Swallowed lookup failures make an
+    `ok` module `partial`: its table exists but some rows could not be checked."""
+    name = row["module"]
+    path = mc_dir / "modules" / f"{name}.json"
+    if not path.is_file():
+        return MetacheckModule(module=name, status="failed", error="module output file missing")
+    details = _read(path)
+    warnings = [str(w) for w in details.get("warnings") or []]
+    rows = _rows(mc_dir, name)
+    status = str(row.get("status", "failed"))
+    if status == "ok" and (any(LOOKUP_FAILURE.search(w) for w in warnings) or any(r.get("repo_error") for r in rows)):
+        status = "partial"
+    return MetacheckModule(module=name, status=status, traffic_light=details.get("traffic_light"), n_rows=len(rows),
+                           error=row.get("error"), summary_text=details.get("summary_text"), warnings=warnings)
+
+
+def fingerprint(record: MetacheckRecord) -> str:
+    """Hash of the screening record and every module output; part of each review stage's cache key."""
+    digest = hashlib.sha256(record.model_dump_json().encode())
+    if record.output_dir:
+        for path in sorted(Path(record.output_dir).glob("modules/*.json")):
+            digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
 def describe(record: MetacheckRecord) -> str:
     if record.status == "skipped":
         return f"metacheck: {record.reason}"
-    if record.status != "completed":
+    if record.status in {"failed", "not_checked"}:
         return f"metacheck: {record.status}: {record.reason}"
-    unchecked = [m.module for m in record.modules if m.status != "ok"]
-    text = f"metacheck: {len(record.modules) - len(unchecked)} of {len(record.modules)} modules completed; converter: {record.converter}"
-    return text + (f"; could not check: {', '.join(unchecked)}" if unchecked else "")
+    done = [m for m in record.modules if m.status == "ok"]
+    partial = [m.module for m in record.modules if m.status == "partial"]
+    unchecked = [m.module for m in record.modules if m.status not in {"ok", "partial"}]
+    text = f"metacheck: {len(done)} of {len(record.modules)} modules completed; converter: {record.converter}"
+    text += f"; partly checked: {', '.join(partial)}" if partial else ""
+    text += f"; could not check: {', '.join(unchecked)}" if unchecked else ""
+    return text + (f"; run errors: {record.reason}" if record.reason else "")
 
 
 def route(module: str, review_modules: list[str]) -> str | None:
@@ -190,7 +259,7 @@ def route(module: str, review_modules: list[str]) -> str | None:
 def _compact(module: str, row: dict[str, Any]) -> str:
     out: dict[str, Any] = {"candidate_id": row.get("candidate_id"), "module": module}
     for key, value in row.items():
-        if key in DROP_COLUMNS or key in out or value in (None, "", [], {}, False):
+        if key in DROP_COLUMNS or key in out or value is None or (isinstance(value, (str, list, dict)) and not value):
             continue
         out[key] = value[:MAX_CELL] + "..." if isinstance(value, str) and len(value) > MAX_CELL else value
     return json.dumps(out, ensure_ascii=False)
@@ -209,27 +278,30 @@ def leads(record: MetacheckRecord | None, review_modules: list[str]) -> tuple[di
 
     Modules are taken red first, then yellow, failed, info, green; each adds its header, the
     rubric excerpt if it has candidates or failed, then rows while the budget allows."""
-    if record is None or record.status != "completed" or not record.output_dir:
+    if record is None or record.status not in {"completed", "partial"} or not record.output_dir:
         return {}, {}
     mc_dir = Path(record.output_dir)
     texts: dict[str, list[str]] = {}
     dropped: dict[str, int] = {}
-    ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status == "ok" else None, 2))
+    ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status in {"ok", "partial"} else None, 2))
     for item in ordered:
         target = route(item.module, review_modules)
         if target is None:
             continue
         parts = texts.setdefault(target, [LEADS_HEADER])
         used = sum(len(part) + 2 for part in parts)
-        rows = _rows(mc_dir, item.module) if item.status == "ok" else []
-        if item.status == "ok":
+        checked = item.status in {"ok", "partial"}
+        rows = _rows(mc_dir, item.module) if checked else []
+        if checked:
             block = [f"## {item.module}: metacheck light {item.traffic_light or 'none'}; {len(rows)} candidate row(s)"]
+            if item.status == "partial":
+                block[0] += "; partly could not check: " + "; ".join(item.warnings)[:MAX_CELL]
             if item.summary_text:
                 block.append(item.summary_text.strip()[:MAX_CELL])
         else:
             block = [f"## {item.module}: could not check ({item.status}: {item.error or 'no reason recorded'})"]
         rubric = RUBRICS.get(item.module)
-        if rubric and (rows or item.status != "ok") and not any(part.startswith(f"RUBRIC {rubric}") for part in parts):
+        if rubric and (rows or not checked) and not any(f"RUBRIC {rubric} (excerpt)" in part for part in parts):
             block.append(_rubric_excerpt(rubric))
         text = "\n".join(block)
         if used + len(text) > LEADS_LIMIT:
