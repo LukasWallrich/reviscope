@@ -45,3 +45,14 @@ def test_audit_passes_ordinary_literature_checks(tmp_path):
 def test_audit_flags_title_search_alone_for_planted_error_papers(tmp_path):
     result = audit(run_file(tmp_path, [call(0, "search", query="illusions in short-term memory mirrored letter")], sha="bbb"))
     assert result["paper"] == "known-error-7" and "planted-error" in result["reasons"][0]
+
+
+def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(tmp_path):
+    listed = audit(run_file(tmp_path, [call(0, "search", query="effect size norms", result_urls=["https://pubpeer.com/publications/X"])]))
+    assert listed["verdict"] == "flagged" and "review/commentary site" in listed["reasons"][0]
+    path = tmp_path / "review.json"
+    path.write_text(json.dumps({"sources": [{"sha256": "aaa"}], "stages": [
+        {"name": "review-design", "status": "failed", "error": "TimeoutError: codex timed out", "tool_calls": []},
+        {"name": "verification", "status": "completed", "cache_key": "k"}]}))
+    result = audit(path)
+    assert result["verdict"] == "incomplete" and len(result["reasons"]) == 2

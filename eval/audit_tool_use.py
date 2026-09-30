@@ -6,6 +6,7 @@ Reads each run's review.json (every stage records its tool calls) and flags:
   match the benchmark paper's own DOI, article, manuscript or review pages;
 - fetched or requested URLs on a review/commentary site or with a peer-review path
   (REVIEW_DOMAINS, REVIEW_PATHS), including the planted-error benchmark repository;
+- search results that list a review/commentary site (the model saw its snippet);
 - search queries naming the paper together with review terms. For planted-error papers a
   title search alone is flagged, because the published original is the answer key.
 
@@ -13,8 +14,11 @@ The paper is identified by matching the run's source sha256 against corpus manif
 (`manuscript_sha256`, or `review_input_sha256` for planted-error papers). The open-review
 and empirical-pilot manifests are read by default; `--manifest` adds others. `--paper` names
 a manifest id instead of matching by hash, and `--title` / `--block` add identifiers for
-papers outside the manifests. Prints one verdict
-per run (clean or flagged with reasons) and exits 1 when any run is flagged.
+papers outside the manifests.
+
+Verdicts: `flagged` (a contamination candidate), `incomplete` (a model stage failed, lacks
+recorded provenance, or has a call that never finished, so the record cannot show the run is
+clean), or `clean`. Exits 1 when any run is not clean.
 """
 
 from __future__ import annotations
@@ -85,17 +89,15 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> li
     title = title_words((paper or {}).get("title") or "")
     reasons = []
 
-    def check_url(url: str, how: str, where: str, generic: bool = True) -> None:
+    def check_url(url: str, how: str, where: str, paths: bool = True) -> None:
         low = normal_url(url)
         host = low.split("/", 1)[0]
         own = any(low == b or low.startswith((b + "/", b + "?")) for b in blocks if not b.startswith("10."))
         if own or any(d in low for d in dois):
             reasons.append(f"{where}: {how} URL of the benchmark paper: {url}")
-        elif not generic:
-            return
         elif any(host == d or host.endswith("." + d) for d in REVIEW_DOMAINS):
             reasons.append(f"{where}: {how} review/commentary site: {url}")
-        elif REVIEW_PATHS.search(low):
+        elif paths and REVIEW_PATHS.search(low):
             reasons.append(f"{where}: {how} peer-review page: {url}")
 
     for call in calls:
@@ -105,8 +107,9 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> li
         for url in URL_IN_TEXT.findall(" ".join(filter(None, [call.get("query"), call.get("command")]))):
             check_url(url, "requested", where)
         if call.get("kind") == "search":
-            for url in URL_IN_TEXT.findall(call.get("output") or ""):
-                check_url(url.rstrip('.,;"'), "search result listed", where, generic=False)
+            listed = call.get("result_urls") or [u.rstrip('.,;"') for u in URL_IN_TEXT.findall(call.get("output") or "")]
+            for url in listed:
+                check_url(url, "search result listed", where, paths=False)
         query = call.get("query") or ""
         if not query:
             continue
@@ -128,11 +131,32 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
     if args.title or args.block:
         paper = {"id": (paper or {}).get("id", "manual"), "title": args.title or (paper or {}).get("title"),
                  "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
-    calls = [call for stage in run.get("stages", []) for call in stage.get("tool_calls", [])]
+    stages = run.get("stages", [])
+    calls = [call for stage in stages for call in stage.get("tool_calls", [])]
     reasons = audit_calls(calls, paper)
+    gaps = provenance_gaps(stages)
     note = f"paper {paper['id']}" if paper else "paper not identified; only generic review-site checks applied"
     return {"run": str(review), "paper": paper and paper["id"], "note": note, "tool_calls": len(calls),
-            "verdict": "flagged" if reasons else "clean", "reasons": reasons}
+            "verdict": "flagged" if reasons else "incomplete" if gaps else "clean", "reasons": [*reasons, *gaps]}
+
+
+MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification|editorial)$")
+
+
+def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:
+    """Reasons the recorded tool calls may not cover everything the models did."""
+    gaps = []
+    for stage in stages:
+        name = stage.get("name", "?")
+        if not MODEL_STAGES.match(name):
+            continue
+        if stage.get("status") == "failed":
+            gaps.append(f"{name}: stage failed ({stage.get('error') or 'no error recorded'}); its tool calls may be incomplete")
+        elif stage.get("cache_key") and "tool_calls" not in stage:
+            gaps.append(f"{name}: no tool-call provenance recorded")
+        gaps.extend(f"{name}#{call.get('sequence')}: call never finished" for call in stage.get("tool_calls", [])
+                    if str(call.get("output", "")).startswith("[incomplete"))
+    return gaps
 
 
 def main() -> int:
@@ -153,7 +177,7 @@ def main() -> int:
             print(f"    {reason}")
     if args.json:
         args.json.write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return 1 if any(r["verdict"] == "flagged" for r in results) else 0
+    return 1 if any(r["verdict"] != "clean" for r in results) else 0
 
 
 if __name__ == "__main__":
