@@ -22,13 +22,15 @@ All finding identifiers are stable within a run. Candidate records survive edito
 
 The generation pipeline never sees benchmark labels or historical reviews. The evaluation harness receives those artifacts separately. Historical reviews only compare fairly against the manuscript version originally reviewed; the final revised publication can have already addressed the objections. Pairwise presentation is blinded and order-swapped. An independent model can help audit findings, but its assent is not a ground-truth label. Random human-audit sampling and targeted diagnostic inspection remain distinct.
 
-## Current v2 flow
+## Review flow
 
 ```mermaid
 flowchart TD
     Input[Manuscript, supplements, preregistration] --> Extract[Extract text and record coverage]
     Extract --> Map[Describe studies and assess material sufficiency]
-    Map --> Modules[Apply methodological and discipline modules]
+    Extract --> Metacheck[metacheck screening: deterministic R modules]
+    Metacheck -->|unverified leads| Modules
+    Map --> Modules[Apply methodological and discipline modules with web search, fetching and a sandboxed shell]
     Profile[Inherited discipline profile] --> Modules
     Modules --> Anchor[Anchor candidate quotations to sources]
     Anchor --> Verify[Check claims and remedies in a separate model call]

@@ -24,7 +24,7 @@ permanently absent for a particular article.
 
 Nettle, Pepper, Jobling, and Schroeder (2014), *Being there: a brief visit to a
 neighbourhood induces the social attitudes of that neighbourhood*, is the
-current seven-review ranking case. The [PeerJ review
+current matched empirical case. The [PeerJ review
 history](https://peerj.com/articles/236/reviews/) identifies Version 0.1 as the
 original submission received on 4 October 2013 and associates four reports
 with that version. The recovered PDF identifies itself as a “Reviewing

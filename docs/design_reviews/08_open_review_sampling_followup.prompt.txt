@@ -1,3 +1,0 @@
-Follow-up audit. Previous BLOCK findings were: no in-cohort exact pilot pairs, BMJ exact status overclaim, Nature example not inspected, blocked retrieval mislabeled, mandatory/optional window ambiguity, contamination safeguards, PeerJ post-hoc demotion, domain drift, and unspecified enumeration. Review only whether the revised sampling frame and JSON below now avoid freezing an invalid pilot. Return SHIP or BLOCK and only remaining release blockers.
-
-The revised contents of docs/OPEN_REVIEW_SAMPLING_FRAME.md and docs/research/open-review-journals.json were piped after this prompt because the Fable subprocess was deliberately run without tools.

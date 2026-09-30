@@ -1,1 +1,0 @@
-Concise code/scientific-validity check of the bounded listwise review-ranking protocol. Requirements: seven reviews including four human and three AI; one manuscript; three seeded blinded presentations; tied rank groups; two judge families invoked separately; report rank distributions/Borda/implied pairwise; do not inflate paper N. Identify concrete blockers only.

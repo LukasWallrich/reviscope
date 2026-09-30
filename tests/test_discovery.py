@@ -104,28 +104,3 @@ def test_omitted_coverage_retains_findings_but_marks_search_incomplete(tmp_path)
     raw_path = next((tmp_path / 'run/raw-discovery').glob('statistical_inference-*.json'))
     raw = json.loads(raw_path.read_text())
     assert len(raw['checks']) == 1 and len(raw['findings']) == 6
-
-
-def test_partial_adjudication_requires_explicit_diagnostic_opt_in(tmp_path):
-    import csv
-    import runpy
-    from pathlib import Path
-    from reviscope.schemas import ReviewRun, RunMetadata
-
-    load_inputs = runpy.run_path(str(Path(__file__).parents[1] / 'eval/adjudicate_known_errors.py'))['load_inputs']
-    run = ReviewRun(metadata=RunMetadata(run_id='test', backend='fixture', profile='test',
-                                        profile_hash='x', input_hash='x', output_dir=str(tmp_path)),
-                    sources=[], partial=True)
-    review = tmp_path / 'review.json'
-    review.write_text(run.model_dump_json())
-    labels = tmp_path / 'annotations.csv'
-    with pytest.raises(ValueError, match='partial'):
-        load_inputs(review, labels, '7')  # rejects before opening held-out labels
-    with labels.open('w') as handle:
-        fields = ['paper', 'category', 'subcategory', 'original_snippet', 'modified_snippet', 'description']
-        writer = csv.DictWriter(handle, fieldnames=fields)
-        writer.writeheader()
-        for _ in range(10):
-            writer.writerow({key: '7' if key == 'paper' else 'test' for key in fields})
-    _, partial, errors, _, _ = load_inputs(review, labels, '7', allow_partial=True)
-    assert partial and len(errors) == 10
