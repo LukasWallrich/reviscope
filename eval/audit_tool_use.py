@@ -48,6 +48,7 @@ REVIEW_PATHS = re.compile(r"peer[-_ ]?reviews?|referee|review[-_]history|decisio
 REVIEW_TERMS = re.compile(r"\b(reviews?|reviewers?|referees?|peer[- ]review|decision letter|editor|editorial|"
                           r"pubpeer|commentary|comment|reply|rebuttal|critique|response to)\b", re.I)
 URL_IN_TEXT = re.compile(r"https?://[^\s\"'<>\])]+")
+EXCLUDED_TERM = re.compile(r"(?:^|\s)-(?:\"[^\"]*\"|\S+)")
 STOPWORDS = {"the", "and", "for", "with", "from", "that", "this", "into", "under", "their", "across", "about"}
 
 
@@ -131,7 +132,8 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
             listed = call.get("result_urls") or [u.rstrip('.,;"') for u in URL_IN_TEXT.findall(call.get("output") or "")]
             for url in listed:
                 check_url(url, "search result listed", where, paths=False)
-        query = call.get("query") or ""
+        # Excluded terms (-"phrase", -word) keep matching pages out; they are not a search for them.
+        query = EXCLUDED_TERM.sub(" ", call.get("query") or "").strip()
         if not query:
             continue
         if any(d in query.lower() for d in dois):
@@ -183,7 +185,8 @@ def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:
         for call in stage.get("tool_calls", []):
             if str(call.get("output", "")).startswith("[incomplete"):
                 gaps.append(f"{name}#{call.get('sequence')}: call never finished")
-            elif call.get("kind") == "fetch" and not call.get("url") and not call.get("opened_urls"):
+            elif (call.get("kind") == "fetch" and not call.get("url") and not call.get("opened_urls")
+                  and str(call.get("output") or "").strip() not in {"", "[]"}):  # an empty result showed nothing
                 gaps.append(f"{name}#{call.get('sequence')}: fetch without a recorded page URL")
     return gaps
 
