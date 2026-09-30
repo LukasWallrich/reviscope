@@ -4,7 +4,7 @@ Each configuration writes to `<root>/reviews/<label>/paper-NN/`:
 - `review.json`: `--mode pipeline` runs `reviscope review`; `--mode plain` runs the
   one-call baseline `eval/plain_review.py`. Both run with tools.
 - `tool-audit.json`: `eval/audit_tool_use.py --planted-errors` verdict for that paper
-  (`clean`, `flagged` or `incomplete`), bound to the review's sha256.
+  (`clean`, `flagged` or `incomplete`), bound to the review's and the code's sha256.
 - `planted-error-adjudication.<judge>.json`: `eval/adjudicate_known_errors.py`.
 - `run.json`: every review attempt (command, code snapshot, times, exit code).
 
@@ -14,8 +14,8 @@ to `<root>/code/<sha256 prefix>/` and put first on PYTHONPATH. Edits to the work
 tree during a run do not reach it.
 
 Safe to rerun: `reviscope review` reuses cached successful stages, a complete
-review is not regenerated, and the audit and adjudication are redone only when the
-review file changed. A partial pipeline review is scored with --allow-partial and
+review is not regenerated, the audit is redone when the review or the code changed,
+and the adjudication only when the review changed. A partial pipeline review is scored with --allow-partial and
 stays labelled; a failed plain review is not scored. `--backend fixture` runs the
 pipeline with the deterministic demo backend and skips the judge, to check the
 chain without model calls.
@@ -124,7 +124,7 @@ def audit(paper: int, review: Path, out: Path, log, args: argparse.Namespace) ->
     digest = sha256(review)
     if path.exists():
         recorded = json.loads(path.read_text(encoding="utf-8"))
-        if recorded["review_sha256"] == digest:
+        if recorded["review_sha256"] == digest and recorded["code_sha256"] == args.digest:
             return recorded["verdict"]
     raw = out / "tool-audit.raw.json"
     run([sys.executable, str(args.code / "eval" / "audit_tool_use.py"), str(review), "--paper", f"known-error-{paper}",
