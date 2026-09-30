@@ -1,0 +1,9 @@
+{
+  "entries": [
+    {"id": "open-review-paper", "title": "Being there: a brief visit to a neighbourhood induces the social attitudes of that neighbourhood",
+     "doi": "10.7717/peerj.236", "article_url": "https://peerj.com/articles/236/", "review_url": "https://peerj.com/articles/236/reviews/",
+     "manuscript_sha256": "aaa"},
+    {"paper": "7", "title": "Seeing a mirrored letter, remembering the letter: illusions in short-term memory",
+     "url": "https://raw.githubusercontent.com/example-org/benchmark/abc/modified%20papers/7.docx", "review_input_sha256": "bbb"}
+  ]
+}

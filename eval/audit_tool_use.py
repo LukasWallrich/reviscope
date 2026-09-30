@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Flag tool calls in review runs that could have exposed the human reviews of the paper.
+
+Reads each run's review.json (every stage records its tool calls) and flags:
+- fetched URLs, URLs in commands or search queries, and URLs listed in search results that
+  match the benchmark paper's own DOI, article, manuscript or review pages;
+- fetched or requested URLs on a review/commentary site or with a peer-review path
+  (REVIEW_DOMAINS, REVIEW_PATHS), including the planted-error benchmark repository;
+- search queries naming the paper together with review terms. For planted-error papers a
+  title search alone is flagged, because the published original is the answer key.
+
+The paper is identified by matching the run's source sha256 against corpus manifests
+(`manuscript_sha256`, or `review_input_sha256` for planted-error papers). The open-review
+and empirical-pilot manifests are read by default; `--manifest` adds others. `--paper` names
+a manifest id instead of matching by hash, and `--title` / `--block` add identifiers for
+papers outside the manifests. Prints one verdict
+per run (clean or flagged with reasons) and exits 1 when any run is flagged.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from reviscope.backend import REVIEW_DOMAINS  # noqa: E402
+
+DEFAULT_MANIFESTS = [ROOT / "eval/corpus/open_peer_review.v1.json", ROOT / "eval/corpus/empirical_pilot.v1.json"]
+URL_FIELDS = ("doi", "article_url", "review_url", "review_urls", "manuscript_under_review_url", "archived_manuscript_url")
+REVIEW_PATHS = re.compile(r"peer[-_ ]?reviews?|referee|review[-_]history|decision[-_]letter|reviewer[-_]comments|"
+                          r"/reviews?/|author[-_]response|elifesciences\.org/reviewed-preprints/.*reviews|"
+                          r"dawes-institute/ai-peer-review-benchmark", re.I)
+REVIEW_TERMS = re.compile(r"\b(reviews?|reviewers?|referees?|peer[- ]review|decision letter|editor|editorial|"
+                          r"pubpeer|commentary|comment|reply|rebuttal|critique|response to)\b", re.I)
+URL_IN_TEXT = re.compile(r"https?://[^\s\"'<>\])]+")
+STOPWORDS = {"the", "and", "for", "with", "from", "that", "this", "into", "under", "their", "across", "about"}
+
+
+def normal_url(url: str) -> str:
+    url = url.strip().lower().split("#", 1)[0]
+    url = re.sub(r"^https?://(www\.)?", "", url)
+    return url.rstrip("/")
+
+
+def title_words(text: str) -> set[str]:
+    return {word for word in re.findall(r"[a-z0-9]+", text.casefold()) if len(word) > 3 and word not in STOPWORDS}
+
+
+def load_papers(manifests: list[Path]) -> list[dict[str, Any]]:
+    """Paper identities from corpus manifests. Entries with `review_input_sha256` are planted-error papers."""
+    papers = []
+    for manifest in manifests:
+        for entry in json.loads(manifest.read_text(encoding="utf-8"))["entries"]:
+            planted = "review_input_sha256" in entry
+            blocks = []
+            for field in URL_FIELDS:
+                value = entry.get(field)
+                blocks.extend(value if isinstance(value, list) else [value] if value else [])
+            if planted and entry.get("url"):
+                blocks.append(entry["url"])
+            papers.append({"id": str(entry.get("id") or f"known-error-{entry['paper']}"), "title": entry.get("title"),
+                           "sha256": {entry.get("manuscript_sha256"), entry.get("review_input_sha256")} - {None},
+                           "blocks": blocks, "planted_errors": planted})
+    return papers
+
+
+def identify(run: dict[str, Any], papers: list[dict[str, Any]], paper_id: str | None) -> dict[str, Any] | None:
+    if paper_id:
+        match = next((p for p in papers if p["id"] == paper_id), None)
+        if match is None:
+            raise SystemExit(f"Unknown paper id {paper_id!r}")
+        return match
+    hashes = {source.get("sha256") for source in run.get("sources", [])}
+    return next((p for p in papers if p["sha256"] & hashes), None)
+
+
+def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> list[str]:
+    blocks = [normal_url(b) for b in (paper or {}).get("blocks", [])]
+    dois = [b for b in blocks if b.startswith("10.")] + [b.split("doi.org/", 1)[1] for b in blocks if "doi.org/" in b]
+    title = title_words((paper or {}).get("title") or "")
+    reasons = []
+
+    def check_url(url: str, how: str, where: str, generic: bool = True) -> None:
+        low = normal_url(url)
+        host = low.split("/", 1)[0]
+        own = any(low == b or low.startswith((b + "/", b + "?")) for b in blocks if not b.startswith("10."))
+        if own or any(d in low for d in dois):
+            reasons.append(f"{where}: {how} URL of the benchmark paper: {url}")
+        elif not generic:
+            return
+        elif any(host == d or host.endswith("." + d) for d in REVIEW_DOMAINS):
+            reasons.append(f"{where}: {how} review/commentary site: {url}")
+        elif REVIEW_PATHS.search(low):
+            reasons.append(f"{where}: {how} peer-review page: {url}")
+
+    for call in calls:
+        where = f"{call.get('stage') or 'stage?'}#{call.get('sequence')}"
+        if call.get("url"):
+            check_url(call["url"], "fetched", where)
+        for url in URL_IN_TEXT.findall(" ".join(filter(None, [call.get("query"), call.get("command")]))):
+            check_url(url, "requested", where)
+        if call.get("kind") == "search":
+            for url in URL_IN_TEXT.findall(call.get("output") or ""):
+                check_url(url.rstrip('.,;"'), "search result listed", where, generic=False)
+        query = call.get("query") or ""
+        if not query:
+            continue
+        if any(d in query.lower() for d in dois):
+            reasons.append(f"{where}: search for the paper's DOI: {query!r}")
+            continue
+        overlap = len(title & title_words(query)) / len(title) if title else 0
+        if overlap >= 0.6 and paper and paper["planted_errors"]:
+            reasons.append(f"{where}: search for the planted-error paper's title (original is the answer key): {query!r}")
+        elif overlap >= 0.6 and REVIEW_TERMS.search(query):
+            reasons.append(f"{where}: search for reviews of this paper: {query!r}")
+    return reasons
+
+
+def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
+    review = path / "review.json" if path.is_dir() else path
+    run = json.loads(review.read_text(encoding="utf-8"))
+    paper = identify(run, papers, args.paper)
+    if args.title or args.block:
+        paper = {"id": (paper or {}).get("id", "manual"), "title": args.title or (paper or {}).get("title"),
+                 "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
+    calls = [call for stage in run.get("stages", []) for call in stage.get("tool_calls", [])]
+    reasons = audit_calls(calls, paper)
+    note = f"paper {paper['id']}" if paper else "paper not identified; only generic review-site checks applied"
+    return {"run": str(review), "paper": paper and paper["id"], "note": note, "tool_calls": len(calls),
+            "verdict": "flagged" if reasons else "clean", "reasons": reasons}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("runs", nargs="+", type=Path, help="Run directories or review.json files")
+    parser.add_argument("--manifest", action="append", default=[], type=Path, help="Extra corpus manifest with an `entries` list (repeatable)")
+    parser.add_argument("--paper", help="Manifest id of the reviewed paper (default: match by source sha256)")
+    parser.add_argument("--title", help="Paper title for query checks when the paper is not in a manifest")
+    parser.add_argument("--block", action="append", default=[], help="URL prefix or DOI of the paper's own pages, e.g. its review page (repeatable)")
+    parser.add_argument("--planted-errors", action="store_true", help="Treat a title search alone as a leak")
+    parser.add_argument("--json", type=Path, help="Write all verdicts to this JSON file")
+    args = parser.parse_args()
+    papers = load_papers([*DEFAULT_MANIFESTS, *args.manifest])
+    results = [audit_run(path, papers, args) for path in args.runs]
+    for result in results:
+        print(f"{result['verdict'].upper():8} {result['run']} ({result['note']}; {result['tool_calls']} tool calls)")
+        for reason in result["reasons"]:
+            print(f"    {reason}")
+    if args.json:
+        args.json.write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return 1 if any(r["verdict"] == "flagged" for r in results) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
