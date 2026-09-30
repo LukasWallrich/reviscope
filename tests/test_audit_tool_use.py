@@ -56,3 +56,18 @@ def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(t
         {"name": "verification", "status": "completed", "cache_key": "k"}]}))
     result = audit(path)
     assert result["verdict"] == "incomplete" and len(result["reasons"]) == 2
+
+
+def test_audit_checks_pages_opened_by_reference_and_unresolved_fetches(tmp_path):
+    from datetime import datetime, timezone
+    from reviscope.backend import parse_codex_events
+
+    events = [{"type": "item.completed", "item": {"id": "1", "type": "web_search", "action": {"type": "open_page"},
+                                                  "results": [{"url": "https://pubpeer.com/publications/ABC"}]}},
+              {"type": "item.completed", "item": {"id": "2", "type": "web_search", "action": {"type": "open_page"}, "results": "page text"}}]
+    parsed, _ = parse_codex_events("\n".join(json.dumps(e) for e in events), datetime.now(timezone.utc))
+    calls = [{**c.model_dump(mode="json"), "stage": "review-contribution"} for c in parsed]
+    result = audit(run_file(tmp_path, calls))
+    assert result["verdict"] == "flagged"
+    assert result["reasons"] == ["review-contribution#0: fetched review/commentary site: https://pubpeer.com/publications/ABC",
+                                 "review-contribution#1: fetch without a recorded page URL"]

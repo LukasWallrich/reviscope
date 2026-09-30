@@ -2,7 +2,8 @@
 """Flag tool calls in review runs that could have exposed the human reviews of the paper.
 
 Reads each run's review.json (every stage records its tool calls) and flags:
-- fetched URLs, URLs in commands or search queries, and URLs listed in search results that
+- fetched URLs (including pages opened from earlier search results), URLs in commands or
+  search queries, and URLs listed in search results that
   match the benchmark paper's own DOI, article, manuscript or review pages;
 - fetched or requested URLs on a review/commentary site or with a peer-review path
   (REVIEW_DOMAINS, REVIEW_PATHS), including the planted-error benchmark repository;
@@ -17,8 +18,8 @@ a manifest id instead of matching by hash, and `--title` / `--block` add identif
 papers outside the manifests.
 
 Verdicts: `flagged` (a contamination candidate), `incomplete` (a model stage failed, lacks
-recorded provenance, or has a call that never finished, so the record cannot show the run is
-clean), or `clean`. Exits 1 when any run is not clean.
+recorded provenance, has a call that never finished, or has a fetch whose opened page is not
+recorded, so the record cannot show the run is clean), or `clean`. Exits 1 when any run is not clean.
 """
 
 from __future__ import annotations
@@ -102,8 +103,8 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> li
 
     for call in calls:
         where = f"{call.get('stage') or 'stage?'}#{call.get('sequence')}"
-        if call.get("url"):
-            check_url(call["url"], "fetched", where)
+        for url in dict.fromkeys(filter(None, [call.get("url"), *(call.get("opened_urls") or [])])):
+            check_url(url, "fetched", where)
         for url in URL_IN_TEXT.findall(" ".join(filter(None, [call.get("query"), call.get("command")]))):
             check_url(url, "requested", where)
         if call.get("kind") == "search":
@@ -154,8 +155,11 @@ def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:
             gaps.append(f"{name}: stage failed ({stage.get('error') or 'no error recorded'}); its tool calls may be incomplete")
         elif stage.get("cache_key") and "tool_calls" not in stage:
             gaps.append(f"{name}: no tool-call provenance recorded")
-        gaps.extend(f"{name}#{call.get('sequence')}: call never finished" for call in stage.get("tool_calls", [])
-                    if str(call.get("output", "")).startswith("[incomplete"))
+        for call in stage.get("tool_calls", []):
+            if str(call.get("output", "")).startswith("[incomplete"):
+                gaps.append(f"{name}#{call.get('sequence')}: call never finished")
+            elif call.get("kind") == "fetch" and not call.get("url") and not call.get("opened_urls"):
+                gaps.append(f"{name}#{call.get('sequence')}: fetch without a recorded page URL")
     return gaps
 
 
