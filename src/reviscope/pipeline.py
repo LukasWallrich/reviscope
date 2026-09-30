@@ -148,17 +148,25 @@ class ReviewPipeline:
         self.progress(f"{name}: completed in {elapsed:.1f}s ({len(calls)} tool calls)")
         return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, tool_calls=calls)
 
-    def _metacheck(self, manuscript: Path, out: Path) -> MetacheckRecord:
+    def _metacheck(self, manuscript: Path, out: Path, modules: list[str]) -> tuple[MetacheckRecord, str, dict[str, str]]:
+        """Screening record, its fingerprint and the leads per review module. Screening never
+        aborts the review: any error, including unreadable output, becomes a failed record."""
         if not self.run_metacheck:
-            return MetacheckRecord(status="skipped", reason="skipped by flag")
+            record = MetacheckRecord(status="skipped", reason="skipped by flag")
+            return record, metacheck.fingerprint(record), {}
         self.progress("metacheck: started")
         started = time.monotonic()
         try:
             record = metacheck.run_metacheck(manuscript, out, self.progress)
-        except Exception as exc:  # screening must never abort the review
+        except Exception as exc:
             record = MetacheckRecord(status="failed", reason=f"{type(exc).__name__}: {exc}")
+        try:
+            result = record, metacheck.fingerprint(record), metacheck.leads(record, modules)
+        except Exception as exc:
+            record = MetacheckRecord(status="failed", reason=f"screening output unreadable: {type(exc).__name__}: {exc}", modules=record.modules)
+            result = record, metacheck.fingerprint(record), {}
         self.progress(f"metacheck: {record.status} in {time.monotonic() - started:.1f}s")
-        return record
+        return result
 
     def _failed(self, name: str, exc: Exception, stage: StageRecord | None = None) -> StageRecord:
         """Failed-stage record keeping the tool calls of the model call, including when the call
@@ -209,16 +217,20 @@ class ReviewPipeline:
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; specialist review modules were not run")
         modules = [*self.profile.modules, *(["blind_spots"] if self.deep_discovery else [])]
-        run.metacheck = (MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material") if insufficient
-                         else self._metacheck(Path(sources[0].path), out))
+        if insufficient:
+            skipped = MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material")
+            run.metacheck, metacheck_fingerprint, leads = skipped, metacheck.fingerprint(skipped), {}
+        else:
+            run.metacheck, metacheck_fingerprint, leads = self._metacheck(Path(sources[0].path), out, modules)
         run.coverage.append(metacheck.describe(run.metacheck))
         run.coverage.extend(f"metacheck {m.module}: {warning[:200]}" for m in run.metacheck.modules if m.status == "partial" for warning in m.warnings)
-        if run.metacheck.status in {"failed", "partial"}:
+        # Partial screening (some modules failed; stat_effect_size fails on many real papers) is shown in
+        # coverage and provenance only: a partial review is excluded from comparison and ranking.
+        if run.metacheck.status == "failed":
             run.partial = True
         run.stages.append(StageRecord(name="metacheck", status={"completed": "completed", "partial": "completed", "failed": "failed"}.get(run.metacheck.status, "skipped"),
-                                      artifact=run.metacheck.output_dir, error=None if run.metacheck.status == "completed" else run.metacheck.reason))
-        metacheck_fingerprint = metacheck.fingerprint(run.metacheck)
-        leads = metacheck.leads(run.metacheck, modules)
+                                      artifact=run.metacheck.output_dir,
+                                      error=None if run.metacheck.status == "completed" else run.metacheck.reason or metacheck.describe(run.metacheck)))
         run.coverage.extend(f"metacheck {m.module}: {m.n_filtered} of {m.n_rows} row(s) filtered as not a candidate ({m.filter_rule})"
                             for m in run.metacheck.modules if m.n_filtered)
         for module in modules:

@@ -191,8 +191,27 @@ def test_text_manuscript_is_typeset_before_import(tmp_path, monkeypatch):
     paper = tmp_path / "paper.txt"
     paper.write_text("Method\nWe did it.\n")
     record = RUN_METACHECK(paper, tmp_path / "run")
-    assert record.status == "completed" and record.text_conversion.startswith("pandoc")
+    assert record.status == "partial" and record.text_conversion.startswith("pandoc")  # causal_claims failed
     assert record.converter.startswith("online server")
+
+
+def test_unreadable_screening_output_is_recorded_not_raised(tmp_path, monkeypatch):
+    stub(monkeypatch, [])
+    record = RUN_METACHECK(manuscript(tmp_path), tmp_path / "direct")
+    assert record.status == "partial" and "could not check: causal_claims" in metacheck.describe(record)
+    mc_dir = tmp_path / "direct" / "metacheck"
+    (mc_dir / "modules" / "stat_check.json").write_text("{not json")
+    broken = [metacheck._module(mc_dir, {"module": name, "status": "ok"}) for name in ("stat_check", "ref_pubpeer")]
+    assert [m.status for m in broken] == ["failed", "ok"] and "module output unreadable" in broken[0].error
+    (mc_dir / "modules" / "power.json").mkdir()  # reading it raises IsADirectoryError
+    assert metacheck.fingerprint(record) != metacheck.fingerprint(record.model_copy(update={"output_dir": None}))
+
+    def unreadable(*_):
+        raise PermissionError("modules/power.json")
+    monkeypatch.setattr(metacheck, "leads", unreadable)
+    run = ReviewPipeline(CaptureBackend(), profile()).run(manuscript(tmp_path), output_dir=tmp_path / "run")
+    assert run.metacheck.status == "failed" and "screening output unreadable: PermissionError" in run.metacheck.reason
+    assert run.metacheck.modules and run.partial and (tmp_path / "run" / "review.md").is_file()
 
 
 def test_no_metacheck_flag_skips_stage_and_says_so(tmp_path):

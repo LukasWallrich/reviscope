@@ -245,7 +245,7 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
     except (MetacheckError, subprocess.TimeoutExpired, OSError, ValueError) as exc:
         return MetacheckRecord(status="failed", reason="; ".join([*errors, str(exc)]), output_dir=str(mc_dir))
     counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
-    return MetacheckRecord(status="partial" if errors else "completed", reason="; ".join(errors) or None, output_dir=str(mc_dir),
+    return MetacheckRecord(status="partial" if errors or any(m.status != "ok" for m in modules) else "completed", reason="; ".join(errors) or None, output_dir=str(mc_dir),
                            text_conversion=conversion.get("text_conversion"), converter=conversion.get("converter"),
                            parse_warnings=[str(w) for w in summary.get("parse_warnings") or []],
                            counts={key: counts[key] for key in ("sections", "sentences", "refs", "xrefs_bibr") if isinstance(counts.get(key), int)},
@@ -259,9 +259,12 @@ def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
     path = mc_dir / "modules" / f"{name}.json"
     if not path.is_file():
         return MetacheckModule(module=name, status="failed", error="module output file missing")
-    details = _read(path)
+    try:
+        details = _read(path)
+        rows = _rows(mc_dir, name)
+    except (OSError, ValueError) as exc:
+        return MetacheckModule(module=name, status="failed", error=f"module output unreadable: {type(exc).__name__}: {exc}")
     warnings = [str(w) for w in details.get("warnings") or []]
-    rows = _rows(mc_dir, name)
     status = str(row.get("status", "failed"))
     if status == "ok" and (any(LOOKUP_FAILURE.search(w) for w in warnings) or any(r.get("repo_error") for r in rows)):
         status = "partial"
@@ -297,11 +300,15 @@ def _count_filtered(mc_dir: Path, modules: list[MetacheckModule]) -> list[Metach
 
 
 def fingerprint(record: MetacheckRecord) -> str:
-    """Hash of the screening record and every module output; part of each review stage's cache key."""
+    """Hash of the screening record and every module output; part of each review stage's cache key.
+    An unreadable output contributes its name and error instead of its content."""
     digest = hashlib.sha256(record.model_dump_json(exclude={"output_dir"}).encode())
     if record.output_dir:
         for path in sorted(Path(record.output_dir).glob("modules/*.json")):
-            digest.update(path.read_bytes())
+            try:
+                digest.update(path.read_bytes())
+            except OSError as exc:
+                digest.update(f"unreadable {path.name}: {type(exc).__name__}".encode())
     return digest.hexdigest()
 
 
