@@ -137,6 +137,7 @@ class MetacheckModule(BaseModel):
     status: str
     traffic_light: str | None = None
     n_rows: int = 0
+    run_at: str | None = None  # when the module ran; reused output keeps its original time and online lookups
     n_filtered: int = 0  # rows not passed on as leads; filter_rule says why
     filter_rule: str | None = None
     error: str | None = None
@@ -152,6 +153,7 @@ class MetacheckRecord(BaseModel):
     output_dir: str | None = None
     text_conversion: str | None = None
     converter: str | None = None
+    lookup_date: str | None = None  # import date, when CrossRef matches were looked up; reused output keeps it
     counts: dict[str, int] = Field(default_factory=dict)
     parse_warnings: list[str] = Field(default_factory=list)
     modules: list[MetacheckModule] = Field(default_factory=list)

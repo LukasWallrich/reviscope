@@ -192,7 +192,9 @@ def test_text_manuscript_is_typeset_before_import(tmp_path, monkeypatch):
     paper.write_text("Method\nWe did it.\n")
     record = RUN_METACHECK(paper, tmp_path / "run")
     assert record.status == "partial" and record.text_conversion.startswith("pandoc")  # causal_claims failed
-    assert record.converter.startswith("online server")
+    assert record.converter.startswith("online server") and record.lookup_date
+    key = metacheck.reuse_key(paper)
+    assert {"conversion", "pandoc", "tectonic"} <= set(key) and "conversion" not in metacheck.reuse_key(manuscript(tmp_path))
 
 
 def test_unreadable_screening_output_is_recorded_not_raised(tmp_path, monkeypatch):

@@ -61,6 +61,8 @@ def _metacheck(run: ReviewRun) -> list[str]:
     if record.text_conversion:
         lines.append(f"Text conversion: {record.text_conversion}")
     lines.append(f"Conversion: {record.converter}")
+    if record.lookup_date:
+        lines.append(f"CrossRef lookup: {record.lookup_date}; each module's online lookups date from its run time in the provenance")
     if record.counts:
         lines.append("Imported: " + ", ".join(f"{value} {key}" for key, value in record.counts.items()))
     lines.extend(f"Parse warning: {warning}" for warning in record.parse_warnings)

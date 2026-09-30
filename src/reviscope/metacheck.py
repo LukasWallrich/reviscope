@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import inspect
 import json
 import re
 import shutil
 import subprocess
+from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
@@ -198,11 +200,26 @@ def _counts(mc_dir: Path, module: str) -> dict[str, Any]:
             if key != "paper_id" and isinstance(value, (int, float, bool, str)) and value != ""}
 
 
+@functools.cache
+def tool_version(tool: str) -> str:
+    """First line of `<tool> --version`, or "unavailable"."""
+    try:
+        result = subprocess.run([tool, "--version"], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return "unavailable"
+    return (result.stdout.strip().splitlines() or ["unavailable"])[0]
+
+
 def reuse_key(manuscript: Path) -> dict[str, str]:
-    """Earlier screening output is reused only when all of these match."""
+    """Earlier screening output is reused only when all of these match. Text input adds the
+    conversion code and the pandoc and tectonic versions."""
     scripts = hashlib.sha256(b"".join(path.read_bytes() for path in sorted((VENDOR / "scripts").glob("*.R")))).hexdigest()
-    return {"sha256": hashlib.sha256(manuscript.read_bytes()).hexdigest(), "suffix": manuscript.suffix.lower(),
-            "scripts": scripts, "metacheck": package_version()}
+    key = {"sha256": hashlib.sha256(manuscript.read_bytes()).hexdigest(), "suffix": manuscript.suffix.lower(),
+           "scripts": scripts, "metacheck": package_version()}
+    if key["suffix"] in TEXT_SUFFIXES:
+        code = inspect.getsource(text_to_pdf) + PANDOC_READER + TEXT_HEADING.pattern
+        key.update(conversion=hashlib.sha256(code.encode()).hexdigest(), pandoc=tool_version("pandoc"), tectonic=tool_version("tectonic"))
+    return key
 
 
 def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] = lambda _: None) -> MetacheckRecord:
@@ -228,7 +245,7 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
                 source, text_conversion = text_to_pdf(manuscript, mc_dir / "input")
             progress("metacheck: importing manuscript")
             _, log = run_r("mc_import.R", ["--file", str(source), "--run-dir", str(mc_dir), "--crossref-lookup"])
-            provenance.write_text(json.dumps({"key": key, "text_conversion": text_conversion,
+            provenance.write_text(json.dumps({"key": key, "text_conversion": text_conversion, "lookup_date": date.today().isoformat(),
                                               "converter": _converter(source.suffix.lower(), log)}), encoding="utf-8")
         for modules in ("default", EXTRA_MODULES):
             progress(f"metacheck: running {'default' if modules == 'default' else 'extra'} modules")
@@ -247,6 +264,7 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
     counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
     return MetacheckRecord(status="partial" if errors or any(m.status != "ok" for m in modules) else "completed", reason="; ".join(errors) or None, output_dir=str(mc_dir),
                            text_conversion=conversion.get("text_conversion"), converter=conversion.get("converter"),
+                           lookup_date=conversion.get("lookup_date"),
                            parse_warnings=[str(w) for w in summary.get("parse_warnings") or []],
                            counts={key: counts[key] for key in ("sections", "sentences", "refs", "xrefs_bibr") if isinstance(counts.get(key), int)},
                            modules=modules)
@@ -269,6 +287,7 @@ def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
     if status == "ok" and (any(LOOKUP_FAILURE.search(w) for w in warnings) or any(r.get("repo_error") for r in rows)):
         status = "partial"
     return MetacheckModule(module=name, status=status, traffic_light=details.get("traffic_light"), n_rows=len(rows),
+                           run_at=str(details["run_at"]) if details.get("run_at") else None,
                            error=row.get("error"), summary_text=details.get("summary_text"), warnings=warnings)
 
 
