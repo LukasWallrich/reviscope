@@ -153,13 +153,15 @@ def _codex_calls(item: dict[str, Any], sequence: int, started: datetime) -> list
         url = action.get("url")
         results = item.get("results", "")
         if url:
-            return [ToolCall(**base, sequence=sequence, kind="fetch", url=url, query=action.get("pattern"),
+            return [ToolCall(**base, sequence=sequence, kind="fetch", url=url, query=action.get("pattern"), opened_urls=[url],
                              output=_truncate(results), result_urls=_urls(results))]
         # `action.query` abbreviates a batch as its first query plus "..."; `queries` holds the batch.
         queries = list(dict.fromkeys(action.get("queries") or [q for q in (action.get("query"), item.get("query")) if q]))
         if not queries:
-            # Opening earlier results by reference: no query, the opened pages are in the results.
-            return [ToolCall(**base, sequence=sequence, kind="fetch", output=_truncate(results), result_urls=_urls(results))]
+            # Opening earlier results by reference: no query; the opened pages are the `url` fields of the result items.
+            opened = [r["url"] for r in results if isinstance(r, dict) and isinstance(r.get("url"), str)] if isinstance(results, list) else []
+            return [ToolCall(**base, sequence=sequence, kind="fetch", opened_urls=list(dict.fromkeys(opened)),
+                             output=_truncate(results), result_urls=_urls(results))]
         return [ToolCall(**base, sequence=sequence + i, kind="search", query=query,
                          output=_truncate(results) if i == 0 else "", result_urls=_urls(results) if i == 0 else [])
                 for i, query in enumerate(queries)]
@@ -200,7 +202,8 @@ def parse_claude_events(stdout: str, started: datetime) -> tuple[list[ToolCall],
         content = result.get("content", "") if result else INCOMPLETE
         calls.append(ToolCall(backend="claude", sequence=position, timestamp=started, name=name, kind=kinds.get(name, "other"),
                               query=arguments.get("query"), url=arguments.get("url"), command=arguments.get("command"),
-                              output=_truncate(content), result_urls=_urls(content) if name == "WebSearch" else [],
+                              opened_urls=[arguments["url"]] if name == "WebFetch" and isinstance(arguments.get("url"), str) else [],
+                              output=_truncate(content), result_urls=_urls(content) if name in {"WebSearch", "WebFetch"} else [],
                               error=result is None or bool(result.get("is_error"))))
     return calls, final
 

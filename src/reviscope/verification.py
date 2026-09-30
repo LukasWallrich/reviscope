@@ -90,24 +90,26 @@ def verify_quote(quote: str, sources: Iterable[Mapping[str, Any] | str], source_
 
 
 def _locator(value: str) -> str:
-    value = value.strip().lower().split("#", 1)[0]
+    """Canonical URL or DOI: no scheme, www., doi.org host, doi: prefix, fragment or trailing slash."""
+    value = value.strip().strip("\"'<>()[],;").lower().split("#", 1)[0]
     value = re.sub(r"^https?://", "", value)
-    value = re.sub(r"^(www\.|dx\.)?doi\.org/", "", value)
-    return re.sub(r"^www\.", "", value).rstrip("/")
+    value = re.sub(r"^www\.", "", value)
+    value = re.sub(r"^(dx\.)?doi\.org/|^doi:\s*", "", value)
+    return value.rstrip("/.")
 
 
 def touched(locator: str, calls: Sequence[ToolCall]) -> bool:
-    """True if a recorded fetch opened this URL or DOI, or a search query named it.
-
-    A locator that only appears in the result list of an unrelated search does not count."""
+    """True if a recorded fetch opened exactly this URL or DOI, or a search query contained it
+    as a whole token. Links inside an opened page and longer or shorter URLs do not count."""
     wanted = _locator(locator)
 
-    def texts(call: ToolCall) -> tuple[str | None, ...]:
-        return (call.url, call.query, *call.result_urls) if call.kind == "fetch" else (call.query,)
+    def names(call: ToolCall) -> list[str]:
+        if call.kind == "fetch":
+            return [*call.opened_urls, *([call.url] if call.url else [])]
+        return (call.query or "").split()
 
-    return bool(wanted) and any(
-        wanted in _locator(text) for call in calls if call.kind in {"search", "fetch"} and not call.error
-        for text in texts(call) if text)
+    return bool(wanted) and any(_locator(name) == wanted for call in calls
+                                if call.kind in {"search", "fetch"} and not call.error for name in names(call))
 
 
 def check_external(items: Sequence[ExternalEvidence], checks: Sequence[Mapping[str, Any]],
@@ -131,7 +133,7 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
 
     Every finding needs at least one anchored quotation from the manuscript itself; supplements
     and preregistrations add support but cannot carry a finding alone. A finding that cites
-    external evidence can be supported only if at least one external item is confirmed.
+    external evidence can be supported only if at least one external item is confirmed and none is refuted.
     """
     source_list = list(sources)
     source_maps = [{"source_id": source.id, "text": source.text} for source in source_list]
@@ -200,6 +202,9 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
             if status == "supported" and not verifier_grounded:
                 status = "unresolved"
                 rationale = "The model selected supported, but its separately selected evidence was absent or could not be anchored."
+            elif status == "supported" and any(item.check == "refuted" for item in external):
+                status = "unresolved"
+                rationale = "The verifier refuted at least one cited external source."
             elif status == "supported" and external and not any(item.check == "confirmed" for item in external):
                 status = "unresolved"
                 rationale = "The claim cites external evidence, but no external item was confirmed by the verifier with a recorded fetch or search of its URL or DOI."

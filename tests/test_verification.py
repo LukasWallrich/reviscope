@@ -166,6 +166,31 @@ def test_external_source_counts_as_checked_only_when_opened_or_named_in_a_query(
 
     listed = call("search", query="stereotyping disorder", result_urls=["https://pubmed.ncbi.nlm.nih.gov/21474762/"])
     assert not touched("https://pubmed.ncbi.nlm.nih.gov/21474762/", [listed])
-    assert touched("https://pubmed.ncbi.nlm.nih.gov/21474762/", [call("fetch", result_urls=["https://pubmed.ncbi.nlm.nih.gov/21474762"])])
+    assert touched("https://pubmed.ncbi.nlm.nih.gov/21474762/", [call("fetch", opened_urls=["http://www.pubmed.ncbi.nlm.nih.gov/21474762"])])
     assert touched("10.1126/science.1201068", [call("search", query='"10.1126/science.1201068" retraction')])
+    assert touched("https://doi.org/10.1126/science.1201068", [call("fetch", url="https://dx.doi.org/10.1126/science.1201068")])
     assert not touched("10.1126/science.1201068", [call("fetch", url="https://doi.org/10.1126/science.1201068", error=True)])
+    index = call("fetch", url="https://example.org/index", opened_urls=["https://example.org/index"],
+                 result_urls=["https://example.org/source"])  # the page links to the source; the source was not opened
+    assert not touched("https://example.org/source", [index])
+    assert not touched("https://example.org/source/extra", [call("fetch", opened_urls=["https://example.org/source"])])
+    assert not touched("https://example.org/source", [call("fetch", opened_urls=["https://example.org/source/extra"])])
+    assert not touched("10.1126/science.12010", [call("search", query="10.1126/science.1201068")])
+    assert not touched("https://example.org/source", [call("search", query="example.org/source/extra review")])
+
+
+def test_one_refuted_external_source_blocks_support():
+    from datetime import datetime, timezone
+    from reviscope.schemas import ToolCall
+    quote = "The multilevel estimate was -0.25"
+    urls = ["https://example.org/a", "https://example.org/b", "https://example.org/c"]
+    finding = Finding(id="e", module="m", claim="c", rationale="r", remedy="x", evidence=[Evidence(source_id="main", quote=quote)],
+                      external_evidence=[{"url": url, "quote": "q", "shows": "s"} for url in urls])
+    verdicts = {urls[0]: "confirmed", urls[1]: "refuted", urls[2]: "not_found"}
+    decision = {"status": "supported", "rationale": "ok", "evidence": [{"source_id": "main", "quote": quote}],
+                "external_checks": [{"locator": url, "verdict": verdict, "rationale": "opened"} for url, verdict in verdicts.items()]}
+    opened = [ToolCall(backend="t", sequence=i, kind="fetch", name="WebFetch", url=url, opened_urls=[url],
+                       timestamp=datetime.now(timezone.utc)) for i, url in enumerate(urls[:2])]
+    result = verify_findings([finding], [source()], {"e": decision}, verifier_calls=opened)[0]
+    assert [item.check for item in result.external_evidence] == ["confirmed", "refuted", "unchecked"]
+    assert result.status == "unresolved" and "refuted" in result.verification

@@ -64,7 +64,8 @@ class ToolCall(BaseModel):
     url: str | None = None
     command: str | None = None
     output: str = ""
-    result_urls: list[str] = Field(default_factory=list)
+    opened_urls: list[str] = Field(default_factory=list)  # pages a fetch actually opened
+    result_urls: list[str] = Field(default_factory=list)  # every URL mentioned in the output, including links inside pages
     error: bool = False
     timestamp: datetime
 
