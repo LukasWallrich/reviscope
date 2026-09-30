@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
+import re
+import signal
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -32,7 +35,8 @@ REVIEW_DOMAINS = ("pubpeer.com", "sciety.org", "publons.com", "prereview.org", "
                   "hypothes.is", "openreview.net", "peercommunityin.org", "rapidreviews.io")
 
 TOOL_OUTPUT_LIMIT = 4000
-ENV_ALLOWLIST = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "CODEX_HOME", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "TMPDIR", "LANG", "LC_ALL"}
+ENV_ALLOWLIST = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "CODEX_HOME", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "LANG", "LC_ALL"}
+URL_PATTERN = re.compile(r"https?://[^\s\"'<>\\\])]+")
 
 
 def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
@@ -89,9 +93,18 @@ def _extract_json(value: str) -> Any:
         raise
 
 
+def _text(value: Any) -> str:
+    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+
+
 def _truncate(value: Any) -> str:
-    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+    text = _text(value)
     return text if len(text) <= TOOL_OUTPUT_LIMIT else text[:TOOL_OUTPUT_LIMIT] + f"\n[truncated {len(text) - TOOL_OUTPUT_LIMIT} characters]"
+
+
+def _urls(value: Any) -> list[str]:
+    """Distinct URLs in a full (untruncated) tool output, in order of appearance."""
+    return list(dict.fromkeys(url.rstrip('.,;') for url in URL_PATTERN.findall(_text(value))))
 
 
 def _events(stdout: str) -> list[dict[str, Any]]:
@@ -106,29 +119,53 @@ def _events(stdout: str) -> list[dict[str, Any]]:
     return events
 
 
+INCOMPLETE = "[incomplete: the call started but no result was recorded]"
+
+
 def parse_codex_events(stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
     """Tool calls and final agent message from `codex exec --json` output."""
     calls: list[ToolCall] = []
     final = ""
+    pending: dict[str, dict[str, Any]] = {}
     for event in _events(stdout):
         item = event.get("item") or {}
+        if event.get("type") == "item.started":
+            pending[item.get("id", "")] = item
+            continue
         if event.get("type") != "item.completed":
             continue
-        kind = item.get("type")
-        base = {"backend": "codex", "sequence": len(calls), "timestamp": started, "name": kind or "unknown"}
-        if kind == "agent_message":
+        pending.pop(item.get("id", ""), None)
+        if item.get("type") == "agent_message":
             final = item.get("text", "")
-        elif kind == "web_search":
-            action = item.get("action") or {}
-            url = action.get("url")
-            calls.append(ToolCall(**base, kind="fetch" if url else "search", query=action.get("query") or action.get("pattern") or item.get("query") or None,
-                                  url=url, output=_truncate(item.get("results", ""))))
-        elif kind == "command_execution":
-            calls.append(ToolCall(**base, kind="exec", command=item.get("command"), output=_truncate(item.get("aggregated_output", "")),
-                                  error=item.get("exit_code") not in (0, None)))
-        elif kind not in {"reasoning", "error", "todo_list"}:
-            calls.append(ToolCall(**base, kind="other", output=_truncate(item)))
+        else:
+            calls.extend(_codex_calls(item, len(calls), started))
+    for item in pending.values():
+        calls.extend(call.model_copy(update={"error": True, "output": INCOMPLETE}) for call in _codex_calls(item, len(calls), started))
     return calls, final
+
+
+def _codex_calls(item: dict[str, Any], sequence: int, started: datetime) -> list[ToolCall]:
+    kind = item.get("type")
+    base = {"backend": "codex", "timestamp": started, "name": kind or "unknown",
+            "error": item.get("status") in {"failed", "declined"}}
+    if kind == "web_search":
+        action = item.get("action") or {}
+        url = action.get("url")
+        results = item.get("results", "")
+        if url:
+            return [ToolCall(**base, sequence=sequence, kind="fetch", url=url, query=action.get("pattern"),
+                             output=_truncate(results), result_urls=_urls(results))]
+        queries = [q for q in [*(action.get("queries") or []), action.get("query"), item.get("query")] if q]
+        queries = list(dict.fromkeys(queries)) or [None]
+        return [ToolCall(**base, sequence=sequence + i, kind="search", query=query,
+                         output=_truncate(results) if i == 0 else "", result_urls=_urls(results) if i == 0 else [])
+                for i, query in enumerate(queries)]
+    if kind == "command_execution":
+        return [ToolCall(**{**base, "error": base["error"] or item.get("exit_code") not in (0, None)}, sequence=sequence, kind="exec",
+                         command=item.get("command"), output=_truncate(item.get("aggregated_output", "")))]
+    if kind in {"reasoning", "error", "todo_list"}:
+        return []
+    return [ToolCall(**base, sequence=sequence, kind="other", output=_truncate(item))]
 
 
 def parse_claude_events(stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
@@ -154,55 +191,88 @@ def parse_claude_events(stdout: str, started: datetime) -> tuple[list[ToolCall],
     kinds = {"WebSearch": "search", "WebFetch": "fetch", "Bash": "exec"}
     calls = []
     for position, use_id in enumerate(order):
-        use, result = uses[use_id], results.get(use_id, {})
+        use, result = uses[use_id], results.get(use_id)
         arguments = use.get("input") or {}
         name = use.get("name", "unknown")
+        content = result.get("content", "") if result else INCOMPLETE
         calls.append(ToolCall(backend="claude", sequence=position, timestamp=started, name=name, kind=kinds.get(name, "other"),
                               query=arguments.get("query"), url=arguments.get("url"), command=arguments.get("command"),
-                              output=_truncate(result.get("content", "")), error=bool(result.get("is_error"))))
+                              output=_truncate(content), result_urls=_urls(content) if name == "WebSearch" else [],
+                              error=result is None or bool(result.get("is_error"))))
     return calls, final
 
 
+@functools.cache
+def cli_version(binary: str) -> str:
+    try:
+        return subprocess.run([binary, "--version"], capture_output=True, text=True, timeout=60).stdout.strip() or "unknown"
+    except (OSError, subprocess.TimeoutExpired):
+        return "unavailable"
+
+
+def _execute(command: list[str], prompt: str, cwd: str, env: dict[str, str], timeout: int) -> tuple[int | None, str, str]:
+    """Run a CLI in its own process group; on timeout kill the whole group and return what it printed."""
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, cwd=cwd, env=env, start_new_session=True)
+    try:
+        stdout, stderr = process.communicate(prompt, timeout=timeout)
+        return process.returncode, stdout, stderr
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate()
+        return None, stdout or "", stderr or ""
+
+
 class SubprocessBackend(Backend):
-    def __init__(self, command: list[str], name: str, model: str | None = None, timeout: int = 1800, effort: str | None = None, tools: bool = True):
-        self.command, self.name, self.model, self.timeout, self.effort, self.tools = command, name, model, timeout, effort, tools
+    binary: str
+
+    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None, tools: bool = True):
+        self.model, self.timeout, self.effort, self.tools = model, timeout, effort, tools
         self._tool_calls = []
 
     @property
     def guard(self) -> str:
         return REVIEW_GUARD if self.tools else SYSTEM_GUARD
 
+    def command(self, tmp: Path) -> list[str]:
+        raise NotImplementedError
+
+    def environment(self, tmp: Path) -> dict[str, str]:
+        env = {key: value for key, value in os.environ.items() if key in ENV_ALLOWLIST}
+        env.update({"NO_COLOR": "1", "TMPDIR": str(tmp)})
+        return env
+
     @property
     def identity(self) -> str:
-        if not self.tools:
-            return super().identity
-        config = [part for part in self.command if part not in {self.model, self.effort, f'model_reasoning_effort="{self.effort}"'}]
-        return f"{super().identity}:tools-{hashlib.sha256(json.dumps(config).encode()).hexdigest()[:12]}"
+        """Model settings, CLI version and a hash of the complete command and environment policy."""
+        placeholder = Path("/per-call-directory")
+        config = json.dumps([self.command(placeholder), sorted(self.environment(placeholder)), self.guard])
+        return f"{super().identity}:{cli_version(self.binary)}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout
 
     def _run(self, prompt: str, response_model: type[T]) -> str:
-        safe_env = {key: value for key, value in os.environ.items() if key in ENV_ALLOWLIST}
-        safe_env["NO_COLOR"] = "1"
         started = datetime.now(timezone.utc)
-        with tempfile.TemporaryDirectory(prefix="reviscope-") as tmp:
-            command = list(self.command)
-            output_path = Path(tmp) / "last-message.json"
+        # A short path under /tmp: Claude Code falls back to a shared temp directory for long TMPDIR paths.
+        with tempfile.TemporaryDirectory(prefix="reviscope-", dir="/tmp") as tmp_name:
+            tmp = Path(tmp_name).resolve()
+            command = self.command(tmp)
+            output_path = tmp / "last-message.json"
             if self.name == "codex":
-                schema_path = Path(tmp) / "schema.json"
+                schema_path = tmp / "schema.json"
                 schema_path.write_text(json.dumps(_strict_schema(response_model.model_json_schema())), encoding="utf-8")
                 command[-1:-1] = ["--output-schema", str(schema_path), "--output-last-message", str(output_path)]
-            result = subprocess.run(command, input=prompt, text=True, capture_output=True, timeout=self.timeout, cwd=tmp, env=safe_env)
-            calls, final = self._parse(result.stdout, started)
+            returncode, stdout, stderr = _execute(command, prompt, str(tmp), self.environment(tmp), self.timeout)
+            calls, final = self._parse(stdout, started)
             output = output_path.read_text(encoding="utf-8") if output_path.is_file() else final
         offset = len(self._tool_calls)
         self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
-        if result.returncode:
-            detail = result.stderr[-1000:].strip()
-            if not detail:
-                detail = f"no stderr (stdout contained {len(result.stdout)} characters)"
-            raise RuntimeError(f"{self.name} failed ({result.returncode}): {detail}")
+        if returncode is None:
+            raise TimeoutError(f"{self.name} timed out after {self.timeout} s ({len(calls)} tool calls recorded)")
+        if returncode:
+            detail = stderr[-1000:].strip() or f"no stderr (stdout contained {len(stdout)} characters)"
+            raise RuntimeError(f"{self.name} failed ({returncode}): {detail}")
         return output
 
     def generate(self, instruction: str, evidence: str, response_model: type[T]) -> T:
@@ -212,65 +282,83 @@ class SubprocessBackend(Backend):
         try:
             return response_model.model_validate(_extract_json(output))
         except Exception as first:
-            repair = f"{self.guard}\nThe prior response failed schema validation. Produce a corrected JSON value only.\nSCHEMA\n{schema}\nINVALID RESPONSE\n{output}"
+            repair = (f"{prompt}\n\nYOUR PREVIOUS RESPONSE TO THIS TASK FAILED SCHEMA VALIDATION\nERROR\n{first}\n"
+                      f"PREVIOUS RESPONSE\n{output}\n\nReturn the complete corrected JSON value only, fixing every field the error names.")
             try:
                 return response_model.model_validate(_extract_json(self._run(repair, response_model)))
             except Exception as second:
                 raise ValueError(f"Invalid structured response after one repair: {second}") from first
 
 
-class CodexBackend(SubprocessBackend):
-    """Codex CLI. With tools, calls get live web search and a shell whose writes are confined to
-    the per-call temporary directory and whose network access is off (seatbelt sandbox).
-    tools=False is for judges and normalizers that must read only the supplied text."""
+def codex_permissions() -> str:
+    """Shell permission profile: read the filesystem except the home directory, write only the
+    per-call working directory, no network."""
+    return (f'permissions.reviscope={{extends=":read-only", filesystem={{{json.dumps(str(Path.home()))}="deny", '
+            f'":workspace_roots"={{"."="write"}}}}, network={{enabled=false}}}}')
 
-    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None, tools: bool = True):
-        common = ["--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
-                  "--disable", "apps", "--disable", "plugins", "--disable", "browser_use", "--disable", "browser_use_external",
-                  "--disable", "in_app_browser", "--disable", "computer_use", "--disable", "image_generation",
-                  "--disable", "skill_search", "--disable", "multi_agent", "--color", "never"]
-        if tools:
-            cmd = ["codex", "exec", "-c", 'web_search="live"', "--sandbox", "workspace-write",
-                   "-c", "sandbox_workspace_write.network_access=false",
-                   "-c", "sandbox_workspace_write.exclude_slash_tmp=true",
-                   "-c", "sandbox_workspace_write.exclude_tmpdir_env_var=true", *common, "--json", "-"]
+
+class CodexBackend(SubprocessBackend):
+    """Codex CLI. With tools, calls get live web search and a sandboxed shell (codex_permissions);
+    the shell inherits only core environment variables. tools=False is for judges and normalizers
+    that must read only the supplied text."""
+
+    name, binary = "codex", "codex"
+
+    def command(self, tmp: Path) -> list[str]:
+        cmd = ["codex", "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
+               "--disable", "apps", "--disable", "plugins", "--disable", "browser_use", "--disable", "browser_use_external",
+               "--disable", "in_app_browser", "--disable", "computer_use", "--disable", "image_generation",
+               "--disable", "skill_search", "--disable", "multi_agent", "--color", "never"]
+        if self.tools:
+            cmd += ["-c", 'web_search="live"', "-c", 'default_permissions="reviscope"', "-c", codex_permissions(),
+                    "-c", "allow_login_shell=false", "-c", 'shell_environment_policy.inherit="core"', "--json"]
         else:
-            cmd = ["codex", "exec", "-c", 'web_search="disabled"', "--sandbox", "read-only", *common,
-                   "--disable", "shell_tool", "--disable", "unified_exec", "--disable", "code_mode_host", "-"]
-        if model:
-            cmd[2:2] = ["--model", model]
-        if effort:
-            cmd[2:2] = ["-c", f'model_reasoning_effort="{effort}"']
-        super().__init__(cmd, "codex", model, timeout, effort, tools)
+            cmd += ["-c", 'web_search="disabled"', "--sandbox", "read-only",
+                    "--disable", "shell_tool", "--disable", "unified_exec", "--disable", "code_mode_host"]
+        if self.model:
+            cmd += ["--model", self.model]
+        if self.effort:
+            cmd += ["-c", f'model_reasoning_effort="{self.effort}"']
+        return [*cmd, "-"]
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_codex_events(stdout, started) if self.tools else ([], stdout)
 
 
 def claude_settings() -> str:
-    """Sandbox for Claude's Bash tool plus WebFetch refusal for review-hosting domains."""
-    return json.dumps({"sandbox": {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False},
-                       "permissions": {"deny": [f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS]}})
+    """Bash sandbox: no reads under the home directory, no network, no credential variables, refuse
+    to start without the sandbox. WebFetch is refused for review-hosting domains."""
+    return json.dumps({
+        "sandbox": {"enabled": True, "failIfUnavailable": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
+                    "filesystem": {"denyRead": ["~/"]},
+                    "network": {"strictAllowlist": True, "allowedDomains": []},
+                    "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")]}},
+        "permissions": {"deny": [f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS]}})
 
 
 class ClaudeBackend(SubprocessBackend):
-    """Claude Code. With tools, calls run in restricted mode (no user settings, hooks or MCP
-    servers) with WebSearch, WebFetch and a sandboxed Bash: writes only in the per-call temporary
-    directory, no network from the shell, and no unsandboxed fallback. tools=False is for judges
-    and normalizers that must read only the supplied text."""
+    """Claude Code in restricted safe mode (no user settings, hooks, instructions, MCP servers or saved
+    session). With tools, calls get WebSearch, WebFetch and a sandboxed Bash (claude_settings) whose
+    temporary files stay in the per-call directory. tools=False is for judges and normalizers that
+    must read only the supplied text."""
 
-    def __init__(self, model: str | None = None, timeout: int = 1800, effort: str | None = None, tools: bool = True):
-        if tools:
-            cmd = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--restricted",
-                   "--tools", "Bash,WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch",
-                   "--settings", claude_settings(), "--strict-mcp-config", "--permission-prompts", "none"]
+    name, binary = "claude", "claude"
+
+    def command(self, tmp: Path) -> list[str]:
+        cmd = ["claude", "-p", "--restricted", "--safe-mode", "--no-session-persistence", "--strict-mcp-config", "--permission-prompts", "none"]
+        if self.tools:
+            cmd += ["--output-format", "stream-json", "--verbose", "--tools", "Bash,WebSearch,WebFetch",
+                    "--allowedTools", "WebSearch,WebFetch", "--settings", claude_settings()]
         else:
-            cmd = ["claude", "-p", "--output-format", "text", "--tools", "", "--strict-mcp-config", "--permission-prompts", "none"]
-        if model:
-            cmd.extend(["--model", model])
-        if effort:
-            cmd.extend(["--effort", effort])
-        super().__init__(cmd, "claude", model, timeout, effort, tools)
+            cmd += ["--output-format", "text", "--tools", ""]
+        if self.model:
+            cmd += ["--model", self.model]
+        if self.effort:
+            cmd += ["--effort", self.effort]
+        return cmd
+
+    def environment(self, tmp: Path) -> dict[str, str]:
+        return {**super().environment(tmp), "CLAUDE_CODE_TMPDIR": str(tmp)}
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_claude_events(stdout, started) if self.tools else ([], stdout)

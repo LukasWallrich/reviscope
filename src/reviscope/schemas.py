@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Severity(str, Enum):
@@ -24,12 +24,34 @@ class Evidence(BaseModel):
 
 
 class ExternalEvidence(BaseModel):
-    """A passage from a source outside the supplied documents, found with a tool."""
+    """A passage from a source outside the supplied documents, found with a tool.
+
+    `check` is set by the pipeline after verification: confirmed only when the verifier said so
+    and its own recorded tool calls touched this URL or DOI."""
 
     url: str | None = None
     doi: str | None = None
     quote: str = Field(min_length=1)
     shows: str = Field(min_length=1)
+    check: Literal["confirmed", "refuted", "unchecked"] = "unchecked"
+
+    @model_validator(mode="after")
+    def _needs_locator(self) -> "ExternalEvidence":
+        if not (self.url or self.doi):
+            raise ValueError("external evidence needs a url or doi")
+        return self
+
+    @property
+    def locator(self) -> str:
+        return (self.url or self.doi or "").strip()
+
+
+class ExternalCheck(BaseModel):
+    """The verifier's verdict on one cited external source, identified by its URL or DOI."""
+
+    locator: str = Field(min_length=1)
+    verdict: Literal["confirmed", "refuted", "not_found"]
+    rationale: str
 
 
 class ToolCall(BaseModel):
@@ -42,6 +64,7 @@ class ToolCall(BaseModel):
     url: str | None = None
     command: str | None = None
     output: str = ""
+    result_urls: list[str] = Field(default_factory=list)
     error: bool = False
     timestamp: datetime
 
@@ -115,12 +138,13 @@ class MetacheckModule(BaseModel):
     n_rows: int = 0
     error: str | None = None
     summary_text: str | None = None
+    warnings: list[str] = Field(default_factory=list)
 
 
 class MetacheckRecord(BaseModel):
     """Provenance of the metacheck screening stage. Module lights are metacheck's own output."""
 
-    status: Literal["completed", "skipped", "not_checked", "failed"]
+    status: Literal["completed", "partial", "skipped", "not_checked", "failed"]
     reason: str | None = None
     output_dir: str | None = None
     text_conversion: str | None = None
