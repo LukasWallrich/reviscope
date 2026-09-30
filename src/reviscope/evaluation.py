@@ -125,7 +125,8 @@ def build_pairwise_cases(
 def strip_review_metadata(text: str) -> str:
     """Remove known pipeline headers that would reveal a candidate's identity."""
     if re.match(r"^# Peer review \((?:COMPLETE|PARTIAL) REVIEW\)", text, re.I):
-        findings = re.search(r"(?ms)^## Findings\s*$\n(.*?)(?=^## Coverage and audit\s*$|\Z)", text)
+        # Blinded comparison reads published findings only, matching the JSON path in read_review.
+        findings = re.search(r"(?ms)^## Findings\s*$\n(.*?)(?=^## (?:Concerns the verifier could not confirm|Coverage and audit)\s*$|\Z)", text)
         if findings:
             text = findings.group(1)
     lines = text.splitlines()

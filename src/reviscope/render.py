@@ -4,7 +4,28 @@ import html
 from pathlib import Path
 
 from .metacheck import describe
-from .schemas import ReviewRun
+from .schemas import Finding, ReviewRun
+
+UNCONFIRMED_HEADING = "## Concerns the verifier could not confirm"
+
+
+def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
+    """Findings the verifier itself judged unresolved on the evidence, with an anchored manuscript quotation.
+
+    Findings left unresolved by quote anchoring or external-source checks are not included."""
+    manuscripts = {source.id for source in run.sources if source.kind == "manuscript"}
+    return [f for f in run.findings if f.status == "unresolved" and f.verifier_status == "unresolved"
+            and any(ev.source_id in manuscripts and ev.location for ev in f.evidence)]
+
+
+def _evidence_lines(finding: Finding) -> list[str]:
+    lines = []
+    for ev in finding.evidence:
+        where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
+        lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
+    for ext in finding.external_evidence:
+        lines.append(f"> External source ({ext.check}): “{ext.quote}” — {ext.locator}; shows: {ext.shows}")
+    return lines
 
 
 def to_markdown(run: ReviewRun) -> str:
@@ -26,12 +47,16 @@ def to_markdown(run: ReviewRun) -> str:
             lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])
         else:
             lines.extend([f"**Suggested response:** {finding.remedy}", ""])
-        for ev in finding.evidence:
-            where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
-            lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
-        for ext in finding.external_evidence:
-            lines.append(f"> External source ({ext.check}): “{ext.quote}” — {ext.locator}; shows: {ext.shows}")
-        lines.append("")
+        lines.extend([*_evidence_lines(finding), ""])
+    unconfirmed = unconfirmed_concerns(run)
+    if unconfirmed:
+        lines.extend([UNCONFIRMED_HEADING, "",
+                      "The verifier could neither establish nor rule out these concerns from the supplied material. "
+                      "They are not established findings. Each lists the verifier's reason.", ""])
+        for finding in unconfirmed:
+            lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "",
+                          f"**Verifier's reason:** {finding.verifier_rationale or 'No reason recorded.'}", "",
+                          finding.rationale, "", *_evidence_lines(finding), ""])
     lines.extend(["## Coverage and audit", ""])
     lines.extend(_metacheck(run))
     lines.extend(f"- {item}" for item in run.coverage)
@@ -40,7 +65,7 @@ def to_markdown(run: ReviewRun) -> str:
         detail = f": {stage.error}" if stage.error else ""
         lines.append(f"- `{stage.name}` — {stage.status}{detail}")
     lines.extend(_tool_use(run))
-    set_aside = [f for f in run.findings if f not in kept]
+    set_aside = [f for f in run.findings if f not in kept and f not in unconfirmed]
     if set_aside:
         lines.extend(["", "### Set-aside findings", ""])
         for finding in set_aside:

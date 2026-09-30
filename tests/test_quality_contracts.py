@@ -190,3 +190,33 @@ def test_reconciliation_cannot_erase_preliminary_nonnull_summary(tmp_path):
     run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     assert run.partial
     assert next(item for item in run.stages if item.name == "editorial").status == "failed"
+
+
+def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
+    from reviscope.evaluation import strip_review_metadata
+
+    generator = QualityBackend(findings=[candidate("confirmed", "minor"), candidate("open", "major", "Evidence B."),
+                                         candidate("false"), candidate("ghost", quote="Not in the paper at all.")],
+                               editorial=keep_all)
+    reasons = {"open": "The manuscript does not report the exclusion rule, so the concern cannot be settled."}
+    def verify(rows):
+        verdicts = {"confirmed": "supported", "open": "unresolved", "false": "contradicted", "ghost": "unresolved"}
+        out = []
+        for row in rows:
+            name = row["finding_id"].rsplit(":", 1)[-1]
+            out.append({**decision(row, verdicts[name]), "rationale": reasons.get(name, "checked")})
+        return out
+    run = ReviewPipeline(generator, one_module(), QualityBackend(model="verifier", verification=verify)).run(
+        paper(tmp_path), output_dir=tmp_path / "out")
+    by_name = {item.id.rsplit(":", 1)[-1]: item for item in run.findings}
+    assert by_name["open"].status == "unresolved" and by_name["open"].editorial_disposition == "needs_review"
+    markdown = (tmp_path / "out" / "review.md").read_text()
+    findings, rest = markdown.split("## Concerns the verifier could not confirm", 1)
+    section, audit = rest.split("## Coverage and audit", 1)
+    assert "### Minor: Claim confirmed" in findings and "Claim open" not in findings
+    assert "### Major: Claim open" in section and reasons["open"] in section and "“Evidence B.”" in section
+    assert "Claim false" not in section and "Claim ghost" not in section
+    assert "`" + by_name["false"].id + "`" in audit and "`" + by_name["ghost"].id + "`" in audit
+    assert "`" + by_name["open"].id + "`" not in audit
+    blinded = strip_review_metadata(markdown)
+    assert "Claim confirmed" in blinded and "Claim open" not in blinded
