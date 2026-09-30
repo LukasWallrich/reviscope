@@ -184,7 +184,7 @@ def main() -> int:
     parser.add_argument("--papers", type=int, nargs="+", choices=range(1, 11), default=list(range(1, 11)))
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--mode", choices=["pipeline", "plain"], default="pipeline")
-    parser.add_argument("--profile", default="social_psychology_v2")
+    parser.add_argument("--profile", default="social_psychology")
     parser.add_argument("--model", choices=sorted(MODELS), default="gpt-6-luna", help="Reviewer model; sets the backend")
     parser.add_argument("--backend", choices=["fixture"], help="Pipeline with the deterministic demo backend; no model calls, no judge")
     parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")

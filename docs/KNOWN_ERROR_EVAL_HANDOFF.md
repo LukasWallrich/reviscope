@@ -27,9 +27,9 @@ record and form the `external` group.
 
 | Label | Mode | Reviewer |
 |---|---|---|
-| `pipeline_gpt-6-luna_high_social_psychology_v2` | `reviscope review` | codex `gpt-6-luna`, effort `high` |
+| `pipeline_gpt-6-luna_high_social_psychology` | `reviscope review` | codex `gpt-6-luna`, effort `high` |
 | `plain_gpt-6-luna_high` | one call with the benchmark's `REVIEW_PROMPT` | codex `gpt-6-luna`, effort `high` |
-| `pipeline_claude-opus-5-5_high_social_psychology_v2` (optional) | `reviscope review` | claude `claude-opus-5-5`, effort `high` |
+| `pipeline_claude-opus-5-5_high_social_psychology` (optional) | `reviscope review` | claude `claude-opus-5-5`, effort `high` |
 
 The allowed models are `gpt-6-luna`, `gpt-6.1-sol` and `claude-opus-5-5`. The
 per-call timeout is 3600 s.
@@ -106,7 +106,7 @@ ps -eo pid,ppid,command | grep -E "codex exec|claude -p" | grep -v grep
 The driver audits each review. To reread the verdicts and reasons for papers 5 and 9:
 
 ```bash
-.venv/bin/python eval/audit_tool_use.py --planted-errors runs/known-errors-all/reviews/pipeline_gpt-6-luna_high_social_psychology_v2/paper-05 runs/known-errors-all/reviews/pipeline_gpt-6-luna_high_social_psychology_v2/paper-09 runs/known-errors-all/reviews/plain_gpt-6-luna_high/paper-05 runs/known-errors-all/reviews/plain_gpt-6-luna_high/paper-09
+.venv/bin/python eval/audit_tool_use.py --planted-errors runs/known-errors-all/reviews/pipeline_gpt-6-luna_high_social_psychology/paper-05 runs/known-errors-all/reviews/pipeline_gpt-6-luna_high_social_psychology/paper-09 runs/known-errors-all/reviews/plain_gpt-6-luna_high/paper-05 runs/known-errors-all/reviews/plain_gpt-6-luna_high/paper-09
 ```
 
 Score every configuration:
