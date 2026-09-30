@@ -22,7 +22,7 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("manuscript")
     review.add_argument("--supplement", action="append", default=[])
     review.add_argument("--preregistration", action="append", default=[])
-    review.add_argument("--profile", default="social_psychology_v2")
+    review.add_argument("--profile", default="social_psychology", help="bundled profile id or profile directory (default: social_psychology)")
     review.add_argument("--backend", choices=["codex", "claude", "fixture"], default="codex")
     review.add_argument("--model")
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")

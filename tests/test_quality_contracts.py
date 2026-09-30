@@ -109,9 +109,9 @@ def test_editorial_exception_never_publishes_uncapped_unfiltered_findings(tmp_pa
     assert "### Major:" not in (tmp_path / "out" / "review.md").read_text()
 
 
-def test_effective_v2_severity_guidance_reaches_generation_and_editor(tmp_path):
+def test_profile_severity_guidance_reaches_generation(tmp_path):
     backend = QualityBackend(findings=[], editorial=[])
-    ReviewPipeline(backend, load_profile("social_psychology_v2"), backend).run(
+    ReviewPipeline(backend, load_profile("social_psychology"), backend).run(
         paper(tmp_path), output_dir=tmp_path / "out")
     generation = "\n".join(text for kind, text in backend.instructions if kind == "DiscoveryResponse")
     assert "invalidates a central result" in generation
