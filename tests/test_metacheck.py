@@ -144,3 +144,15 @@ def test_no_metacheck_flag_skips_stage_and_says_so(tmp_path):
     assert run.metacheck.status == "skipped" and "metacheck: skipped by flag" in run.coverage
     assert "metacheck: skipped by flag" in (tmp_path / "run" / "review.md").read_text()
     assert "METACHECK" not in backend.evidence["statistical_inference"]
+
+
+def test_fingerprint_depends_on_module_content_not_run_location(tmp_path):
+    from reviscope.schemas import MetacheckRecord
+
+    for name in ("a", "b"):
+        (tmp_path / name / "modules").mkdir(parents=True)
+        (tmp_path / name / "modules" / "stat_check.json").write_text('{"rows": 1}')
+    first, moved = (MetacheckRecord(status="completed", output_dir=str(tmp_path / name)) for name in ("a", "b"))
+    assert metacheck.fingerprint(first) == metacheck.fingerprint(moved)
+    (tmp_path / "b" / "modules" / "stat_check.json").write_text('{"rows": 2}')
+    assert metacheck.fingerprint(first) != metacheck.fingerprint(moved)

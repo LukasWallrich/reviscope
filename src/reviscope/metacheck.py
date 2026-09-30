@@ -220,7 +220,7 @@ def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
 
 def fingerprint(record: MetacheckRecord) -> str:
     """Hash of the screening record and every module output; part of each review stage's cache key."""
-    digest = hashlib.sha256(record.model_dump_json().encode())
+    digest = hashlib.sha256(record.model_dump_json(exclude={"output_dir"}).encode())
     if record.output_dir:
         for path in sorted(Path(record.output_dir).glob("modules/*.json")):
             digest.update(path.read_bytes())
