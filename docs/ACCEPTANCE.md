@@ -11,8 +11,9 @@ This is an engineering acceptance checklist, not scientific validation. Final ob
 - Statistical consistency checks consider rounding and state their assumptions/coverage. Unsupported results do not count as passed.
 - Unresolved criticisms, model-supported criticisms and recomputed numerical discrepancies remain distinguishable.
 - Editorial decisions cannot upgrade factual support or invent findings; every rejection/merge has an audit record.
-- Model subprocesses have no unrestricted tool capabilities; requests are bounded by timeouts and schema validation.
-- V3 permits host-mediated scalar calculation requests through an allowlisted interpreter; manuscript text cannot enable shell, file, network or arbitrary-code access. Numerical results remain conditional on the supplied assumptions and undergo review.
+- Review calls have web search, web fetching and a sandboxed shell. Shell writes are confined to the per-call temporary directory and the shell has no network access; manuscript text cannot widen these limits. Judge, ranking and normalization calls run without tools. Requests are bounded by timeouts and schema validation.
+- Every tool call is recorded per stage as provenance and survives cache reuse. `eval/audit_tool_use.py` flags calls that could expose the human reviews of a benchmark paper.
+- Findings may cite external evidence, but each finding needs an anchored manuscript quotation; only external evidence the verifier confirms reaches the report.
 - Reports visibly distinguish demo, partial and real complete runs, and escape manuscript/model content in HTML.
 - Comparison fixtures verify order reversal, blinding, ties, per-paper aggregation and failure handling.
 - Audit samples separate probability sampling from targeted cases. No precision statistic treats an unresolved model decision as truth.

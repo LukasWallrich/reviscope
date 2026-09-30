@@ -7,7 +7,7 @@ An independent, modular manuscript-review alpha for quantitative social science,
 The default `social_psychology_v2` profile covers quantitative social psychology; the original profiles are retained for development comparisons. Reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
 
 The experimental `social_psychology_v3` profile adds coverage-first discovery,
-genre-aware interpretation, one blind-spot audit and a bounded numerical tool.
+genre-aware interpretation and one blind-spot audit.
 Use `--profile social_psychology_v3` to try it; the baseline default remains v2
 pending evaluation. See [the v3 contract](docs/DISCOVERY_V3.md).
 
@@ -19,7 +19,7 @@ Requires Python 3.11+, and an authenticated Codex CLI or Claude CLI for model-ba
 uv sync --extra dev
 uv run reviscope profiles
 uv run reviscope review paper.pdf \
-  --backend codex --model gpt-5.6-luna --effort max \
+  --backend codex --model gpt-6-luna --effort max \
   --supplement appendix.pdf --preregistration registration.md \
   --timeout 1800 --out runs/paper
 ```
@@ -27,6 +27,14 @@ uv run reviscope review paper.pdf \
 Luna at max reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--timeout` is per model call; long papers and max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
 
 Use `--verifier-backend claude --verifier-model fable` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification is a separate call to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
+
+Review, verification and editorial calls run with tools: web search and fetching to check cited sources, related literature and novelty claims, and a sandboxed shell to recompute statistics with code. Shell writes are confined to a temporary directory per call, and the shell has no network access. Findings can cite external evidence (URL or DOI, quotation, and what it shows), but every finding must also anchor in an exact manuscript quotation, and the verifier re-opens external sources before a finding is published. Each stage records its tool calls in `review.json`; the report ends with a Tool use summary. Models are instructed not to consult reviews or commentary of the manuscript itself. Before using a run as benchmark evidence, audit it:
+
+```bash
+.venv/bin/python eval/audit_tool_use.py runs/paper
+```
+
+The audit identifies the benchmark paper by source hash and flags searches or fetches that could expose its human reviews. Ranking, comparison and normalization judges run without tools.
 
 A deterministic installation demonstration needs no model or credentials:
 
@@ -120,7 +128,7 @@ uv run reviscope rank-reviews \
 uv run reviscope rank-reviews \
   --manifest eval/corpus/review-pool.json \
   --output runs/eval/ranks-sol.json \
-  --backend codex --model gpt-5.6-sol --effort high \
+  --backend codex --model gpt-6-sol --effort high \
   --presentations 3 --seed 20260907 --timeout 900
 
 uv run reviscope aggregate-review-ranks \

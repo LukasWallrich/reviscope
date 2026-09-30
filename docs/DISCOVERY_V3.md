@@ -29,58 +29,22 @@ ledger before verification. It searches for substantively new concerns and may
 return none. It is a gap audit informed by prior work, not an independent blinded
 review. All new findings undergo the same verification and editorial gates.
 
-## Directed numerical tool
+## Tool use
 
-The original no-tools guard separated manuscript evidence from external actions
-and prevented retrieval of benchmark answers. Those boundaries remain. V3 adds a
-host-mediated numerical tool: a model returns up to 12 structured requests, the
-host evaluates them, and results are supplied to specialists and the verifier.
-No shell, arbitrary Python, browsing, package installation, file access or
-open-ended literature research is enabled for the reviewer.
+Specialists, the blind-spot pass, the verifier and the editorial stage run with web
+search, web fetching and a sandboxed shell (see `backend.py`). The discovery rules ask
+the model to recompute reported statistics, power and sample-size claims and sample flow
+with code, to open cited sources whose use carries an inference, and to search the
+literature before asserting or denying novelty or missing work. What an external source
+shows goes into a finding's `external_evidence` (URL or DOI, exact quotation, what it
+shows). Every finding also needs an anchored manuscript quotation. The verifier re-opens
+external sources and returns only the items it confirmed; only those reach the report.
 
-Each request contains a concrete question, a scalar expression, quoted inputs and
-explicit assumptions. Quotes must anchor in the supplied source. The interpreter
-accepts arithmetic and a small function allowlist; it never calls eval or exec.
-Expressions, AST size, exponents and numerical ranges are bounded. Functions cover
-basic arithmetic, t/F/chi-square tail probabilities, normal quantiles, and a
-specified repeated-measures interaction power/sample-size calculation. Unsupported
-models and missing inputs must be recorded as unavailable. This is deliberately
-not a general numerical research environment.
-
-Calculation plans and results are cached with source, request and implementation
-provenance. Computed values are not automatically criticisms or verified facts:
-the verifier must assess the statistical assumptions and mapping from quoted
-inputs. A valid arithmetic expression can still answer the wrong question.
-
-There is currently one request/response round before specialist discovery. A
-specialist cannot request a second computation mid-call; remaining numerical
-questions go into the coverage ledger and blind-spot audit. More flexible directed
-calculation can extend this interface without enabling unrestricted research.
-
-### Deferred agentic checks
-
-Every specialist and the blind-spot pass can return `deferred_tool_checks`:
-a manuscript-grounded question, capability, bounded proposed action, required
-inputs, expected effect on the review under alternative outcomes, priority and
-stopping rule. Zero is valid. Requests for broad research, benchmark answers or
-checks already executed by the calculator are excluded by the prompt.
-
-The host stamps the originating module and independently checks source anchors.
-The proposals are retained in review JSON and a clearly labelled audit section;
-they are not executed, counted as findings, or passed off as verified criticisms.
-They remain outside the substantive review text used for evaluation. Their
-presence alone does not mark a review partial: substantive coverage statuses
-still determine whether an actual required check was left undone.
-
-Use this log to identify recurring, bounded capabilities with available inputs.
-Model-assigned priority and predicted benefit are hypotheses. A useful capability
-trial should record whether executing the proposed check actually resolves an
-uncertainty or changes a verified finding, along with time and cost. Repeated
-requests across modules should be grouped before counting demand for a tool.
-Combine these self-reported requests with observed failures: an agent may not
-recognize the capability it actually lacks. For example, the paper-7 intake of
-specialist outputs exposed unanchored, abridged quotations without generating a
-request for source-text lookup. Deferred requests alone would miss that problem.
+Each stage records its tool calls (search queries, fetched URLs, shell commands and
+truncated outputs) in `review.json` and in a sidecar next to the cached stage artifact,
+so provenance survives cache reuse. The report ends with a Tool use summary.
+`eval/audit_tool_use.py` flags calls that could expose the human reviews of a benchmark
+paper. The backend's tool configuration is part of the cache identity.
 
 ## Additional benchmark paper
 
@@ -115,7 +79,7 @@ Paper 7 has now been run and scored as a partial development diagnostic:
 
 ```bash
 uv run reviscope review runs/known-errors/paper-07/manuscript.review-input.txt \
-  --profile quantitative_social_science_v3 --model gpt-5.6-luna --effort max \
+  --profile quantitative_social_science_v3 --model gpt-6-luna --effort max \
   --out runs/luna-known-error-07-v3
 ```
 
@@ -125,7 +89,7 @@ use the identical clean input, model and effort with `quantitative_social_scienc
 and a separate output directory. Do not interpret a different paper's score as
 an estimate of improvement from v2 to v3.
 
-Tests cover rejection of arbitrary-code expressions and unanchored inputs,
-numerical reference values, more than five specialist findings, blind-spot access
-to prior findings and calculations, verification access to calculator results,
-separate publication capping, honest incomplete-coverage marking without candidate loss, and cache reuse.
+Tests cover more than five specialist findings, blind-spot access to prior findings,
+external evidence reaching the report after verification, tool-call provenance across
+cache reuse, separate publication capping, honest incomplete-coverage marking without
+candidate loss, and cache reuse.
