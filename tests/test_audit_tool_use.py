@@ -17,8 +17,8 @@ def call(sequence, kind, **fields):
     return {"stage": "review-contribution", "sequence": sequence, "kind": kind, "output": "", **fields}
 
 
-def audit(path):
-    args = type("Args", (), {"paper": None, "title": None, "block": [], "planted_errors": False})()
+def audit(path, title=None):
+    args = type("Args", (), {"paper": None, "title": title, "block": [], "planted_errors": bool(title)})()
     return AUDIT["audit_run"](path, PAPERS, args)
 
 
@@ -45,6 +45,15 @@ def test_audit_passes_ordinary_literature_checks(tmp_path):
 def test_audit_flags_title_search_alone_for_planted_error_papers(tmp_path):
     result = audit(run_file(tmp_path, [call(0, "search", query="illusions in short-term memory mirrored letter")], sha="bbb"))
     assert result["paper"] == "known-error-7" and "planted-error" in result["reasons"][0]
+
+
+def test_audit_warns_but_does_not_flag_a_cited_paper_search_sharing_title_words(tmp_path):
+    query = "Lewczuk 2020 moral disapproval addiction general behaviors interaction frequency moral incongruence"
+    title = "Moral Incongruence and Addiction: A Registered Report"
+    result = audit(run_file(tmp_path, [call(0, "search", query=query)]), title=title)
+    assert result["verdict"] == "clean" and "title words" in result["warnings"][0]
+    flagged = audit(run_file(tmp_path, [call(0, "search", query="moral incongruence and addiction registered report")]), title=title)
+    assert flagged["verdict"] == "flagged"
 
 
 def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(tmp_path):

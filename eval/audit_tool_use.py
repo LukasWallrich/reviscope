@@ -9,7 +9,9 @@ Reads each run's review.json (every stage records its tool calls) and flags:
   (REVIEW_DOMAINS, REVIEW_PATHS), including the planted-error benchmark repository;
 - search results that list a review/commentary site (the model saw its snippet);
 - search queries naming the paper together with review terms. For planted-error papers a
-  title search alone is flagged, because the published original is the answer key.
+  query containing the title, or a title part of at least three distinctive words, in order is flagged,
+  because the published original is the answer key. A query that only shares most title
+  words, as a search for a cited paper on the same topic does, is listed as a warning.
 
 The paper is identified by matching the run's source sha256 against corpus manifests
 (`manuscript_sha256`, or `review_input_sha256` for planted-error papers). The open-review,
@@ -55,6 +57,18 @@ def normal_url(url: str) -> str:
     return url.rstrip("/")
 
 
+def phrase(text: str) -> str:
+    """Distinctive words (as in title_words) in order, joined by spaces, padded for whole-word matching."""
+    words = [word for word in re.findall(r"[a-z0-9]+", text.casefold()) if len(word) > 3 and word not in STOPWORDS]
+    return " " + " ".join(words) + " "
+
+
+def title_phrases(title: str) -> list[str]:
+    """The full title and each colon- or question-mark-separated part with at least three distinctive words."""
+    parts = [title, *re.split(r"[:?]", title)]
+    return list(dict.fromkeys(p for p in map(phrase, parts) if len(p.split()) >= 3))
+
+
 def title_words(text: str) -> set[str]:
     return {word for word in re.findall(r"[a-z0-9]+", text.casefold()) if len(word) > 3 and word not in STOPWORDS}
 
@@ -88,11 +102,13 @@ def identify(run: dict[str, Any], papers: list[dict[str, Any]], paper_id: str | 
     return next((p for p in papers if p["sha256"] & hashes), None)
 
 
-def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> list[str]:
+def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tuple[list[str], list[str]]:
+    """Reasons to flag the run, and warnings to show without flagging it."""
     blocks = [normal_url(b) for b in (paper or {}).get("blocks", [])]
     dois = [b for b in blocks if b.startswith("10.")] + [b.split("doi.org/", 1)[1] for b in blocks if "doi.org/" in b]
     titles = [title_words(title) for title in (paper or {}).get("titles", [])]
-    reasons = []
+    phrases = [p for title in (paper or {}).get("titles", []) for p in title_phrases(title)]
+    reasons, warnings = [], []
 
     def check_url(url: str, how: str, where: str, paths: bool = True) -> None:
         low = normal_url(url)
@@ -123,11 +139,14 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> li
             continue
         words = title_words(query)
         overlap = max((len(title & words) / len(title) for title in titles if title), default=0)
-        if overlap >= 0.6 and paper and paper["planted_errors"]:
-            reasons.append(f"{where}: search for the planted-error paper's title (original is the answer key): {query!r}")
-        elif overlap >= 0.6 and REVIEW_TERMS.search(query):
+        names_title = any(p in phrase(query) for p in phrases)
+        if overlap >= 0.6 and REVIEW_TERMS.search(query):
             reasons.append(f"{where}: search for reviews of this paper: {query!r}")
-    return reasons
+        elif names_title and paper and paper["planted_errors"]:
+            reasons.append(f"{where}: search for the planted-error paper's title (original is the answer key): {query!r}")
+        elif overlap >= 0.6:
+            warnings.append(f"{where}: query shares most title words but not the title phrase: {query!r}")
+    return reasons, warnings
 
 
 def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
@@ -139,11 +158,12 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
                  "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
     stages = run.get("stages", [])
     calls = [call for stage in stages for call in stage.get("tool_calls", [])]
-    reasons = audit_calls(calls, paper)
+    reasons, warnings = audit_calls(calls, paper)
     gaps = provenance_gaps(stages)
     note = f"paper {paper['id']}" if paper else "paper not identified; only generic review-site checks applied"
     return {"run": str(review), "paper": paper and paper["id"], "note": note, "tool_calls": len(calls),
-            "verdict": "flagged" if reasons else "incomplete" if gaps else "clean", "reasons": [*reasons, *gaps]}
+            "verdict": "flagged" if reasons else "incomplete" if gaps else "clean", "reasons": [*reasons, *gaps],
+            "warnings": warnings}
 
 
 MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial)$")
@@ -184,6 +204,8 @@ def main() -> int:
         print(f"{result['verdict'].upper():8} {result['run']} ({result['note']}; {result['tool_calls']} tool calls)")
         for reason in result["reasons"]:
             print(f"    {reason}")
+        for warning in result["warnings"]:
+            print(f"    warning: {warning}")
     if args.json:
         args.json.write_text(json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return 1 if any(r["verdict"] != "clean" for r in results) else 0
