@@ -1,0 +1,725 @@
+[
+  {
+    "id": "09-01",
+    "paper": 9,
+    "error_index": 1,
+    "annotation": {
+      "paper": "9",
+      "category": "statistical_errors",
+      "subcategory": "sesoi_inflated",
+      "difficulty": "2",
+      "difficulty_rationale": "SESOI=.27 is the largest observed effect, not smallest — must cross-reference with reported effect sizes",
+      "secondary_categories": "",
+      "original_snippet": "with an equivalence region based on the smallest effect size of interest (SESOI) of δ= .11.",
+      "modified_snippet": "with an equivalence region based on the smallest effect size of interest (SESOI) of δ= .27.",
+      "description": "Changed SESOI from .11 to .27 (the LARGEST observed effect, not smallest) — makes equivalence tests trivially easy; biases toward confirming moral incongruence is unique to pornography"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Resolve the incompatible equivalence bounds: the analytic statement uses .27 while the immediately following rationale explicitly selects .11 and calls it especially small. A wider bound allows more effects to meet equivalence, but the manuscript does not establish that tests become trivially easy.",
+    "annotation_alignment": "Valid narrower internal inconsistency; consequence exaggerated.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 78,
+        "quote": "SESOI) of δ= .27."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 79,
+        "quote": "setting our equivalence region to δ= |.11|"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-02",
+    "paper": 9,
+    "error_index": 2,
+    "annotation": {
+      "paper": "9",
+      "category": "methodological_design",
+      "subcategory": "standardization_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Items on different scales averaged without standardizing — must notice 0-5 vs 0/3/6 scales",
+      "secondary_categories": "",
+      "original_snippet": "Responses to each of the above five items will be standardized, and an average will be taken for each substance of interest",
+      "modified_snippet": "Responses to each of the above five items will be averaged for each substance of interest",
+      "description": "Removed standardization before averaging — items use different scales (0-5 vs 0/3/6); raw averaging lets larger-scale items dominate composite, creating measurement artifact"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Specify whether ASSIST items are standardized before averaging: the measures paragraph says average raw responses, but the analytic plan still explicitly transforms ASSIST items into standardized variables. Different ranges require a weighting rationale, not an automatic requirement to standardize.",
+    "annotation_alignment": "Valid reporting contradiction; does not establish unstandardized implementation or dominant-item artifact.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 55,
+        "quote": "Responses to each of the above five items will be averaged"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 76,
+        "quote": "SPSS will be used to transform the above-described ASSIST items and measures of religiousness into standardized variables."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-03",
+    "paper": 9,
+    "error_index": 3,
+    "annotation": {
+      "paper": "9",
+      "category": "construct_validity",
+      "subcategory": "construct_definition_changed",
+      "difficulty": "2",
+      "difficulty_rationale": "'Severity of consequences' conflates moral incongruence with genuine addiction — must understand the construct definition",
+      "secondary_categories": "",
+      "original_snippet": "Central to the proposed study is the measurement of moral incongruence as the interaction of moral disapproval of a behavior with frequency of engaging in the action.",
+      "modified_snippet": "Central to the proposed study is the measurement of moral incongruence as the interaction of moral disapproval of a behavior with severity of consequences from the action.",
+      "description": "Changed 'frequency of engaging' to 'severity of consequences' — transforms moral incongruence (behavior-value mismatch) into moralized distress about real problems, conflating it with the alternative explanation"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Reconcile the isolated severity-of-consequences definition with the frequency-by-disapproval construct used in the abstract, hypotheses, and analytic model. The changed sentence misstates the construct, but the operational analysis remains frequency-based.",
+    "annotation_alignment": "Valid contradiction; annotation overstates actual transformed measurement.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 31,
+        "quote": "interaction of moral disapproval of an action with severity of consequences from the action."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 34,
+        "quote": "interaction of moral disapproval of pornography use and pornography viewing frequency"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-04",
+    "paper": 9,
+    "error_index": 4,
+    "annotation": {
+      "paper": "9",
+      "category": "causal_inference",
+      "subcategory": "causal_limitation_weakened",
+      "difficulty": "2",
+      "difficulty_rationale": "'Limits temporal ordering' is weaker than 'precludes causal inference' — must know the distinction matters",
+      "secondary_categories": "",
+      "original_snippet": "This sample is cross-sectional, precluding causal inference.",
+      "modified_snippet": "This sample is cross-sectional, which limits the temporal ordering of variables.",
+      "description": "Changed 'precluding causal inference' to 'limits temporal ordering' — leaves room for causal interpretation when cross-sectional data fundamentally cannot establish causation"
+    },
+    "verdict": "weak_or_invalid",
+    "confidence": "medium",
+    "justified_critique": "The revised sentence still identifies cross-sectional temporal-ordering limitations. It is less explicit about causality, but deleting the absolute phrase does not independently create a causal result or invalidate a stated associational analysis. A reviewer may request sharper language tied to specific overclaims.",
+    "annotation_alignment": "Weak as an independently planted defect; no automatic requirement for this exact disclaimer.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 85,
+        "quote": "This sample is cross-sectional, which limits the temporal ordering of variables."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 78,
+        "quote": "moderation analyses using the lm function"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-05",
+    "paper": 9,
+    "error_index": 5,
+    "annotation": {
+      "paper": "9",
+      "category": "internal_consistency",
+      "subcategory": "analysis_count_inconsistent",
+      "difficulty": "1",
+      "difficulty_rationale": "Says 8 analyses but earlier lists 10 corresponding to 8 behaviors + 2 parallel measures — countable",
+      "secondary_categories": "",
+      "original_snippet": "In total, we will conduct 10 moderation analyses for moral disapproval and frequency, corresponding to the 8 target behaviors/variables of interest, with pornography and gambling repeated for both the NIDA-ASSIST measure and the validate measures of problematic use (the Brief Pornography Screen and ...",
+      "modified_snippet": "In total, we will conduct 8 moderation analyses for moral disapproval and frequency, corresponding to the 8 target behaviors/variables of interest, with pornography and gambling assessed using the validate measures of problematic use (the Brief Pornography Screen and the Problem Gambling Severity In...",
+      "description": "Changed from 10 to 8 analyses, removing parallel NIDA-ASSIST analyses for pornography/gambling — eliminates the measurement-equivalence check essential for fair cross-behavior comparison"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Reconcile the eight-analysis statement excluding parallel ASSIST tests for pornography/gambling with the explicit plan to collect them for fully parallel analysis, Table1, and the exploratory comparison still using pornography ASSIST. Cross-behavior comparability needs a coherent analysis plan.",
+    "annotation_alignment": "Valid plan inconsistency, not proof all parallel analyses were removed.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 53,
+        "quote": "These will be included to allow fully parallel analysis across behaviors and substances"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 83,
+        "quote": "we will conduct 8 moderation analyses"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 97,
+        "quote": "Brief Pornography Screen Sum Score and modified NIDA-ASSIST items"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-06",
+    "paper": 9,
+    "error_index": 6,
+    "annotation": {
+      "paper": "9",
+      "category": "reporting_completeness",
+      "subcategory": "sensitivity_analysis_removed",
+      "difficulty": "3",
+      "difficulty_rationale": "DWLS sensitivity analysis removed — must know OLS may fail for ordinal addiction measures",
+      "secondary_categories": "",
+      "original_snippet": "Similar to prior works (Grubbs, Lee, et al., 2020), should basic assumptions of regression be violated substantially, we will construct latent variable models using the lavaan package (Rosseel, 2012) for R Statistical Software, using diagonally weighted least squares estimation, as such an estimator...",
+      "modified_snippet": "",
+      "description": "Deleted entire planned DWLS latent variable sensitivity analysis — removes backup for when OLS assumptions fail (likely for ordinal/skewed addiction measures)"
+    },
+    "verdict": "material_reporting_gap",
+    "confidence": "medium",
+    "justified_critique": "The exact DWLS latent sensitivity model has been deleted, leaving a Stage1 plan with unspecified supplemental analyses when assumptions fail. Request prespecified alternatives and decision criteria to limit analytic discretion. Do not claim that no fallback exists: robustness analyses remain promised.",
+    "annotation_alignment": "Material loss of specificity, but annotation incorrectly says backup removed entirely.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 77,
+        "quote": "in cases where assumptions are substantially violated, we will conduct supplemental analyses to test the robustness of our models, as appropriate."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-07",
+    "paper": 9,
+    "error_index": 7,
+    "annotation": {
+      "paper": "9",
+      "category": "generalizability",
+      "subcategory": "matching_criteria_reduced",
+      "difficulty": "2",
+      "difficulty_rationale": "Only age/gender matching — must know moral attitudes vary by race, income, region",
+      "secondary_categories": "",
+      "original_snippet": "the target sample size will be 2,500 American adults that match nationally representative norms for age, gender, census region, race/ethnicity, and income.",
+      "modified_snippet": "the target sample size will be 2,500 American adults that match nationally representative norms for age and gender.",
+      "description": "Removed census region, race/ethnicity, and income from quota-matching — dramatically weakens representativeness; these variables correlate with moral attitudes and substance use"
+    },
+    "verdict": "material_reporting_gap",
+    "confidence": "medium",
+    "justified_critique": "The continued nationally representative claims need qualification or support given matching is now described only for age and gender. Request other calibration/weighting details and uncertainty about representativeness. Cannot infer actual dramatic bias solely from this change.",
+    "annotation_alignment": "Defensible scope/reporting concern; magnitude and direction of bias unverified.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 45,
+        "quote": "match nationally representative norms for age and gender."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 85,
+        "quote": "nationally representative sample, pre-registered design"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-08",
+    "paper": 9,
+    "error_index": 8,
+    "annotation": {
+      "paper": "9",
+      "category": "theoretical_conceptual",
+      "subcategory": "moderator_roles_swapped",
+      "difficulty": "2",
+      "difficulty_rationale": "Moderator/predictor roles swapped — must know statistical symmetry ≠ conceptual symmetry",
+      "secondary_categories": "",
+      "original_snippet": "In this revised definition, moral disapproval moderates links between use and self-reported feelings of addiction, and it is this moderation that represents moral incongruence.",
+      "modified_snippet": "In this revised definition, use frequency moderates links between moral disapproval and self-reported feelings of addiction, and it is this moderation that represents moral incongruence.",
+      "description": "Swapped moderator and focal predictor — though statistically symmetric, conceptually different: PPMI says disapproval changes the use-addiction link, not that use changes the disapproval-addiction link"
+    },
+    "verdict": "weak_or_invalid",
+    "confidence": "high",
+    "justified_critique": "No distinct statistical error follows from exchanging the verbal roles of two continuous predictors in their product interaction. The surrounding paragraph still gives the originally intended conditional explanation. For y=b0+b1x+b2z+b3xz, both derivatives vary with the other variable. Conceptual emphasis can be clarified without treating symmetry as a wrong analysis.",
+    "annotation_alignment": "Weak/invalid as scored defect; same interaction hypothesis.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 21,
+        "quote": "use frequency moderates links between moral disapproval and self-reported feelings of addiction"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 21,
+        "quote": "moral disapproval of pornography likely amplifies the links between pornography use and self-reported feelings of compulsivity or addiction."
+      }
+    ],
+    "checks": [
+      "Algebra: dy/dx=b1+b3z and dy/dz=b2+b3x; swapping focal/moderator names does not change model fit or interaction."
+    ],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-09",
+    "paper": 9,
+    "error_index": 9,
+    "annotation": {
+      "paper": "9",
+      "category": "analytic_flexibility",
+      "subcategory": "centering_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Raw variables in moderation — must know centering affects interaction interpretability",
+      "secondary_categories": "",
+      "original_snippet": "For moderation analyses, key variables will be centered (focal predictor and moderator) during data processing in SPSS, and their product will be computed.",
+      "modified_snippet": "For moderation analyses, key variables will be entered in their raw form during data processing in SPSS, and their product will be computed.",
+      "description": "Removed centering — main effects evaluated at raw zero (outside scale range for 1-7 disapproval scale); inflates multicollinearity with interaction term"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Resolve raw-versus-centered inconsistency between preprocessing paragraphs. Centering changes lower-order coefficient reference points, but with intercept, both main effects and interaction included it does not change fitted values or the interaction coefficient/test; raw zero outside the scale affects interpretation, not mathematical validity.",
+    "annotation_alignment": "Valid reporting contradiction; asserted intrinsic multicollinearity/inference defect unsupported.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 76,
+        "quote": "focal predictors (behavioral frequency measures) and moderators (moral disapproval questions) will be centered"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 78,
+        "quote": "key variables will be entered in their raw form"
+      }
+    ],
+    "checks": [
+      "Algebra: (x-a)(z-b)=xz-bx-az+ab; centering preserves span of [1,x,z,xz]."
+    ],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "09-10",
+    "paper": 9,
+    "error_index": 10,
+    "annotation": {
+      "paper": "9",
+      "category": "attrition_missing_data",
+      "subcategory": "inclusion_restriction_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Non-users included — must understand floor effects make interaction meaningless",
+      "secondary_categories": "",
+      "original_snippet": "For each target behavior and corresponding measure of problematic use or addiction, key measures will be restricted to those who have engaged in the behavior within the past year. That is, we will only administer measures of problematic use and moral disapproval to participants who report engaging i...",
+      "modified_snippet": "For each target behavior and corresponding measure of problematic use or addiction, key measures will be administered to all participants regardless of their engagement in the behavior. That is, we will administer measures of problematic use and moral disapproval to all participants in the sample.",
+      "description": "Removed restriction to behavior-engagers — includes non-users who have zero frequency AND zero problems, creating massive floor effects that trivially inflate frequency-addiction correlations"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Resolve inconsistent eligibility/skip logic: all-participant administration conflicts with the surviving past-year-user restrictions in substance and pornography measures and the expectation of varying subset sizes. Asking nonusers questions is not by itself proof of inflated correlations or equal-zero outcomes.",
+    "annotation_alignment": "Valid contradiction; asserted floor-effect magnitude/direction not established.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 74,
+        "quote": "key measures will be administered to all participants regardless of their engagement"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 54,
+        "quote": "Only participants who endorse past-year use will complete further measures of problematic use."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-09.modified.txt",
+        "line": 60,
+        "quote": "only participants who report viewing pornography at least once in the past 12 months"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-01",
+    "paper": 10,
+    "error_index": 1,
+    "annotation": {
+      "paper": "10",
+      "category": "statistical_errors",
+      "subcategory": "random_effect_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Random suffix intercept removed — must know language-as-fixed-effect fallacy",
+      "secondary_categories": "",
+      "original_snippet": "We included two random intercepts, one for subjects and one for suffixes. This analysis was expressed in the model glmer (response ~ condition + (1|subject) + (1|suffix), data, family = \"binomial\").",
+      "modified_snippet": "We included a random intercept for subjects. This analysis was expressed in the model glmer (response ~ condition + (1|subject), data, family = \"binomial\").",
+      "description": "Removed random intercept for suffixes — 'language as fixed effect fallacy' (Clark, 1973); ignores suffix-level clustering, inflating Type I error"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "medium",
+    "justified_critique": "Repeated observations share20 suffixes, and suffix condition is defined at that level, yet the stated model now includes only subject intercepts. Request suffix/item dependence to be modeled or justified before generalizing beyond stimuli. Inflation direction and magnitude require reanalysis.",
+    "annotation_alignment": "Substantive model-specification concern; not proof of changed p-values.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 67,
+        "quote": "Twenty suffixes diagnostic for the noun or adjective category were selected"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 72,
+        "quote": "each suffix occurred twice only."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 75,
+        "quote": "glmer (response ~ condition + (1|subject), data, family = \"binomial\")"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-02",
+    "paper": 10,
+    "error_index": 2,
+    "annotation": {
+      "paper": "10",
+      "category": "methodological_design",
+      "subcategory": "counterbalancing_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Counterbalancing removed — must know item confounds are fatal without Latin square",
+      "secondary_categories": "",
+      "original_snippet": "We used two experimental lists to counterbalance the assignment of nonwords to the congruent/incongruent conditions across participants (List 1 is presented in Appendix D).  This counterbalancing procedure helps to ensure that any effects of the congruency variable are not the result of important it...",
+      "modified_snippet": "List 1 is presented in Appendix D.",
+      "description": "Removed Latin-square counterbalancing — without it, item properties are perfectly confounded with condition in within-subject design"
+    },
+    "verdict": "weak_or_invalid",
+    "confidence": "high",
+    "justified_critique": "Counterbalancing was deleted from the main method paragraph but remains explicitly described in AppendixD. The manuscript does not support the claim that item assignments were never counterbalanced or perfectly confounded. Cross-reference the appendix if clarification is wanted.",
+    "annotation_alignment": "Invalid omission claim: information survives.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 119,
+        "quote": "List 1 is presented in Appendix D."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 2492,
+        "quote": "List 2 was identical, but nonwords that were presented in congruent contexts in List 1 were presented in their corresponding incongruent contexts, and vice versa."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-03",
+    "paper": 10,
+    "error_index": 3,
+    "annotation": {
+      "paper": "10",
+      "category": "construct_validity",
+      "subcategory": "diagnosticity_formula_changed",
+      "difficulty": "1",
+      "difficulty_rationale": "Formula now computes P(suffix|category) not P(category|suffix) — denominator mismatch with definition",
+      "secondary_categories": "",
+      "original_snippet": "For a particular suffix, type diagnosticity is calculated by dividing the number of words ending in this suffix and falling into this category by the total number of words that contain the suffix.",
+      "modified_snippet": "For a particular suffix, type diagnosticity is calculated by dividing the number of words ending in this suffix and falling into this category by the total number of words falling into this category.",
+      "description": "Changed denominator from P(category|suffix) to P(suffix|category) — this IS specificity, not diagnosticity; collapses the paper's central theoretical distinction"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "Correct the diagnosticity denominator: dividing suffix/category intersection by all words in category does not implement the stated category-given-suffix conditional probability or the example TUDE=1. However the altered formula is not exactly the paper's specificity, which additionally conditions on a sound sequence.",
+    "annotation_alignment": "Valid formula error; annotation conflates changed denominator with full sound-conditioned specificity.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 46,
+        "quote": "by the total number of words falling into this category."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 46,
+        "quote": "–TUDE unambiguously signals a noun (diagnosticity is 1)."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 47,
+        "quote": "the total number of words of this lexical category with any spelling of the sound sequence."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-04",
+    "paper": 10,
+    "error_index": 4,
+    "annotation": {
+      "paper": "10",
+      "category": "causal_inference",
+      "subcategory": "confound_check_removed",
+      "difficulty": "2",
+      "difficulty_rationale": "Confound check for pre-target word count removed — must know this imbalance was acknowledged earlier",
+      "secondary_categories": "",
+      "original_snippet": "To check if these effects could be explained by a difference in the number of words pre-target (more words pre-target in incongruent contexts than in congruent ones), we added the interaction of this number with the congruency variable to the corresponding linear mixed models. The addition of extra ...",
+      "modified_snippet": "These results therefore suggest that the category information conveyed by suffix spelling is used during sentence integration processes.",
+      "description": "Deleted entire pre-target word count confound check — the paper acknowledged this confound (significant p<.05 condition difference) and explicitly ruled it out; now the confound is unaddressed"
+    },
+    "verdict": "material_reporting_gap",
+    "confidence": "high",
+    "justified_critique": "A reported pretarget-word-count difference remains without the deleted sensitivity analysis. Because go-past time includes regressions to earlier words, checking that context-length difference is a material request. Do not infer that confounding actually accounts for the effect.",
+    "annotation_alignment": "Defensible material evidential gap, with cautious consequence.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 118,
+        "quote": "number of words pre-target was slightly different across conditions (congruent: 4.75, incongruent: 5.23"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 133,
+        "quote": "including any fixations made following regressions to earlier words in the sentence."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 136,
+        "quote": "These results therefore suggest that the category information conveyed by suffix spelling is used during sentence integration processes."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-05",
+    "paper": 10,
+    "error_index": 5,
+    "annotation": {
+      "paper": "10",
+      "category": "internal_consistency",
+      "subcategory": "inclusion_exclusion_contradicted",
+      "difficulty": "1",
+      "difficulty_rationale": "'Balanced across three categories' but next sentence says fillers not analyzed — adjacent contradiction",
+      "secondary_categories": "",
+      "original_snippet": "Forty filler nonwords whose suffix spellings were diagnostic for verbs were added so that sentence contexts would be more varied.",
+      "modified_snippet": "Forty filler nonwords whose suffix spellings were diagnostic for verbs were added so that sentence contexts would be balanced across all three lexical categories.",
+      "description": "Changed 'more varied' to 'balanced across all three categories' — contradicted by next sentence (fillers not analyzed due to low diagnosticity) and actual numbers (80 experimental vs 40 filler = not balanced)"
+    },
+    "verdict": "weak_or_invalid",
+    "confidence": "high",
+    "justified_critique": "The assertion of unbalanced three-category contexts is contradicted by the actual120-row AppendixD:40N,40A,40V. Eighty experimental nonwords comprise two categories, with40 verb fillers supplying the third. Excluding fillers from analyses does not contradict balance of presented contexts.",
+    "annotation_alignment": "Invalid arithmetic/comparison in annotation.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 117,
+        "quote": "Eighty experimental nonwords with suffix spellings diagnostic for adjectives (10 suffixes) or nouns (10 suffixes)"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 117,
+        "quote": "Forty filler nonwords whose suffix spellings were diagnostic for verbs"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 2492,
+        "quote": "N – noun, A – adjective, V – verb contexts."
+      }
+    ],
+    "checks": [
+      "Counted AppendixD120 data rows lines2498–3097:40N,40A,40V; one Context Type per five-line row."
+    ],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-06",
+    "paper": 10,
+    "error_index": 6,
+    "annotation": {
+      "paper": "10",
+      "category": "reporting_completeness",
+      "subcategory": "viewing_distance_inconsistent",
+      "difficulty": "2",
+      "difficulty_rationale": "Creates internal contradiction detectable within the paper",
+      "secondary_categories": "",
+      "original_snippet": "Participants were seated at a viewing distance of 70cm",
+      "modified_snippet": "Participants were seated at a viewing distance of 140cm",
+      "description": "Changed viewing distance from 70cm to 140cm but character width still reported as 0.3° — geometry inconsistent (should be ~0.15° at 140cm)"
+    },
+    "verdict": "needs_external_verification",
+    "confidence": "high",
+    "justified_critique": "Verify viewing geometry against actual physical screen size and rendered character width. Doubling viewing distance halves angular extent if physical font width is fixed, but manuscript gives pixel resolution and14pt, not physical display dimensions/rendering scale sufficient to establish exact .15 degrees. The original70cm value is privileged benchmark information.",
+    "annotation_alignment": "Plausible typo/check; categorical geometry failure not established from modified text alone.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 120,
+        "quote": "viewing distance of 140cm"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 120,
+        "quote": "dimensions 1920 x 1080"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 121,
+        "quote": "size 14pt, horizontal character width 0.3o"
+      }
+    ],
+    "checks": [
+      "theta=2*atan(width/(2*distance)); physical width unknown. Need task display code plus physical monitor dimensions."
+    ],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-07",
+    "paper": 10,
+    "error_index": 7,
+    "annotation": {
+      "paper": "10",
+      "category": "generalizability",
+      "subcategory": "screening_criteria_removed",
+      "difficulty": "3",
+      "difficulty_rationale": "Native speaker and no-learning-difficulties screening removed — must know these are essential for morphological sensitivity",
+      "secondary_categories": "",
+      "original_snippet": "They were native English speakers with no history of reading, spelling, or learning difficulties.",
+      "modified_snippet": "",
+      "description": "Removed native speaker and no-learning-difficulties screening — non-native speakers and dyslexic participants would have different suffix-category sensitivity, adding noise and potentially attenuating effects"
+    },
+    "verdict": "material_reporting_gap",
+    "confidence": "medium",
+    "justified_critique": "Report sample language proficiency and relevant reading characteristics to interpret skilled-reader generalization. The removal leaves these unspecified; it does not establish nonnative/dyslexic recruitment or require their exclusion in all designs.",
+    "annotation_alignment": "Material population reporting gap; asserted composition/effect attenuation unverified.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 66,
+        "quote": "Participants were 46 undergraduate students at Royal Holloway, University of London."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 84,
+        "quote": "Results suggest that skilled readers extract information about lexical category from written language."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-08",
+    "paper": 10,
+    "error_index": 8,
+    "annotation": {
+      "paper": "10",
+      "category": "theoretical_conceptual",
+      "subcategory": "task_predictions_swapped",
+      "difficulty": "1",
+      "difficulty_rationale": "Diagnosticity→spelling and specificity→reading, but experiments show opposite — inverts entire logic",
+      "secondary_categories": "",
+      "original_snippet": "That is, we hypothesise that diagnosticity, a measure of spelling-to-meaning consistency, would impact on tasks that involve the mapping of print to meaning (i.e. semantic categorisation, reading), while specificity, a measure of meaning-to-spelling consistency, would impact on spelling behaviour.",
+      "modified_snippet": "That is, we hypothesise that diagnosticity, a measure of spelling-to-meaning consistency, would impact on tasks that involve the production of spelling, while specificity, a measure of meaning-to-spelling consistency, would impact on tasks involving the mapping of print to meaning (i.e. semantic cat...",
+      "description": "Swapped diagnosticity/specificity task predictions — diagnosticity should predict reading, specificity should predict spelling; reversed mapping inverts the entire experimental logic"
+    },
+    "verdict": "valid_demonstrable_error",
+    "confidence": "high",
+    "justified_critique": "The swapped prediction paragraph contradicts its own feedforward definition and the immediately following specific task predictions. Reconcile the prediction mapping; no claim is needed that every analysis was reversed.",
+    "annotation_alignment": "Valid internal theoretical contradiction.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 60,
+        "quote": "diagnosticity, a measure of spelling-to-meaning consistency, would impact on tasks that involve the production of spelling"
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 62,
+        "quote": "in tasks requiring access to grammatical information from printed spellings (lexical category judgment and sentence reading), spellings with higher diagnosticity should yield stronger behavioural effects"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-09",
+    "paper": 10,
+    "error_index": 9,
+    "annotation": {
+      "paper": "10",
+      "category": "analytic_flexibility",
+      "subcategory": "frequency_weighting_removed",
+      "difficulty": "3",
+      "difficulty_rationale": "Frequency weighting removed from entropy regression — must understand rare suffixes dominate unweighted",
+      "secondary_categories": "",
+      "original_snippet": "We then examined the slope of the regression equation lm(Hspelling ~ Hphonology, weights = suffix frequency).",
+      "modified_snippet": "We then examined the slope of the regression equation lm(Hspelling ~ Hphonology).",
+      "description": "Removed frequency weighting from entropy regression — rare suffixes with extreme values now dominate equally; finding that spelling > phonology may not hold unweighted"
+    },
+    "verdict": "needs_external_verification",
+    "confidence": "medium",
+    "justified_critique": "Weighted and unweighted regressions target different summaries. Whether suffix-frequency weighting is preferable depends on whether the intended claim concerns a typical suffix or frequency-weighted exposure. Request rationale and sensitivity analysis; loss of the conclusion cannot be established without corpus data and reanalysis.",
+    "annotation_alignment": "Analysis change confirmed; inherent error and claimed consequence unverified.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 153,
+        "quote": "lm(Hspelling ~ Hphonology)."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 153,
+        "quote": "slope of 0.9 (SE = 0.04, t = 25.32, p < 0.0001)"
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  },
+  {
+    "id": "10-10",
+    "paper": 10,
+    "error_index": 10,
+    "annotation": {
+      "paper": "10",
+      "category": "attrition_missing_data",
+      "subcategory": "fixation_cutoff_changed",
+      "difficulty": "3",
+      "difficulty_rationale": "800ms vs 1500ms fixation cutoff — must know this asymmetrically trims the condition with longer fixations",
+      "secondary_categories": "",
+      "original_snippet": "as were any remaining fixations of less than 80 ms or more than 1500 ms duration.",
+      "modified_snippet": "as were any remaining fixations of less than 80 ms or more than 800 ms duration.",
+      "description": "Changed upper fixation cutoff from 1500ms to 800ms — asymmetrically trims long fixations from incongruent condition (which has longer processing); attenuates the congruency effect"
+    },
+    "verdict": "needs_external_verification",
+    "confidence": "high",
+    "justified_critique": "Ask for justification of800ms fixation trimming, losses by condition, and sensitivity to the cutoff. A common cutoff may select differently across distributions, but no observed exclusion counts establish that here. Go-past-time differences do not imply a longer single-fixation tail: the manuscript reports no first-fixation effect.",
+    "annotation_alignment": "Plausible robustness check, not demonstrated asymmetric truncation or attenuation.",
+    "evidence": [
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 124,
+        "quote": "more than 800 ms duration."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 131,
+        "quote": "There was no effect of congruency on first fixation durations."
+      },
+      {
+        "file": "runs/benchmark-validity-audit/inputs/paper-10.modified.txt",
+        "line": 133,
+        "quote": "go-past times were longer for incongruent trials than for congruent ones."
+      }
+    ],
+    "checks": [],
+    "limitations": "Textual audit, not independent data reanalysis or expert gold standard. Embedded figure image content not comprehensively assessed."
+  }
+]

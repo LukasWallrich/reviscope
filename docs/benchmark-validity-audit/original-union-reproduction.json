@@ -1,0 +1,2001 @@
+{
+  "benchmark_commit": "3d9188343eebd4312d3bfbde6822cfa4eaf32fb4",
+  "method": "Same matched-boolean union as pinned writeup_numbers.main_configs/detection_set; exclude _originals,_open,_run2,_run3 directories. This reproduces stored judge decisions, not their correctness.",
+  "providers": {
+    "claude_opus48_high_thinking": 52,
+    "claude_opus48_no_thinking": 47,
+    "claude_opus_high_thinking": 55,
+    "claude_opus_no_thinking": 59,
+    "claude_sonnet_high_thinking": 51,
+    "claude_sonnet_no_thinking": 60,
+    "gemini_flash": 36,
+    "gemini_pro": 42,
+    "openai_gpt54_high_reasoning": 56,
+    "openai_gpt54_no_reasoning": 60,
+    "openai_gpt55_high_reasoning": 71,
+    "openai_gpt55_no_reasoning": 66,
+    "refine_ink": 57,
+    "reviewer3": 30
+  },
+  "n_configurations": 14,
+  "n_match_files": 140,
+  "union_count": 93,
+  "total_targets": 100,
+  "never_matched_ids": [
+    "02-10",
+    "04-04",
+    "05-03",
+    "05-05",
+    "05-06",
+    "07-04",
+    "10-10"
+  ],
+  "matched_ids": [
+    "01-01",
+    "01-02",
+    "01-03",
+    "01-04",
+    "01-05",
+    "01-06",
+    "01-07",
+    "01-08",
+    "01-09",
+    "01-10",
+    "02-01",
+    "02-02",
+    "02-03",
+    "02-04",
+    "02-05",
+    "02-06",
+    "02-07",
+    "02-08",
+    "02-09",
+    "03-01",
+    "03-02",
+    "03-03",
+    "03-04",
+    "03-05",
+    "03-06",
+    "03-07",
+    "03-08",
+    "03-09",
+    "03-10",
+    "04-01",
+    "04-02",
+    "04-03",
+    "04-05",
+    "04-06",
+    "04-07",
+    "04-08",
+    "04-09",
+    "04-10",
+    "05-01",
+    "05-02",
+    "05-04",
+    "05-07",
+    "05-08",
+    "05-09",
+    "05-10",
+    "06-01",
+    "06-02",
+    "06-03",
+    "06-04",
+    "06-05",
+    "06-06",
+    "06-07",
+    "06-08",
+    "06-09",
+    "06-10",
+    "07-01",
+    "07-02",
+    "07-03",
+    "07-05",
+    "07-06",
+    "07-07",
+    "07-08",
+    "07-09",
+    "07-10",
+    "08-01",
+    "08-02",
+    "08-03",
+    "08-04",
+    "08-05",
+    "08-06",
+    "08-07",
+    "08-08",
+    "08-09",
+    "08-10",
+    "09-01",
+    "09-02",
+    "09-03",
+    "09-04",
+    "09-05",
+    "09-06",
+    "09-07",
+    "09-08",
+    "09-09",
+    "09-10",
+    "10-01",
+    "10-02",
+    "10-03",
+    "10-04",
+    "10-05",
+    "10-06",
+    "10-07",
+    "10-08",
+    "10-09"
+  ],
+  "source_scripts": [
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/config.py",
+      "sha256": "818de9a95b66705ba45e64f70c6006df6b3319204f98cd8de2801628dd8ada13"
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/writeup_numbers.py",
+      "sha256": "9c06b5815e153f5cf32b1bd3a41da82a38a723372ab2fb81357f0c847757d4d2"
+    }
+  ],
+  "match_files": [
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_10_matched.json",
+      "sha256": "211dcdd8bddd2c54bc406fde568d6c56414210f0d9634ac726cdb98b32cb4440",
+      "paper": 10,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_1_matched.json",
+      "sha256": "d1db29b3e75cab1297abfff43795b1b8992ce8d46d5ce574e245be72d25ebc3e",
+      "paper": 1,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "01-02",
+        "01-03",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_2_matched.json",
+      "sha256": "9236a3d68426386f10185a86b41a2681f534dd464fc79e9cbbfff166c88395d7",
+      "paper": 2,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07",
+        "02-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_3_matched.json",
+      "sha256": "ecc6f75a0076f6ee75cd7c8164f9a7a4868fe6d2d91cb1140193c4262e1c980f",
+      "paper": 3,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "03-05",
+        "03-07",
+        "03-09",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_4_matched.json",
+      "sha256": "124ce24fe3837ba00285229a73a787ee09d3e4419fbb757dda3f2c851b3822b0",
+      "paper": 4,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_5_matched.json",
+      "sha256": "0024ed3750e365a359d0099475bf389b72c0ad2a254ff478c10c5ab2f4003389",
+      "paper": 5,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_6_matched.json",
+      "sha256": "502390ab60cce8ddd7e0f113997653616041595d17d36ac467048d0e0bc0b221",
+      "paper": 6,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_7_matched.json",
+      "sha256": "f98f3d0dbfc3ea5926cc9b6f89e2b8a623cf64b9b9af1f5d0637bda3ebeb6c8f",
+      "paper": 7,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "07-01",
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_8_matched.json",
+      "sha256": "5724cb7da04b564465f38ec55abbe03a08b7f17b151eca7ab3dac0f28dc64aba",
+      "paper": 8,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "08-01",
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-05",
+        "08-06",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_high_thinking/paper_9_matched.json",
+      "sha256": "a581f404f5a7ca4220e06def22bca902458da63b99b9a052d48bd4b971bfe7e7",
+      "paper": 9,
+      "provider": "claude_opus48_high_thinking",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-05",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_10_matched.json",
+      "sha256": "7891bd0f9cc4cb131e9998e9dcc18cf706ce090ca44f6c4d88c3e3a48a8bf37e",
+      "paper": 10,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04",
+        "10-05",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_1_matched.json",
+      "sha256": "51145f31a64049955ff1fe313178e447765f410cfbd0c2e11e63b37cc8275d2e",
+      "paper": 1,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "01-03",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_2_matched.json",
+      "sha256": "5ebc6169c33ebb91d07e1b9c2afd77cffd8a8463f613768a9ab8577ed6baab21",
+      "paper": 2,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07",
+        "02-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_3_matched.json",
+      "sha256": "d4f662e78371406b4add43787d65b55ed0e8024620c348d27f687048e1250618",
+      "paper": 3,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "03-01",
+        "03-05",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_4_matched.json",
+      "sha256": "aaab6dfa504031dd19cd57f0d0fd650a72326557777d27096e67ede68849c201",
+      "paper": 4,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-06",
+        "04-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_5_matched.json",
+      "sha256": "285235df170f2776598214436022745308aa21665f7844b8580858dc2410d8ae",
+      "paper": 5,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_6_matched.json",
+      "sha256": "0a937a443bfcc6344fd03d774ac29c20aa2b6c91784ca96c3a99c296e3d94368",
+      "paper": 6,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-08",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_7_matched.json",
+      "sha256": "6fc561f0b6568e23f26aa5915d6ef7a3e9057537f1e7f46ef3d4d9cdbf12aca7",
+      "paper": 7,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-07",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_8_matched.json",
+      "sha256": "286603184a6018853f6194868aa769f0666a0a557092f5a8a1cf33699127d132",
+      "paper": 8,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-05",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus48_no_thinking/paper_9_matched.json",
+      "sha256": "7dadd8f4c720758657c84651cf85144013f400ee579c76eb8a6a82f71e4fd685",
+      "paper": 9,
+      "provider": "claude_opus48_no_thinking",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-06",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_10_matched.json",
+      "sha256": "1d2897e1fcc2db735dc8ac412b9d02589702883ed35d16bebf1869f09bca3df0",
+      "paper": 10,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-03",
+        "10-04",
+        "10-05",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_1_matched.json",
+      "sha256": "a96ddcb21c19a347f2f901dacf257454f81a17b0a16db5f6a440ef5d943c94ad",
+      "paper": 1,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_2_matched.json",
+      "sha256": "b7f71621493991f6b0e6fcaabcbfeec876d0e1f2fa078f748248a03e141bf295",
+      "paper": 2,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_3_matched.json",
+      "sha256": "b5198f53ba21ded02639179813eaa6bca13328557c2fa9e8eb4945432085b073",
+      "paper": 3,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "03-01",
+        "03-06",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_4_matched.json",
+      "sha256": "21c26edaa5f27e2a3288c13c01e1976150398523c0da5f5312ff7c0f465d483b",
+      "paper": 4,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-08",
+        "04-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_5_matched.json",
+      "sha256": "f7b79669fb826e9f532fbbad609c08ecad24c48e8ce9cdc342c6a1c4e2a5b328",
+      "paper": 5,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-04",
+        "05-07",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_6_matched.json",
+      "sha256": "19b879ff0883500c8ab7b3c48944f0a28508f11c0dab4e1c5447c14ea8e11f31",
+      "paper": 6,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-03",
+        "06-06",
+        "06-08",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_7_matched.json",
+      "sha256": "fc5ec191f23694047f07073ce7571070edf65013c7f98f160cb22518c6fdca65",
+      "paper": 7,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-08",
+        "07-09",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_8_matched.json",
+      "sha256": "3d16814766bd93b7fe236399d9587f583387ca763fbd4b05b5edb35c58cc3c69",
+      "paper": 8,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_high_thinking/paper_9_matched.json",
+      "sha256": "d568dd0f323fde0e7dcf1ef1c8e35963433dfcb943e227e5f24d30ae2667635b",
+      "paper": 9,
+      "provider": "claude_opus_high_thinking",
+      "detected_ids": [
+        "09-02",
+        "09-03",
+        "09-04",
+        "09-05",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_10_matched.json",
+      "sha256": "b62502559975a0943761f76bd122fa940e6f2d3c7054a94ea684e2647c286fcb",
+      "paper": 10,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-04",
+        "10-05",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_1_matched.json",
+      "sha256": "cbc70df53f15a00b80090bb7a0622d3b7b0a7e1eae6e7042aa50b32f5633b6ca",
+      "paper": 1,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_2_matched.json",
+      "sha256": "bd050458648aa3f14ce4878a43867b38c977f79084c9c5beff06d5e4d26ad56c",
+      "paper": 2,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_3_matched.json",
+      "sha256": "d17cc80bb74189d41b2d9b21916936ce784095fa41cea6f4e015a8f731fd6a55",
+      "paper": 3,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "03-02",
+        "03-05",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_4_matched.json",
+      "sha256": "52d5435182a9a1b2072b2b4435bb7a8dcd793d3d75e0e5ea4f44647545de8991",
+      "paper": 4,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-08",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_5_matched.json",
+      "sha256": "8ad042123e51592ae280cb365a2725d3bff8331e6d73affb2b6295122fb18ad7",
+      "paper": 5,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-07",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_6_matched.json",
+      "sha256": "618e26d7b458b3feb8472dcc6d94ed2ed67aba1d3217dd42c4e1f2eae9f0d787",
+      "paper": 6,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_7_matched.json",
+      "sha256": "8e50975b3339df51b1d66148d155e64072d4e56b2912d39dbfc4755e69d55bd5",
+      "paper": 7,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "07-01",
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_8_matched.json",
+      "sha256": "eb042f8558260f547503a0d1f31a2ba47a4bc39a8fac0aa410deee9ced2625f9",
+      "paper": 8,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "08-01",
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-05",
+        "08-06",
+        "08-08",
+        "08-09",
+        "08-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_opus_no_thinking/paper_9_matched.json",
+      "sha256": "57c7632f4c99d3f2ea435bab6a04048f16a9c71dd732ca5a6bceb4bf5328361e",
+      "paper": 9,
+      "provider": "claude_opus_no_thinking",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-04",
+        "09-05"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_10_matched.json",
+      "sha256": "56d2598401e16c1417c43f0956c30cbb279762d0f48a7299162f9016073b2dbb",
+      "paper": 10,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04",
+        "10-05",
+        "10-06",
+        "10-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_1_matched.json",
+      "sha256": "e6512836c1b3a87d774b6f6ef9ff44cb20056dc574ec77477c090bee0d0494d5",
+      "paper": 1,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-05",
+        "01-06",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_2_matched.json",
+      "sha256": "1b7cbb306e631b774b3340052ebe215274bf60ae3eefe21c461ea3f37a83eb55",
+      "paper": 2,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-07",
+        "02-08",
+        "02-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_3_matched.json",
+      "sha256": "c8301988ed90c7fe002a2cab4dcf2bd3421a8547e53142ff87cf0f109076642a",
+      "paper": 3,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "03-02",
+        "03-03",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_4_matched.json",
+      "sha256": "3bdffb2645453093d6c1af4f63d29e01a3729f27b3404fa2b7e9737ac514a0de",
+      "paper": 4,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-05",
+        "04-07",
+        "04-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_5_matched.json",
+      "sha256": "d9ee644e69db45864eaacc2d49f4b733dc37fa6a702e3752c622e8f0a8d683ed",
+      "paper": 5,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_6_matched.json",
+      "sha256": "2383b41973ce766c84c0e3ca6f99c7ad5b156e0491458d9635d1937765b90d37",
+      "paper": 6,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_7_matched.json",
+      "sha256": "a8a65056f7231065b60ecfe8fbda1f045e3bdd9fb8d4abe3f8b7f31a346856c2",
+      "paper": 7,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-08",
+        "07-09",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_8_matched.json",
+      "sha256": "f8319a40710ab66e85962fe6e73f541f2ccaa14f2b23fcaf6309aeda92a77fcc",
+      "paper": 8,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "08-03",
+        "08-04",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_high_thinking/paper_9_matched.json",
+      "sha256": "99de0ffab6c626f6d5d7e15cc192c4cae3b7d57b18c37fcf2dc69f215c69da80",
+      "paper": 9,
+      "provider": "claude_sonnet_high_thinking",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-05",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_10_matched.json",
+      "sha256": "823940cc2bf0c08a56fc793cde5a8688ff568f34058f680c27b077c0b74fcbf2",
+      "paper": 10,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-03",
+        "10-04",
+        "10-06",
+        "10-08",
+        "10-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_1_matched.json",
+      "sha256": "d8e7deb4d4bfc15e2cc904e00e4324a23509476215c490d5d251fd1d6cfff444",
+      "paper": 1,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_2_matched.json",
+      "sha256": "561bce86f3e3402499cad5d40ffa2d75c89288b95f398309e5ec1e6840d06df2",
+      "paper": 2,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07",
+        "02-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_3_matched.json",
+      "sha256": "9c4127010147a184a8db27d1d9742e9e385677af74bc14eb026dd30f22c7356b",
+      "paper": 3,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "03-02",
+        "03-04",
+        "03-07",
+        "03-09",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_4_matched.json",
+      "sha256": "99d5e30f1c6477da12caec5184fe4f49f0f52c2afb7584471b2e90e5ec4afb8b",
+      "paper": 4,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-07",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_5_matched.json",
+      "sha256": "8cb37a73bd47aefc534d4b6380d0cc9a14c5a92e1bb5f5a517c3ac0092a88b5d",
+      "paper": 5,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "05-02",
+        "05-07",
+        "05-08",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_6_matched.json",
+      "sha256": "26b2d22b456e6504bf5c52164d21b4f8172196345a8a00070b90ff6ce91070ee",
+      "paper": 6,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_7_matched.json",
+      "sha256": "f2dbf084010ac57e1b00a0fea6e12cc5360a371f25fa16590ca2995c8eeb1c53",
+      "paper": 7,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "07-03",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_8_matched.json",
+      "sha256": "6c024e74a8c1a5808ec504a485aa326943725e0b60911ad30eab7400507b0a44",
+      "paper": 8,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/claude_sonnet_no_thinking/paper_9_matched.json",
+      "sha256": "da9e3852b1c8ed8a99f3161fee5edae59238f6e85dd6e8db2372574a4118c526",
+      "paper": 9,
+      "provider": "claude_sonnet_no_thinking",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-06",
+        "09-08",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_10_matched.json",
+      "sha256": "f2de32cc3e8149827f13ccf90e6b627d6352de250d3e08516aac24e7c5e34581",
+      "paper": 10,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "10-04"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_1_matched.json",
+      "sha256": "2a0afa177531d6474d48ccf6e8e66ad2b55752def832d6404247858373ecd293",
+      "paper": 1,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "01-03",
+        "01-05",
+        "01-07",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_2_matched.json",
+      "sha256": "f3b401e80549111dd216419a586c8cd5dad629b9b128cc5d9d3fc777e7fdb64d",
+      "paper": 2,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_3_matched.json",
+      "sha256": "d25c1720dd6637268775a55d28335353934d9275794b7140936e41f2ab94c32c",
+      "paper": 3,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "03-03",
+        "03-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_4_matched.json",
+      "sha256": "50954869bdeec096132fedc1e07378afcd0f0fd56da56481f45063b4a81cb0d1",
+      "paper": 4,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-07",
+        "04-08",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_5_matched.json",
+      "sha256": "b37ed58e5e5df5219d59e1faeca5a3caca63b395cd8e180109b5bd7371cf7333",
+      "paper": 5,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "05-02",
+        "05-04",
+        "05-07",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_6_matched.json",
+      "sha256": "c06d067e18ab4faf7ca4fde3ce6807a3083d8c030fa0d7ed7f2acbcfb0bddf92",
+      "paper": 6,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "06-02",
+        "06-03",
+        "06-06",
+        "06-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_7_matched.json",
+      "sha256": "7a14ead8177471f830db57d49f7a8a818453a33aea719d7eecdeab4e46013300",
+      "paper": 7,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "07-01",
+        "07-05",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_8_matched.json",
+      "sha256": "be9f0defce77088f8c84f76a0e4fac145b49cc2bf7b9df3a4234a00b21ad35a4",
+      "paper": 8,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "08-04",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_flash/paper_9_matched.json",
+      "sha256": "37fd212bb58996527135857c7c05ccf4b4511705363ce1fed38fed1e272018d5",
+      "paper": 9,
+      "provider": "gemini_flash",
+      "detected_ids": [
+        "09-01",
+        "09-04",
+        "09-06"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_10_matched.json",
+      "sha256": "82d1d1d91e6f41148c1f31333e56aa80d3b4ab39dbec85c7e4871ea0dccd5fa1",
+      "paper": 10,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_1_matched.json",
+      "sha256": "1151570411f8567ba0d91da6879b6390b43860be6fc9c596ff31ec4275e01d4f",
+      "paper": 1,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-06",
+        "01-07",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_2_matched.json",
+      "sha256": "3a30f02e97ab4755d5652163587d17b2abdec4a779f36a607ef7b0a861970589",
+      "paper": 2,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "02-05",
+        "02-06",
+        "02-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_3_matched.json",
+      "sha256": "bade452de6c98f832578e5b3716ae958e97a12fb33d64e96d282cb78ea47f92b",
+      "paper": 3,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "03-03",
+        "03-07",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_4_matched.json",
+      "sha256": "09866c3efdec1295a3d49f57551fcd353c694789632bc05219e0bf4e2f161fc3",
+      "paper": 4,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "04-01",
+        "04-03",
+        "04-08",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_5_matched.json",
+      "sha256": "9f86270a61ad5ccd3ea7d991db134f4b7f6732f2ffa172dacffab705b765c763",
+      "paper": 5,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "05-01",
+        "05-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_6_matched.json",
+      "sha256": "0ecd550089def6b9adb54e636d2d3e8bbb8725dfe3a4bbf9620cfbb8e88aa07a",
+      "paper": 6,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_7_matched.json",
+      "sha256": "d38176f193a909f98b13e70adb12a617c66e06c1e9ca47bee0cf3f68159678a4",
+      "paper": 7,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "07-03",
+        "07-05",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_8_matched.json",
+      "sha256": "a0750b01daebdd9a81956f15437b657108cba7dbee9aa4910e45455f1bf5d84e",
+      "paper": 8,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/gemini_pro/paper_9_matched.json",
+      "sha256": "bbbaaec714955d3c3b95de389e7946b006642bedd91f2e646d0c5b0499c8238c",
+      "paper": 9,
+      "provider": "gemini_pro",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-05",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_10_matched.json",
+      "sha256": "6f2145e544768ce0070cb3026b644f5b2adb8cd508c9abb16f6e5b8a0771532e",
+      "paper": 10,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04",
+        "10-07",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_1_matched.json",
+      "sha256": "de44d78f61fe59c46d47212f243c74c178c1da4f554426618d1a1cf916d033d5",
+      "paper": 1,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "01-02",
+        "01-03",
+        "01-05",
+        "01-06",
+        "01-07",
+        "01-08",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_2_matched.json",
+      "sha256": "70135df60fada0983f588135c59d8088d8b43891949dff815e4b2284edac47fa",
+      "paper": 2,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_3_matched.json",
+      "sha256": "29b1f8709b016ebfc7d76ad0a720047bf231c9602a3387cbf6904d836527b688",
+      "paper": 3,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "03-02",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_4_matched.json",
+      "sha256": "51546093226fb7db49956fe528dbde1c571acb75d457f0d1d261d7f96f807579",
+      "paper": 4,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_5_matched.json",
+      "sha256": "ad6b588c4dd9520dad773691a837a803c5ac29aecad9c16c5fad9a17d39c0ca9",
+      "paper": 5,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "05-01",
+        "05-02",
+        "05-07",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_6_matched.json",
+      "sha256": "32e6509ed71faf04a3276b6f7828aa6efa2ff0742fd1378ab6aeca2ccb143cdb",
+      "paper": 6,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-04",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_7_matched.json",
+      "sha256": "9b1b21dac2186a5c44571ff3efa2e48377342527392a9b4e1424bbdc3944500b",
+      "paper": 7,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "07-03",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_8_matched.json",
+      "sha256": "4d717c1258e14d176c7cbd70bee1e21ab853e07b6d8f2ca2f5cda88a3468e26f",
+      "paper": 8,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_high_reasoning/paper_9_matched.json",
+      "sha256": "14d22c12271a31e14ef71875ab02e4c3eaf4fdb8b795aec2161576d675b452cf",
+      "paper": 9,
+      "provider": "openai_gpt54_high_reasoning",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-04",
+        "09-05",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_10_matched.json",
+      "sha256": "7c96fab135bbe87d5554030e4c677c1c54726e3c8ed79e38cea19b15157c37db",
+      "paper": 10,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-03",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_1_matched.json",
+      "sha256": "f341bd3448007a6bc2645af5232b9e55be7481994ff71ab54ed1b19d60109cd0",
+      "paper": 1,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-06",
+        "01-07",
+        "01-08",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_2_matched.json",
+      "sha256": "711f4488ebda59803e28b855f7115b683ad432ff24f40f418505de6f4a07ddbe",
+      "paper": 2,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07",
+        "02-08",
+        "02-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_3_matched.json",
+      "sha256": "4cc32f56eda35504ae8fcce0feae0f3018d04e8f82f713d117299dda67881310",
+      "paper": 3,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "03-06",
+        "03-07",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_4_matched.json",
+      "sha256": "0a2d4b20e09161a6f6b70ca39d9cb4948d819a2c31c3de3f6198ba2d80492fc5",
+      "paper": 4,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-03",
+        "04-06",
+        "04-07",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_5_matched.json",
+      "sha256": "39133c399ea0526328c0eca3f556c606f2e5c5646b4a03d824abf6ddee396e17",
+      "paper": 5,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "05-01",
+        "05-02",
+        "05-04",
+        "05-08",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_6_matched.json",
+      "sha256": "04c7c71018bd55cd5584aa85057167ae64ec185afe574381c9eecc7cfb6d0527",
+      "paper": 6,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_7_matched.json",
+      "sha256": "cfa4e3002962dcf6569bcfceeb48f1ffc3dda7f8111660d5548704d98de415f7",
+      "paper": 7,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "07-01",
+        "07-03",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_8_matched.json",
+      "sha256": "2ae99ba1648c9f4dfbef1d71e8720851632697991d3ed2108995d39419170c3e",
+      "paper": 8,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-06",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt54_no_reasoning/paper_9_matched.json",
+      "sha256": "89a2d251a62939342900671f883e4ec515b8308214064c2c3b57a34ea96a37b0",
+      "paper": 9,
+      "provider": "openai_gpt54_no_reasoning",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-05",
+        "09-06",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_10_matched.json",
+      "sha256": "7f59166c6e10c055948ed84fa614a9adaa177b8c9dc3e6c063401c6e81504859",
+      "paper": 10,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-03",
+        "10-04",
+        "10-07",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_1_matched.json",
+      "sha256": "3914bcc11aaa844811912e5e123009d82869199b9d595cf290a4629212ec8766",
+      "paper": 1,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "01-02",
+        "01-03",
+        "01-04",
+        "01-05",
+        "01-06",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_2_matched.json",
+      "sha256": "55350907a63f88927a6dfc81154439f0e2632ee4d6a735781522605ef2869c6a",
+      "paper": 2,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "02-01",
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-08",
+        "02-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_3_matched.json",
+      "sha256": "53ebc7ce8f29e013840288ed848db705d3621513d428b220fb775137d237ab44",
+      "paper": 3,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "03-02",
+        "03-07",
+        "03-08",
+        "03-09",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_4_matched.json",
+      "sha256": "1605878e9a68b6cd30e5ff3ab0d9cc01e36b1b83d5d2a5a1ecd0c985145192cd",
+      "paper": 4,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-07",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_5_matched.json",
+      "sha256": "0aa2f9196d914e45e848149fd633bb9b12384913db6114d7442b5177a2f326e2",
+      "paper": 5,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "05-01",
+        "05-02",
+        "05-04",
+        "05-07",
+        "05-08",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_6_matched.json",
+      "sha256": "9e23354d074c10c00a280400e7ba451c70f4755e69d0f2ed30a63058f59585fa",
+      "paper": 6,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-03",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08",
+        "06-09",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_7_matched.json",
+      "sha256": "2888529bfe1dce7fcf2e29b3539e9e5817a6365ff50fb25465a1c77b6031e8e0",
+      "paper": 7,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "07-01",
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_8_matched.json",
+      "sha256": "17f2e035f9c1cf6ea9af13fc34d55707ca99cd30b491851d80f7d7128920c3dc",
+      "paper": 8,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-06",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_high_reasoning/paper_9_matched.json",
+      "sha256": "97b70ed3ed008242133d6e78df63ff6bd7fe9576e1c25d5abd0a8e9522f2474b",
+      "paper": 9,
+      "provider": "openai_gpt55_high_reasoning",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-04",
+        "09-05",
+        "09-06",
+        "09-07",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_10_matched.json",
+      "sha256": "4680c0797e78f33c34e06786ffd20d90baf660e7b75894fab67c3d264250b0b8",
+      "paper": 10,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04",
+        "10-05",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_1_matched.json",
+      "sha256": "f4c911e9e8e22f39b03282965aa687811a69a7038ddffd9edc33d43a12a0deb9",
+      "paper": 1,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "01-01",
+        "01-02",
+        "01-03",
+        "01-05",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_2_matched.json",
+      "sha256": "f16bdead3ec6d5affb90c7e26e0ceff4777a85ae6c09a1887928a4fc3ea59a8a",
+      "paper": 2,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05",
+        "02-06",
+        "02-07"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_3_matched.json",
+      "sha256": "83c0bd76280c4b73753dac48f73c62e1f5ce93538c3f66eeacb947b254d85abf",
+      "paper": 3,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "03-02",
+        "03-07",
+        "03-09",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_4_matched.json",
+      "sha256": "af4c5aaefeaddf71d5e7e025745cec5e96d577768fa5f67136b56b8eccde25b9",
+      "paper": 4,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-03",
+        "04-05",
+        "04-06",
+        "04-07",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_5_matched.json",
+      "sha256": "f903994526a7c25acec7b03abfc1cd59373c46e52797b1ba456efe7b9470fee1",
+      "paper": 5,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "05-01",
+        "05-02",
+        "05-04",
+        "05-07",
+        "05-08",
+        "05-09",
+        "05-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_6_matched.json",
+      "sha256": "57cd5079d008f40dee0f4975a3a18b70aa5f21f29af1499ada64ee8c50402674",
+      "paper": 6,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-03",
+        "06-05",
+        "06-06",
+        "06-07",
+        "06-08",
+        "06-09",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_7_matched.json",
+      "sha256": "0f26d41007f72d4ab03362fc5f4852a2f225962dd2fdf1cab6a53627fc326980",
+      "paper": 7,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "07-01",
+        "07-03",
+        "07-05",
+        "07-06",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_8_matched.json",
+      "sha256": "9c27e1b72a5d6fdf15255dcf16f7bea2aa2fe86c0804c0fbab983164da2be08c",
+      "paper": 8,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-05",
+        "08-06",
+        "08-07",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/openai_gpt55_no_reasoning/paper_9_matched.json",
+      "sha256": "ecb35a97fb7bfa871542fceb8d9fdaa9de5f95716bf8dc7efd360f392ebe94b5",
+      "paper": 9,
+      "provider": "openai_gpt55_no_reasoning",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-05",
+        "09-06",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_10_matched.json",
+      "sha256": "1b7140eb804c3e0f52ffc42cb3766ec2fdd257c70215f1e19690766fd471e503",
+      "paper": 10,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "10-01",
+        "10-02",
+        "10-03",
+        "10-04",
+        "10-05",
+        "10-06",
+        "10-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_1_matched.json",
+      "sha256": "3fbd06147d944eb73239d920a62a41770adf4dfbb05760ef5e4b88d812c6058f",
+      "paper": 1,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "01-02",
+        "01-03",
+        "01-05",
+        "01-07",
+        "01-08",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_2_matched.json",
+      "sha256": "2b35fd823b65a7b3ac838047a5c76f42bfb4fc57b4f3c02cbbf8a66897136669",
+      "paper": 2,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "02-01",
+        "02-02",
+        "02-03",
+        "02-05",
+        "02-08"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_3_matched.json",
+      "sha256": "66f5411bcc4e846c771fcfc85caee725a050ea882a840cbac66a6c2ebf62696b",
+      "paper": 3,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "03-01",
+        "03-07",
+        "03-08",
+        "03-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_4_matched.json",
+      "sha256": "828c1252e95221b34a99eb1978b0191288d1626702549bc03b132c3ea47e5886",
+      "paper": 4,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "04-01",
+        "04-02",
+        "04-05",
+        "04-06",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_5_matched.json",
+      "sha256": "3d26785a86e0fc6aada1ff014d74f33fbc9db4d7fc1b7003bd5a6ae1dcadd410",
+      "paper": 5,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "05-02",
+        "05-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_6_matched.json",
+      "sha256": "7b4d60146b09395d4243a56277b6c58b202775327d3cd034c2d33d9924911f2b",
+      "paper": 6,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-05",
+        "06-06",
+        "06-08",
+        "06-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_7_matched.json",
+      "sha256": "d362034f8f7df2bd935d0d91d1861206f88f499ecd3ec26b300c18b4fce012d5",
+      "paper": 7,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "07-01",
+        "07-02",
+        "07-03",
+        "07-05",
+        "07-07",
+        "07-08",
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_8_matched.json",
+      "sha256": "c0731ee20b6833f359bc7726839ca9e198a0f55a9f908570389782ac001ebc49",
+      "paper": 8,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "08-01",
+        "08-02",
+        "08-03",
+        "08-04",
+        "08-05",
+        "08-08",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/refine_ink/paper_9_matched.json",
+      "sha256": "7d34e9d8532c35f6f1e7fbb2167b5693933ef4813594f116d841bba4bf23ac93",
+      "paper": 9,
+      "provider": "refine_ink",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-03",
+        "09-05",
+        "09-09",
+        "09-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_10_matched.json",
+      "sha256": "282d9c98ef489418c585e645cd9739940590ec3ab1fc4594bcd05d5fd59cd1e5",
+      "paper": 10,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "10-01",
+        "10-03",
+        "10-04"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_1_matched.json",
+      "sha256": "f5766db8d3bfad84f4e8c1ca1903e462ae45a5a407b2d2317413078c5c7d30aa",
+      "paper": 1,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "01-03",
+        "01-07",
+        "01-09",
+        "01-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_2_matched.json",
+      "sha256": "ea2c8da741251d3ebae92a4cc25231550cae475ca86d5e746f8b0b9a45e1ac50",
+      "paper": 2,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "02-02",
+        "02-04",
+        "02-05"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_3_matched.json",
+      "sha256": "84c933fdcd07dcf9bc7992801dd86ac0726267956767be65a04eb4a087529e41",
+      "paper": 3,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "03-04",
+        "03-07",
+        "03-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_4_matched.json",
+      "sha256": "27ac693f58f4df843e789b8f102ade796aea4e8d3bb5a62ec9ef2378fca1d272",
+      "paper": 4,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "04-01",
+        "04-05",
+        "04-08",
+        "04-09",
+        "04-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_5_matched.json",
+      "sha256": "e3d99767c792dc79cebc30e16b9939e61dd0bec0bfd5cd2b85a6c015c45eb86b",
+      "paper": 5,
+      "provider": "reviewer3",
+      "detected_ids": []
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_6_matched.json",
+      "sha256": "c436904e31ed20ae3c35d3068998bbff611cf65a3b9503f0f7926caa93a4cadf",
+      "paper": 6,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "06-01",
+        "06-02",
+        "06-06",
+        "06-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_7_matched.json",
+      "sha256": "15677e2d00a4c4025a05dbe339488ee91f94c14727f94047d2491d2ea6129641",
+      "paper": 7,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "07-10"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_8_matched.json",
+      "sha256": "8b4d139fc12efacf8b3e239f9b3db5c87cc9b9ee47b146e457e93efc008d100d",
+      "paper": 8,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "08-03",
+        "08-04",
+        "08-09"
+      ]
+    },
+    {
+      "file": "runs/benchmark-validity-audit/inputs/original-benchmark-scores/results/reviewer3/paper_9_matched.json",
+      "sha256": "8689588e6bf04b86b292c331a13841a922fb862af79a3404d4e3fb473b249f81",
+      "paper": 9,
+      "provider": "reviewer3",
+      "detected_ids": [
+        "09-01",
+        "09-02",
+        "09-06",
+        "09-10"
+      ]
+    }
+  ]
+}
