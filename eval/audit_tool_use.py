@@ -2,12 +2,10 @@
 """Flag tool calls in review runs that could have exposed the human reviews of the paper.
 
 Reads each run's review.json (every stage records its tool calls) and flags:
-- fetched URLs (including pages opened from earlier search results), URLs in commands or
-  search queries, and URLs listed in search results that
-  match the benchmark paper's own DOI, article, manuscript or review pages;
+- fetched URLs (including pages opened from earlier search results) and URLs in commands or
+  search queries that match the benchmark paper's own DOI, article, manuscript or review pages;
 - fetched or requested URLs on a review/commentary site or with a peer-review path
   (REVIEW_DOMAINS, REVIEW_PATHS), including the planted-error benchmark repository;
-- search results that list a review/commentary site (the model saw its snippet);
 - search queries naming the paper together with review terms. For planted-error papers a
   query containing the title, or a title part of at least three distinctive words, in order is flagged,
   because the published original is the answer key. A query that only shares most title
@@ -19,6 +17,11 @@ empirical-pilot and planted-error manifests are read by default; `--manifest` ad
 `--paper` names a manifest id (planted-error papers are `known-error-N`) instead of matching
 by hash, and `--title` / `--block` add identifiers for papers outside the manifests. Queries
 are checked against the entry's `title` and any `alt_titles`.
+
+Pages that only appear in a search result list, without being opened, are not flagged. The
+model then sees a title and a short snippet, and ordinary topic searches routinely list the
+published original of a benchmark paper. A snippet can expose an abstract-level detail, but
+few planted errors sit at that level; report this as a limitation rather than a leak.
 
 Verdicts: `flagged` (a contamination candidate), `incomplete` (a model stage failed, lacks
 recorded provenance, has a call that never finished, or has a fetch whose opened page is not
@@ -111,7 +114,7 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
     phrases = [p for title in (paper or {}).get("titles", []) for p in title_phrases(title)]
     reasons, warnings = [], []
 
-    def check_url(url: str, how: str, where: str, paths: bool = True) -> None:
+    def check_url(url: str, how: str, where: str) -> None:
         low = normal_url(url)
         host = low.split("/", 1)[0]
         own = any(low == b or low.startswith((b + "/", b + "?")) for b in blocks if not b.startswith("10."))
@@ -119,7 +122,7 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
             reasons.append(f"{where}: {how} URL of the benchmark paper: {url}")
         elif any(host == d or host.endswith("." + d) for d in REVIEW_DOMAINS):
             reasons.append(f"{where}: {how} review/commentary site: {url}")
-        elif paths and REVIEW_PATHS.search(low):
+        elif REVIEW_PATHS.search(low):
             reasons.append(f"{where}: {how} peer-review page: {url}")
 
     for call in calls:
@@ -128,10 +131,6 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
             check_url(url, "fetched", where)
         for url in URL_IN_TEXT.findall(" ".join(filter(None, [call.get("query"), call.get("command")]))):
             check_url(url, "requested", where)
-        if call.get("kind") == "search":
-            listed = call.get("result_urls") or [u.rstrip('.,;"') for u in URL_IN_TEXT.findall(call.get("output") or "")]
-            for url in listed:
-                check_url(url, "search result listed", where, paths=False)
         # Excluded terms (-"phrase", -word) keep matching pages out; they are not a search for them.
         query = EXCLUDED_TERM.sub(" ", call.get("query") or "").strip()
         if not query:

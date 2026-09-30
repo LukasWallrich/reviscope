@@ -30,7 +30,8 @@ def test_audit_flags_review_pages_and_review_searches_for_the_identified_paper(t
         call(3, "search", query="neighbourhood deprivation trust", output='[{"url": "https://peerj.com/articles/236/"}]'),
     ]))
     assert result["paper"] == "open-review-paper" and result["verdict"] == "flagged"
-    assert [r.split(":", 1)[0] for r in result["reasons"]] == ["review-contribution#0", "review-contribution#1", "review-contribution#2", "review-contribution#3"]
+    # #3 only lists the paper among search results; listing alone is not flagged.
+    assert [r.split(":", 1)[0] for r in result["reasons"]] == ["review-contribution#0", "review-contribution#1", "review-contribution#2"]
 
 
 def test_audit_passes_ordinary_literature_checks(tmp_path):
@@ -59,9 +60,11 @@ def test_audit_warns_but_does_not_flag_a_cited_paper_search_sharing_title_words(
     assert excluded["verdict"] == "clean" and not excluded["warnings"]
 
 
-def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(tmp_path):
+def test_audit_ignores_listed_results_and_reports_incomplete_provenance(tmp_path):
     listed = audit(run_file(tmp_path, [call(0, "search", query="effect size norms", result_urls=["https://pubpeer.com/publications/X"])]))
-    assert listed["verdict"] == "flagged" and "review/commentary site" in listed["reasons"][0]
+    assert listed["verdict"] == "clean"
+    opened = audit(run_file(tmp_path, [call(0, "fetch", url="https://pubpeer.com/publications/X")]))
+    assert opened["verdict"] == "flagged" and "review/commentary site" in opened["reasons"][0]
     path = tmp_path / "review.json"
     path.write_text(json.dumps({"sources": [{"sha256": "aaa"}], "stages": [
         {"name": "review-design", "status": "failed", "error": "TimeoutError: codex timed out", "tool_calls": []},
