@@ -95,8 +95,9 @@ def _codex_widening(value: Any, where: str = "") -> list[str]:
                 problems.append(name)
             elif key == "sandbox_mode" and child == "danger-full-access":
                 problems.append(f"{name} = danger-full-access")
-            elif where.endswith("filesystem") and _under_home(key) and child in {"read", "write"}:
-                problems.append(f"{name} = {child}")
+            elif where.endswith("filesystem") and _under_home(key) and (
+                    child in ("read", "write") or isinstance(child, dict) and any(v in ("read", "write") for v in child.values())):
+                problems.append(f"{name} grants access")
             else:
                 problems += _codex_widening(child, name)
     return problems

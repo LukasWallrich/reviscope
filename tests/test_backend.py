@@ -150,7 +150,8 @@ def test_managed_policy_that_widens_the_sandbox_blocks_tool_calls_and_changes_id
     codex_file.write_text('[permissions.x]\nnetwork = { enabled = false }\n')
     backend_module.check_managed_policy("codex")
     for widening in ('sandbox_mode = "danger-full-access"\n', '[sandbox_workspace_write]\nnetwork_access = true\n',
-                     '[permissions.x.network]\nenabled = true\n', f'[permissions.x.filesystem]\n"{Path.home()}/.aws" = "read"\n'):
+                     '[permissions.x.network]\nenabled = true\n', f'[permissions.x.filesystem]\n"{Path.home()}/.aws" = "read"\n',
+                     '[permissions.x.filesystem."~/proj"]\n"." = "write"\n'):
         codex_file.write_text(widening)
         with pytest.raises(backend_module.PolicyError):
             backend_module.check_managed_policy("codex")

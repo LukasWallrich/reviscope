@@ -203,8 +203,9 @@ def test_unreadable_screening_output_is_recorded_not_raised(tmp_path, monkeypatc
     assert record.status == "partial" and "could not check: causal_claims" in metacheck.describe(record)
     mc_dir = tmp_path / "direct" / "metacheck"
     (mc_dir / "modules" / "stat_check.json").write_text("{not json")
-    broken = [metacheck._module(mc_dir, {"module": name, "status": "ok"}) for name in ("stat_check", "ref_pubpeer")]
-    assert [m.status for m in broken] == ["failed", "ok"] and "module output unreadable" in broken[0].error
+    (mc_dir / "modules" / "repo_check.json").write_text("[]")
+    broken = [metacheck._module(mc_dir, {"module": name, "status": "ok"}) for name in ("stat_check", "repo_check", "ref_pubpeer")]
+    assert [m.status for m in broken] == ["failed", "failed", "ok"] and "module output unreadable" in broken[0].error
     (mc_dir / "modules" / "power.json").mkdir()  # reading it raises IsADirectoryError
     assert metacheck.fingerprint(record) != metacheck.fingerprint(record.model_copy(update={"output_dir": None}))
 

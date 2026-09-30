@@ -280,7 +280,7 @@ def _module(mc_dir: Path, row: dict[str, Any]) -> MetacheckModule:
     try:
         details = _read(path)
         rows = _rows(mc_dir, name)
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, MetacheckError) as exc:
         return MetacheckModule(module=name, status="failed", error=f"module output unreadable: {type(exc).__name__}: {exc}")
     warnings = [str(w) for w in details.get("warnings") or []]
     status = str(row.get("status", "failed"))
