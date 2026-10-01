@@ -237,3 +237,16 @@ def test_fingerprint_depends_on_module_content_not_run_location(tmp_path):
     assert metacheck.fingerprint(first) == metacheck.fingerprint(moved)
     (tmp_path / "b" / "modules" / "stat_check.json").write_text('{"rows": 2}')
     assert metacheck.fingerprint(first) != metacheck.fingerprint(moved)
+
+
+def test_finished_screening_is_reused_and_timestamps_do_not_change_the_fingerprint(tmp_path, monkeypatch):
+    calls = []
+    stub(monkeypatch, calls)
+    paper = manuscript(tmp_path)
+    first = metacheck.run_metacheck(paper, tmp_path / "run")
+    assert calls.count("mc_run.R") == 2
+    second = metacheck.run_metacheck(paper, tmp_path / "run")
+    assert calls.count("mc_run.R") == 2 and calls.count("mc_import.R") == 1
+    restamped = second.model_copy(update={"lookup_date": "2030-01-01", "output_dir": second.output_dir,
+                                          "modules": [m.model_copy(update={"run_at": "2030-01-01T00:00:00Z"}) for m in second.modules]})
+    assert metacheck.fingerprint(first) == metacheck.fingerprint(second) == metacheck.fingerprint(restamped)

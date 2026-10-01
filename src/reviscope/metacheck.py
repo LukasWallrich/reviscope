@@ -247,12 +247,19 @@ def run_metacheck(manuscript: Path, out: Path, progress: Callable[[str], None] =
             _, log = run_r("mc_import.R", ["--file", str(source), "--run-dir", str(mc_dir), "--crossref-lookup"])
             provenance.write_text(json.dumps({"key": key, "text_conversion": text_conversion, "lookup_date": date.today().isoformat(),
                                               "converter": _converter(source.suffix.lower(), log)}), encoding="utf-8")
-        for modules in ("default", EXTRA_MODULES):
-            progress(f"metacheck: running {'default' if modules == 'default' else 'extra'} modules")
-            try:
-                run_r("mc_run.R", ["--run-dir", str(mc_dir), "--modules", modules])
-            except (MetacheckError, subprocess.TimeoutExpired) as exc:
-                errors.append(f"{'default' if modules == 'default' else 'extra'} modules: {exc}")
+        # A finished screening of the same input is reused whole: modules that failed inside the
+        # package fail again, and retrying them repeats slow online lookups.
+        if previous.get("key") == key and previous.get("finished"):
+            progress("metacheck: reusing earlier screening")
+        else:
+            for modules in ("default", EXTRA_MODULES):
+                progress(f"metacheck: running {'default' if modules == 'default' else 'extra'} modules")
+                try:
+                    run_r("mc_run.R", ["--run-dir", str(mc_dir), "--modules", modules])
+                except (MetacheckError, subprocess.TimeoutExpired) as exc:
+                    errors.append(f"{'default' if modules == 'default' else 'extra'} modules: {exc}")
+            if not errors:
+                provenance.write_text(json.dumps({**_read(provenance), "finished": True}), encoding="utf-8")
         conversion, summary = _read(provenance), _read(mc_dir / "import_summary.json")
         status_rows = _read(mc_dir / "run_status.json").get("modules")
         if not isinstance(status_rows, list):
@@ -321,7 +328,9 @@ def _count_filtered(mc_dir: Path, modules: list[MetacheckModule]) -> list[Metach
 def fingerprint(record: MetacheckRecord) -> str:
     """Hash of the screening record and every module output; part of each review stage's cache key.
     An unreadable output contributes its name and error instead of its content."""
-    digest = hashlib.sha256(record.model_dump_json(exclude={"output_dir"}).encode())
+    # Location and timestamps are not content: a moved or resumed run keeps its fingerprint.
+    digest = hashlib.sha256(record.model_dump_json(exclude={"output_dir": True, "lookup_date": True,
+                                                            "modules": {"__all__": {"run_at"}}}).encode())
     if record.output_dir:
         for path in sorted(Path(record.output_dir).glob("modules/*.json")):
             try:
