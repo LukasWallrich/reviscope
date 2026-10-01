@@ -159,3 +159,23 @@ def test_managed_policy_that_widens_the_sandbox_blocks_tool_calls_and_changes_id
         codex_file.write_text(widening)
         with pytest.raises(backend_module.PolicyError):
             backend_module.check_managed_policy("codex")
+
+
+def test_codex_on_linux_runs_a_binary_installed_outside_the_home_directory(tmp_path, monkeypatch):
+    from reviscope import backend as backend_module
+
+    home, system = tmp_path / "home", tmp_path / "opt"
+    for directory in (home / "bin", system / "bin"):
+        directory.mkdir(parents=True)
+        (directory / "codex").write_text("#!/bin/sh\n")
+        (directory / "codex").chmod(0o755)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(backend_module.sys, "platform", "linux")
+    monkeypatch.setenv("PATH", f"{home / 'bin'}:{system / 'bin'}")
+    assert CodexBackend("gpt-6-luna").command(tmp_path)[0] == str((system / "bin" / "codex").resolve())
+    assert CodexBackend("gpt-6-luna", tools=False).command(tmp_path)[0] == "codex"
+    monkeypatch.setenv("PATH", str(home / "bin"))
+    with pytest.raises(backend_module.PolicyError, match="outside"):
+        CodexBackend("gpt-6-luna").generate("task", "evidence", Answer)
+    monkeypatch.setattr(backend_module.sys, "platform", "darwin")
+    assert CodexBackend("gpt-6-luna").command(tmp_path)[0] == "codex"

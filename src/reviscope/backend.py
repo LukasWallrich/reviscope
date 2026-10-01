@@ -7,6 +7,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import tempfile
 import tomllib
 from datetime import datetime, timezone
@@ -353,7 +354,7 @@ class SubprocessBackend(Backend):
         """Model settings, CLI version and a hash of the complete command and environment policy."""
         placeholder = Path("/per-call-directory")
         config = json.dumps([self.command(placeholder), sorted(self.environment(placeholder)), self.guard])
-        return (f"{super().identity}:{cli_version(self.binary)}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
+        return (f"{super().identity}:{cli_version(self.command(placeholder)[0])}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
                 f":policy-{policy_hash(self.binary)}")
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
@@ -413,6 +414,23 @@ def codex_permissions() -> str:
             f'":workspace_roots"={{"."="write"}}}}, network={{enabled=false}}}}')
 
 
+def codex_executable() -> str | None:
+    """The codex binary for tool-enabled calls. On Linux, Codex runs each shell command by re-executing its
+    own binary inside bubblewrap, where the home directory is hidden, so a binary installed under the home
+    directory cannot start there. The first codex on PATH that resolves outside the home directory is used;
+    None when there is none. Other platforms use codex from PATH."""
+    if not sys.platform.startswith("linux"):
+        return "codex"
+    home = Path.home().resolve()
+    for directory in filter(None, os.environ.get("PATH", "").split(os.pathsep)):
+        candidate = Path(directory) / "codex"
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            real = candidate.resolve()
+            if real != home and home not in real.parents:
+                return str(real)
+    return None
+
+
 class CodexBackend(SubprocessBackend):
     """Codex CLI. With tools, calls get live web search and a sandboxed shell (codex_permissions);
     the shell inherits only core environment variables. tools=False is for judges and normalizers
@@ -421,7 +439,7 @@ class CodexBackend(SubprocessBackend):
     name, binary = "codex", "codex"
 
     def command(self, tmp: Path) -> list[str]:
-        cmd = ["codex", "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
+        cmd = [(codex_executable() or "codex") if self.tools else "codex", "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
                "--disable", "apps", "--disable", "plugins", "--disable", "browser_use", "--disable", "browser_use_external",
                "--disable", "in_app_browser", "--disable", "computer_use", "--disable", "image_generation",
                "--disable", "skill_search", "--disable", "multi_agent", "--color", "never"]
@@ -436,6 +454,12 @@ class CodexBackend(SubprocessBackend):
         if self.effort:
             cmd += ["-c", f'model_reasoning_effort="{self.effort}"']
         return [*cmd, "-"]
+
+    def _run(self, prompt: str, response_model: type[T]) -> str:
+        if self.tools and codex_executable() is None:
+            raise PolicyError("on Linux the Codex shell sandbox hides the home directory, so tool-enabled calls need a codex "
+                              "binary installed outside it and on PATH (for example a system-wide npm install)")
+        return super()._run(prompt, response_model)
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_codex_events(stdout, started) if self.tools else ([], stdout)
