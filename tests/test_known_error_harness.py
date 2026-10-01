@@ -105,3 +105,6 @@ def test_trace_places_each_missed_error_at_the_stage_that_lost_it():
     assert where_lost(judged("detected"), findings) == "contradicted by verification"
     assert where_lost(judged("detected", ids=("a", "b")), findings) == "unresolved by verification"
     assert where_lost(judged("uncertain", ids=("b", "c")), findings) == "uncertain match; set aside by editorial (merged)"
+    findings["d"] = {"verifier_status": "supported", "status": "unresolved", "editorial_disposition": "needs_review",
+                     "verification": "claim=unresolved: The claim cites external evidence, but no external item was confirmed by the verifier"}
+    assert where_lost(judged("detected", ids=("d",)), findings) == "unresolved: cited external source not confirmed by the verifier"
