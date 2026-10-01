@@ -170,6 +170,15 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
 MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial)$")
 
 
+def opened_nothing(output: Any) -> bool:
+    """An open whose result is empty, or only codex "Internal Error" items without a URL, showed no page."""
+    try:
+        items = json.loads(output) if isinstance(output, str) else output
+    except json.JSONDecodeError:
+        return False
+    return isinstance(items, list) and all(isinstance(i, dict) and not i.get("url") and i.get("title") == "Internal Error" for i in items)
+
+
 def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:
     """Reasons the recorded tool calls may not cover everything the models did."""
     gaps = []
@@ -185,7 +194,7 @@ def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:
             if str(call.get("output", "")).startswith("[incomplete"):
                 gaps.append(f"{name}#{call.get('sequence')}: call never finished")
             elif (call.get("kind") == "fetch" and not call.get("url") and not call.get("opened_urls")
-                  and str(call.get("output") or "").strip() not in {"", "[]"}):  # an empty result showed nothing
+                  and not call.get("error") and not opened_nothing(call.get("output"))):
                 gaps.append(f"{name}#{call.get('sequence')}: fetch without a recorded page URL")
     return gaps
 
