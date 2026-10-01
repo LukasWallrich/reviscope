@@ -77,7 +77,7 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert len(backend.calls) == 5
     blind = next(c for c in backend.calls if 'Perform one blind-spot audit' in c[1])
     assert 'statistical_inference issue 5' in blind[2] and 'COVERAGE LEDGER' in blind[2]
-    assert any('numerical_and_power_claims: assessed' in row for row in run.coverage)
+    assert any('power_and_sensitivity: assessed' in row for row in run.coverage)
     published = next(f for f in run.findings if f.module == 'blind_spots')
     assert published.editorial_disposition == 'publish' and published.status == 'llm_supported'
     assert published.external_evidence[0].url == EXTERNAL['url']

@@ -12,10 +12,12 @@ from .verification import verify_quote
 
 TOPICS = {
     'contribution': ['question_and_claims', 'theoretical_argument', 'design_addresses_question'],
-    'design': ['sampling_and_assignment', 'timing_and_dependence', 'exclusions_and_missingness'],
-    'measurement': ['construct_operationalization', 'scoring_and_denominators', 'comparability_and_validity'],
-    'statistical_inference': ['hypothesis_test_alignment', 'numerical_and_power_claims', 'uncertainty_and_analytic_choices'],
-    'interpretation': ['theory_and_mechanism_claims', 'causal_and_population_scope', 'claim_evidence_consistency'],
+    'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
+    'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],
+    'statistical_inference': ['hypothesis_test_alignment', 'statistical_errors', 'power_and_sensitivity', 'analytic_flexibility',
+                              'uncertainty_and_estimates'],
+    'interpretation': ['causal_inference', 'generalizability', 'theory_and_mechanism_claims', 'claim_evidence_consistency'],
+    'consistency': ['cross_section_agreement', 'sample_counts_through_stages', 'planned_versus_reported_analyses'],
     'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations'],
     'blind_spots': ['unexamined_claims_and_sections', 'omissions_with_consequences', 'unresolved_numerical_questions'],
 }

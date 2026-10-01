@@ -1,0 +1,9 @@
+Audit agreement across the whole manuscript, including supplements and a preregistration when one is supplied or linked. This module owns internal consistency and reporting completeness.
+
+For cross_section_agreement, compare every number and statement that appears in more than one place: abstract against results, text against tables and figures, results against discussion and conclusions, and one study against another where the manuscript says they share a procedure. Check that each key term, construct, condition and variable keeps one definition throughout, and that a limitation stated in one section is not contradicted by a claim elsewhere. Quote both passages of every inconsistency.
+
+For sample_counts_through_stages, trace the sample from recruitment through exclusions, attrition, condition assignment and each reported analysis. Check with code that counts, percentages, cell sizes and degrees of freedom agree at every stage and with the tables.
+
+For planned_versus_reported_analyses, list the hypotheses, measures, conditions and analyses that the introduction, the methods or a preregistration announce, and check that the results report each of them. An announced analysis or measure that is missing from the results is a reporting-completeness finding: state what is missing and which conclusion depends on it. Also report a result presented as planned when no plan announced it. Compare against a preregistration only when it is supplied or opened from the manuscript's registration link.
+
+Before calling a mismatch an error, rule out rounding, different denominators or subsamples, and figures computed on a different basis that the manuscript states. Raise each inconsistency once and leave statistical, design and interpretive criticisms of either passage to the modules that own them.

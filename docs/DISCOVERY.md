@@ -19,9 +19,42 @@ insufficient-evidence states are retained, including when no criticism is genera
 The full structured evidence is in stage JSON; the report displays the coverage
 explanations.
 
+## Modules and coverage checks
+
+Each module's generation prompt asks for its error categories, and each category has a
+named coverage check, so the coverage ledger shows whether the owner assessed it.
+
+| Module | Coverage checks | Error categories it owns |
+|---|---|---|
+| `contribution` | `question_and_claims`, `theoretical_argument`, `design_addresses_question` | theoretical and conceptual problems |
+| `design` | `confounds_and_controls`, `sampling_and_assignment`, `timing_and_dependence`, `attrition_and_missing_data` | methodological design; attrition and missing data |
+| `measurement` | `construct_validity`, `scoring_and_denominators`, `comparability_and_validity` | construct validity |
+| `statistical_inference` | `hypothesis_test_alignment`, `statistical_errors`, `power_and_sensitivity`, `analytic_flexibility`, `uncertainty_and_estimates` | statistical errors; analytic flexibility |
+| `interpretation` | `causal_inference`, `generalizability`, `theory_and_mechanism_claims`, `claim_evidence_consistency` | causal inference; generalizability |
+| `consistency` | `cross_section_agreement`, `sample_counts_through_stages`, `planned_versus_reported_analyses` | internal consistency; reporting completeness |
+
+`consistency` checks agreement across the whole manuscript: numbers and statements
+across sections (abstract against results, text against tables and figures), sample
+counts through the stages of the analysis, planned against reported analyses
+(including analyses announced, preregistered or described in the methods that the
+results do not report), definitions, and limitations stated in one place and
+contradicted elsewhere.
+
+`power_and_sensitivity` asks whether a power or sensitivity analysis is reported
+completely (target effect size and its justification, alpha, power, test or model, N),
+whether it is calculated correctly (recomputed with code), and whether the sample is
+adequate for each claimed inference, including interactions, subgroups and equivalence
+tests. Adequacy is judged by computing the sensitivity or power for the claimed
+inference, never from N alone; observed or post-hoc power is never requested.
+`analytic_flexibility` covers undisclosed researcher degrees of freedom, deviations from
+a preregistration, and changed transformations, centering, exclusions or covariates.
+
+Test statistics are screened by metacheck's `stat_check` module (the statcheck R
+package), whose rows reach `statistical_inference` as leads. With `--no-metacheck`,
+`statistical_inference` recomputes every complete test report with code.
+
 Interpretation includes theory and mechanism claims in introductions and protocols,
-where results are not expected. Statistics audits hypothesis/test/power alignment and
-numerical assumptions. The social-psychology module focuses on psychological
+where results are not expected. The social-psychology module focuses on psychological
 mechanisms and concrete alternative explanations.
 
 One blind-spot pass receives the full manuscript, candidate inventory and coverage

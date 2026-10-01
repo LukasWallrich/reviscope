@@ -6,7 +6,7 @@
 
 An independent, modular manuscript-review alpha for quantitative social science, inspired by [coarse](https://github.com/Davidvandijcke/coarse) by David Van Dijcke. Coarse's staged review, source anchoring, verification, and editorial synthesis provided the starting point. This implementation owns its pipeline and authored disciplinary criteria; it does not depend on or monkey-patch coarse. See [full credits and license provenance](THIRD_PARTY_NOTICES.md).
 
-The default `social_psychology` profile covers quantitative social psychology. It extends `quantitative_social_science`, whose reusable modules assess contribution, design, measurement, statistical inference, and interpretation. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
+The default `social_psychology` profile covers quantitative social psychology. It extends `quantitative_social_science`, whose reusable modules assess contribution, design, measurement, statistical inference, interpretation, and consistency across the manuscript. Discipline profiles control both review generation and verification. An education profile demonstrates extension; it is not a validated education reviewer.
 
 Discovery is coverage-first: each module audits its whole responsibility, records a coverage check per topic, and returns every distinct, justified issue; one blind-spot pass follows. No stage limits the number of findings. See [discovery and verification](docs/DISCOVERY.md).
 

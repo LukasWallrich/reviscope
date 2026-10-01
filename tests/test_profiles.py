@@ -7,9 +7,45 @@ def test_social_psychology_inherits_base_protocols():
     profile = load_profile("social_psychology")
     assert profile.modules[:2] == ["contribution", "design"]
     assert "social_psychology_context" in profile.modules
-    assert "Never infer inadequate power" in profile.module_prompts["design"]
+    assert "never from N alone" in profile.module_prompts["design"]
     assert "preregistration" in profile.module_prompts["social_psychology_context"]
     assert profile.metadata["ancestry"] == ["quantitative_social_science", "social_psychology"]
+
+
+# Benchmark error category -> owning module and the coverage check that names it.
+CATEGORY_OWNERS = {
+    "statistical errors": ("statistical_inference", "statistical_errors"),
+    "methodological design": ("design", "confounds_and_controls"),
+    "construct validity": ("measurement", "construct_validity"),
+    "causal inference": ("interpretation", "causal_inference"),
+    "internal consistency": ("consistency", "cross_section_agreement"),
+    "reporting completeness": ("consistency", "planned_versus_reported_analyses"),
+    "generalizability": ("interpretation", "generalizability"),
+    "theoretical/conceptual problems": ("contribution", "theoretical_argument"),
+    "analytic flexibility": ("statistical_inference", "analytic_flexibility"),
+    "attrition and missing data": ("design", "attrition_and_missing_data"),
+}
+
+
+@pytest.mark.parametrize("category", CATEGORY_OWNERS)
+def test_every_error_category_has_an_owning_module_and_coverage_check(category):
+    from reviscope.discovery import TOPICS
+
+    module, check = CATEGORY_OWNERS[category]
+    profile = load_profile("social_psychology")
+    assert module in profile.modules and check in TOPICS[module]
+    assert f"For {check}," in profile.module_prompts[module]
+
+
+def test_power_is_judged_by_computed_sensitivity_for_each_claimed_inference():
+    from reviscope.discovery import TOPICS
+
+    prompts = load_profile("quantitative_social_science").module_prompts
+    assert "power_and_sensitivity" in TOPICS["statistical_inference"]
+    power = prompts["statistical_inference"]
+    for phrase in ("target effect size", "recompute it with code", "interactions, subgroup analyses and equivalence tests",
+                   "never judge it from N alone", "never request observed or post-hoc power"):
+        assert phrase in power
 
 
 def test_education_is_explicitly_unvalidated_extension():
@@ -60,7 +96,7 @@ def test_single_profile_merges_restraint_and_coverage_rules_without_quotas():
         "single consolidated reviewability finding",
         "Do not ask authors to preregister a completed study",
         "acknowledge a design limitation",
-        "Recompute power, sample-size, test-statistic",
+        "Recompute reported quantities with code",
         "Audit strong exclusionary or universal claims",
         "Do not restate an author-acknowledged limitation",
         "Evaluate whether the design distinguishes the claimed mechanism",

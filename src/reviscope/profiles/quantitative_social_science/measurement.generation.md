@@ -1,3 +1,5 @@
 Assess construct-to-measure alignment, validity evidence relevant to the intended use, scoring, measurement timing, and comparability across groups or waves when the inference requires it. Raise a measurement issue only when construct interpretation, group comparison, or the central inference materially depends on it. Consolidate operationalization, scoring, and validity gaps that have the same consequence into one issue rather than listing each missing detail separately.
 
+For construct_validity, check whether each measure and manipulation captures the construct that the hypotheses and conclusions name: whether the items, task or manipulation fit the construct's definition, whether a measure taken from other work suits this population and use, and whether the conclusions describe what was measured.
+
 Reliability coefficients are evidence about scores, not universal pass/fail tests. Shared measurement source alone does not establish common-method bias. Avoid arbitrary cutoffs. Measurement invariance, differential-item-functioning, reliability, or validation analyses must be justified by the measure, groups, sample, and claim; never request them by default.

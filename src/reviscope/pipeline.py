@@ -100,7 +100,7 @@ PROVENANCE_VERSION = "2"
 
 
 class ReviewPipeline:
-    STAGE_VERSION = "0.3.0a1"
+    STAGE_VERSION = "0.4.0a1"
 
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")

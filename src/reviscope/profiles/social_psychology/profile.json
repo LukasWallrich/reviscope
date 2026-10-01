@@ -5,5 +5,5 @@
   "extends": "quantitative_social_science",
   "modules": ["social_psychology_context"],
   "terminology": {"manipulation": "experimental manipulation", "construct": "psychological construct"},
-  "metadata": {"validated": false, "version": "0.3.0", "scope": "Quantitative social and personality psychology"}
+  "metadata": {"validated": false, "version": "0.4.0", "scope": "Quantitative social and personality psychology"}
 }
