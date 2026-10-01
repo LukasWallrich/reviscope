@@ -10,7 +10,7 @@ This project is intentionally coarse-inspired and gives prominent credit to:
 - Source revision reviewed during development: `07dc9def97bf6ee4a3b7f7989079f6f45eb277fa`
 - License: MIT
 
-The independent implementation in `src/reviscope/verification.py`, `checks.py`, and the discipline-profile loader does not copy coarse source code. The project-level architecture adapts ideas demonstrated by coarse, including staged manuscript analysis, evidence quotations, section-aware review, verification, and an editorial synthesis pass. The social-science protocols were newly authored for this project rather than copied from coarse prompts.
+The independent implementation in `src/reviscope/verification.py` and the discipline-profile loader does not copy coarse source code. The project-level architecture adapts ideas demonstrated by coarse, including staged manuscript analysis, evidence quotations, section-aware review, verification, and an editorial synthesis pass. The social-science protocols were newly authored for this project rather than copied from coarse prompts.
 
 The upstream MIT license is reproduced below to preserve attribution for any coarse-derived material that may be incorporated as the project evolves.
 

@@ -271,36 +271,6 @@ class ReviewPipeline:
                 run.coverage.append(f"{module}: not assessed (stage failed)")
                 run.stages.append(self._failed(f"review-{module}", exc))
         try:
-            from .checks import run_statistical_checks
-
-            self.progress("statistical-checks: started")
-            started_checks = time.monotonic()
-            check_report = run_statistical_checks([s.model_dump() for s in sources])
-            check_components = {"stage": "statistical-checks", "version": self.STAGE_VERSION, "sources": input_hash, "checker": "reported-statistics-v1"}
-            check_key = _hash(check_components)
-            check_artifact = out / "stages" / f"statistical-checks-{check_key}.json"
-            check_artifact.parent.mkdir(parents=True, exist_ok=True)
-            if not check_artifact.exists():
-                fd, temporary = tempfile.mkstemp(prefix=".statistical-checks-", suffix=".json", dir=check_artifact.parent)
-                try:
-                    with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                        json.dump(check_report.to_dict(), handle, indent=2)
-                    os.replace(temporary, check_artifact)
-                finally:
-                    if os.path.exists(temporary):
-                        os.unlink(temporary)
-            run.coverage.append(f"statistical arithmetic: checked {check_report.coverage.checked} of {check_report.coverage.eligible} eligible reports")
-            for position, item in enumerate(check_report.findings):
-                if item.consistent is False:
-                    source = next(s for s in sources if s.id == item.source_id)
-                    run.candidates.append(Finding(id=f"statistical_check:{position}", module="statistical_check", claim="A reported test statistic and p-value may be arithmetically inconsistent under the checker's assumptions.", rationale=item.explanation, remedy="Verify the statistic, degrees of freedom, tail convention, and reported p-value against the analysis output.", severity="minor", evidence=[{"source_id": source.id, "quote": item.reported}], status="candidate", verification=f"Deterministic screening recomputed p={item.computed_p:.6g}; a separate verification pass is still required."))
-            run.stages.append(StageRecord(name="statistical-checks", status="completed", cache_key=check_key, artifact=str(check_artifact), key_components=check_components))
-            self.progress(f"statistical-checks: completed in {time.monotonic() - started_checks:.1f}s")
-        except Exception as exc:
-            self.progress(f"statistical-checks: failed ({type(exc).__name__})")
-            run.partial = True
-            run.stages.append(StageRecord(name="statistical-checks", status="failed", error=f"{type(exc).__name__}: {exc}"))
-        try:
             from .verification import verify_findings
 
             anchored = verify_findings(run.candidates, sources)

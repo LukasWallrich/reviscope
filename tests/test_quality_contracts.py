@@ -149,16 +149,6 @@ def test_every_supported_finding_is_published_in_severity_order(tmp_path):
     assert [line.split(":")[0] for line in headings[:3]] == ["### Critical"] * 3
 
 
-def test_uncertain_statistical_screening_lead_is_not_automatically_major(tmp_path):
-    manuscript = paper(tmp_path, " Reported result: t(18) = 2.10, p = .90.")
-    backend = QualityBackend(findings=[], editorial=keep_all)
-    run = ReviewPipeline(backend, Profile(id="stats", title="Stats", modules=[]),
-                         QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])).run(
-        manuscript, output_dir=tmp_path / "out")
-    lead = next(item for item in run.candidates if item.module == "statistical_check")
-    assert lead.severity.value == "minor"
-
-
 def test_editorial_reconciles_overview_while_preserving_preliminary_map(tmp_path):
     generator = QualityBackend(findings=[candidate("a")], editorial=keep_all,
                                reconciled_overview={"design_summary": "Qualified design account.",

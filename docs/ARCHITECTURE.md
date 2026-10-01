@@ -6,7 +6,7 @@ ReviScope is an independent, coarse-inspired manuscript review engine. It does n
 
 The engine handles source loading, typed stage outputs, backend calls, cache identity, and report rendering. Discipline profiles supply authored review and verification criteria. Methodological modules (such as measurement or statistical inference) are reusable between disciplines. Every stage receives sources as evidence, never as instructions. Review stages run with web search, web fetching and a sandboxed shell, and record every tool call as stage provenance. Findings may cite external evidence, and each also anchors in an exact manuscript quotation. Models generate candidate findings; verification and editorial disposition remain separately inspectable.
 
-A complete pipeline run is not a validated scientific verdict. A source quote establishes provenance, not whether the criticism follows. Statistical recomputation is limited by the reporting format and assumptions its checker supports. The report must distinguish supported criticisms, contradicted candidates, unresolved issues, and assessment limitations.
+A complete pipeline run is not a validated scientific verdict. A source quote establishes provenance, not whether the criticism follows. Recomputation with code is limited by what the manuscript reports and by the assumptions the model states. The report must distinguish supported criticisms, contradicted candidates, unresolved issues, and assessment limitations.
 
 ## Extension contract
 
