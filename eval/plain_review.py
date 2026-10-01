@@ -1,7 +1,9 @@
 """Single-call baseline review with the Dawes benchmark's taxonomy prompt.
 
 Sends `REVIEW_PROMPT` from the benchmark (commit 3d91883, benchmark/prompts.py)
-to one model call with the same tools as the pipeline's review stages (web
+to one model call. With --no-category-list the prompt's "Look carefully for:" list,
+which names exactly the ten planted-error categories, is removed; the output format,
+including the category field, is unchanged. The call runs with the same tools as the pipeline's review stages (web
 search, fetching, sandboxed shell). Writes the benchmark's `{"issues": [...]}`
 format plus the provenance `eval/audit_tool_use.py` reads: `sources` (manuscript
 sha256) and one `review-plain` stage with every recorded tool call. A failed call
@@ -53,6 +55,16 @@ Return ONLY a JSON object: {"issues": [...]}
 Be thorough and precise. Focus on problems that affect validity, replicability, or interpretation."""
 
 
+def without_category_list(prompt: str) -> str:
+    """The prompt without its "Look carefully for:" category list."""
+    start, end = prompt.index("Look carefully for:\n"), prompt.index("For each issue, provide:")
+    return prompt[:start] + prompt[end:]
+
+
+PROMPT_LABELS = {REVIEW_PROMPT: "Dawes benchmark REVIEW_PROMPT (taxonomy-guided)",
+                 without_category_list(REVIEW_PROMPT): "Dawes benchmark REVIEW_PROMPT without the 'Look carefully for:' category list"}
+
+
 class Issue(BaseModel):
     category: Literal["statistical_errors", "methodological_design", "construct_validity", "causal_inference",
                       "internal_consistency", "reporting_completeness", "generalizability",
@@ -68,19 +80,19 @@ class Issues(BaseModel):
     issues: list[Issue]
 
 
-def review(manuscript: Path, backend: Backend) -> dict[str, object]:
+def review(manuscript: Path, backend: Backend, prompt: str = REVIEW_PROMPT) -> dict[str, object]:
     """Run the one-call review and return the review.json payload, failed or not."""
     raw = manuscript.read_bytes()
     stage: dict[str, object] = {"name": STAGE, "status": "completed"}
     started = time.monotonic()
     issues: list[dict[str, object]] = []
     try:
-        issues = [item.model_dump() for item in backend.generate(REVIEW_PROMPT, raw.decode("utf-8"), Issues).issues]
+        issues = [item.model_dump() for item in backend.generate(prompt, raw.decode("utf-8"), Issues).issues]
     except Exception as exc:  # keep the provenance of a failed call
         stage.update(status="failed", error=f"{type(exc).__name__}: {exc}")
     calls = [call.model_copy(update={"stage": STAGE}).model_dump(mode="json") for call in backend.take_tool_calls()]
     stage.update(duration_seconds=round(time.monotonic() - started, 1), tool_calls=calls)
-    return {"generator": backend.identity, "prompt": "Dawes benchmark REVIEW_PROMPT (taxonomy-guided)",
+    return {"generator": backend.identity, "prompt": PROMPT_LABELS[prompt],
             "partial": stage["status"] == "failed",
             "sources": [{"id": "manuscript", "path": str(manuscript.resolve()), "kind": "manuscript",
                          "sha256": hashlib.sha256(raw).hexdigest()}],
@@ -94,9 +106,11 @@ def main() -> int:
     parser.add_argument("--model", choices=sorted(MODELS), default="gpt-6-luna")
     parser.add_argument("--effort", default="high")
     parser.add_argument("--timeout", type=int, default=3600, help="per-call timeout in seconds")
+    parser.add_argument("--no-category-list", action="store_true", help='remove the "Look carefully for:" category list from the prompt')
     args = parser.parse_args()
 
-    payload = review(args.manuscript, MODELS[args.model](args.model, args.timeout, args.effort))
+    prompt = without_category_list(REVIEW_PROMPT) if args.no_category_list else REVIEW_PROMPT
+    payload = review(args.manuscript, MODELS[args.model](args.model, args.timeout, args.effort), prompt)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
