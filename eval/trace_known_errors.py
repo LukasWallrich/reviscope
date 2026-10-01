@@ -6,8 +6,11 @@ editorial record in `review.json`. A planted error that the published review mis
 placed at the first stage that lost it:
 
 - `never raised`: no candidate matched;
-- `contradicted by verification` / `unresolved by verification`: every matched candidate
-  failed verification, with the best verifier outcome named;
+- `contradicted by verification` / `unresolved by verification`: the verifier supported no
+  matched candidate, with the best verifier outcome named;
+- `unresolved: cited external source not confirmed by the verifier` / `unresolved: no anchored
+  manuscript quotation`: the verifier supported a matched candidate, but the publication rule
+  left it unresolved;
 - `set aside by editorial`: a matched candidate passed verification but was not published;
 - `published`: a matched candidate was published.
 
@@ -38,6 +41,11 @@ def where_lost(judgment: dict, findings: dict[str, dict]) -> str:
     prefix = "uncertain match; " if candidate["verdict"] == "uncertain" else ""
     verified = [f for f in matched if f.get("verifier_status") == "supported" and f.get("status") != "unresolved"]
     if not verified:
+        if any(f.get("verifier_status") == "supported" for f in matched):
+            # The verifier supported the claim; the publication rule left it unresolved.
+            external = any("no external item was confirmed" in (f.get("verification") or "") for f in matched)
+            return prefix + ("unresolved: cited external source not confirmed by the verifier" if external
+                             else "unresolved: no anchored manuscript quotation")
         outcomes = {f.get("verifier_status") or f.get("status") for f in matched}
         return prefix + ("unresolved by verification" if "unresolved" in outcomes else "contradicted by verification")
     if not any(f.get("editorial_disposition") == "publish" for f in verified):
