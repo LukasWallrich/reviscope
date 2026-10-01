@@ -259,9 +259,10 @@ class ReviewPipeline:
                 result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, DiscoveryResponse, generate_findings)
                 result = validate_discovery(result, module, sources)  # type: ignore[arg-type]
                 run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
+                # The model's own account of an incomplete audit is coverage information; a run is
+                # partial only when a stage fails.
                 if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
-                    run.partial = True
-                    run.coverage.append(f"{module}: discovery incomplete")
+                    run.coverage.append(f"{module}: discovery reported incomplete by the model or missing coverage entries")
                 for position, finding in enumerate(result.findings):
                     run.candidates.append(finding.model_copy(update={"id": f"{module}:{position}:{finding.id or 'finding'}", "module": module, "status": "candidate", "confidence": None, "verification": None, "verifier_status": None, "verifier_rationale": None, "remedy_status": None, "remedy_verification": None, "editorial_disposition": "publish", "editorial_reason": None, "merged_into": None}))
                 run.stages.append(stage)

@@ -96,12 +96,10 @@ def validate_discovery(result: DiscoveryResponse, module: str, sources: list[Sou
             incomplete = True
             continue
         row = rows[0]
-        if row.status == 'assessed' and (not row.evidence or any(
-            verify_quote(e.quote, source_rows, e.source_id).status != 'supported'
-            for e in row.evidence
-        )):
-            row = row.model_copy(update={'status': 'not_checked',
-                'rationale': 'Coverage evidence could not be anchored; original account: ' + row.rationale})
-            incomplete = True
+        if row.status == 'assessed':
+            anchored = [e for e in row.evidence if verify_quote(e.quote, source_rows, e.source_id).status == 'supported']
+            if len(anchored) < len(row.evidence):
+                note = 'no cited quotation could be anchored' if not anchored else f'{len(row.evidence) - len(anchored)} cited quotation(s) could not be anchored and were dropped'
+                row = row.model_copy(update={'evidence': anchored, 'rationale': f'{row.rationale} [{note}]'})
         checks.append(row)
     return result.model_copy(update={'checks': checks, 'search_incomplete': incomplete})

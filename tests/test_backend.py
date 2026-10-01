@@ -33,7 +33,11 @@ def test_codex_parser_keeps_every_query_and_marks_failed_or_unfinished_calls():
     calls, _ = parse_codex_events("\n".join(json.dumps(e) for e in events), NOW)
     assert [c.query for c in calls[:2]] == ["effect sizes", "paper title reviews"]
     assert calls[2].error and calls[4].error and "incomplete" in calls[4].output
-    assert calls[3].kind == "fetch" and calls[3].opened_urls == ["https://pubmed.ncbi.nlm.nih.gov/21474762/"]
+    assert calls[3].kind == "fetch" and calls[3].opened_urls == ["https://pubmed.ncbi.nlm.nih.gov/21474762/"] and not calls[3].error
+    failed_open = {"type": "item.completed", "item": {"id": "5", "type": "web_search", "action": {"type": "open_page"},
+                                                     "results": [{"type": "text_result", "ref_id": "turn1view0", "title": "Internal Error"}]}}
+    [failed], _ = parse_codex_events(json.dumps(failed_open), NOW)
+    assert failed.kind == "fetch" and failed.error and not failed.opened_urls
 
 
 def test_claude_event_stream_pairs_tool_uses_with_results_and_records_refusals():

@@ -91,13 +91,13 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert cached.status == 'cached' and cached.tool_calls[0].stage == 'review-blind_spots'
 
 
-def test_omitted_coverage_retains_findings_but_marks_search_incomplete(tmp_path):
+def test_omitted_coverage_retains_findings_and_is_reported_without_marking_the_run_partial(tmp_path):
     paper = tmp_path / 'paper.txt'
     paper.write_text('24 of 60 people withdrew. ' + 'Context. ' * 200)
     profile = Profile(id='deep-test', title='test', modules=['statistical_inference'],
                       module_prompts={'statistical_inference': 'Review.'})
     run = ReviewPipeline(DiscoveryBackend(bad_coverage=True), profile).run(paper, output_dir=tmp_path / 'run')
-    assert run.partial
+    assert not run.partial and any("reported incomplete" in row for row in run.coverage)
     assert next(s for s in run.stages if s.name == 'review-statistical_inference').status == 'completed'
     assert len(run.candidates) == 7
     assert any('not_checked' in row for row in run.coverage)

@@ -239,7 +239,10 @@ def _codex_calls(item: dict[str, Any], sequence: int, started: datetime) -> list
         if not queries:
             # Opening earlier results by reference: no query; the opened pages are the `url` fields of the result items.
             opened = [r["url"] for r in results if isinstance(r, dict) and isinstance(r.get("url"), str)] if isinstance(results, list) else []
-            return [ToolCall(**base, sequence=sequence, kind="fetch", opened_urls=list(dict.fromkeys(opened)),
+            # Codex reports a failed open as result items titled "Internal Error" with no URL.
+            failed = isinstance(results, list) and bool(results) and all(
+                isinstance(r, dict) and not r.get("url") and r.get("title") == "Internal Error" for r in results)
+            return [ToolCall(**{**base, "error": base["error"] or failed}, sequence=sequence, kind="fetch", opened_urls=list(dict.fromkeys(opened)),
                              output=_truncate(results), result_urls=_urls(results))]
         return [ToolCall(**base, sequence=sequence + i, kind="search", query=query,
                          output=_truncate(results) if i == 0 else "", result_urls=_urls(results) if i == 0 else [])
