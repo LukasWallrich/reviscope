@@ -108,15 +108,25 @@ class MetacheckError(RuntimeError):
     pass
 
 
+def _json_object(stdout: str) -> dict[str, Any] | None:
+    """The JSON object a script prints on a line of its own; R functions can print other output before it."""
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"(?m)^\{", stdout):
+        try:
+            value, _ = decoder.raw_decode(stdout[match.start():])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
+    return None
+
+
 def run_r(script: str, args: list[str]) -> tuple[dict[str, Any], str]:
     """Run one vendored mc_*.R script; return its JSON result and stderr log."""
     result = subprocess.run(["Rscript", str(VENDOR / "scripts" / script), *args],
                             capture_output=True, text=True, timeout=R_TIMEOUT)
-    try:
-        payload = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        payload = None
-    if not isinstance(payload, dict):
+    payload = _json_object(result.stdout)
+    if payload is None:
         payload = {"status": "error", "message": result.stderr[-1000:].strip() or f"no JSON object in output (exit {result.returncode})"}
     if result.returncode or payload.get("status") != "ok":
         raise MetacheckError(f"{script}: {payload.get('message', 'failed')}")
@@ -125,12 +135,14 @@ def run_r(script: str, args: list[str]) -> tuple[dict[str, Any], str]:
 
 @functools.cache
 def package_version() -> str:
-    """Installed metacheck version; part of the reuse key for earlier screening output."""
-    result = subprocess.run(["Rscript", "-e", 'cat(as.character(utils::packageVersion("metacheck")))'],
+    """Installed metacheck version, with the commit when it was installed from a repository, and the
+    R version; part of the reuse key for earlier screening output."""
+    result = subprocess.run(["Rscript", "-e", 'cat(as.character(utils::packageVersion("metacheck")), '
+                             'utils::packageDescription("metacheck")$RemoteSha, paste0("R-", getRversion()))'],
                             capture_output=True, text=True, timeout=120)
     if result.returncode or not result.stdout.strip():
         raise MetacheckError(f"metacheck R package not available: {result.stderr[-300:].strip()}")
-    return result.stdout.strip()
+    return "+".join(result.stdout.split())
 
 
 def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:

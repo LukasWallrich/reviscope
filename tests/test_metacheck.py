@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from docx import Document
 
 from reviscope import metacheck
@@ -250,3 +251,12 @@ def test_finished_screening_is_reused_and_timestamps_do_not_change_the_fingerpri
     restamped = second.model_copy(update={"lookup_date": "2030-01-01", "output_dir": second.output_dir,
                                           "modules": [m.model_copy(update={"run_at": "2030-01-01T00:00:00Z"}) for m in second.modules]})
     assert metacheck.fingerprint(first) == metacheck.fingerprint(second) == metacheck.fingerprint(restamped)
+
+
+def test_r_failure_reports_the_scripts_own_message_after_other_printed_output(monkeypatch):
+    import subprocess
+
+    printed = '[[1]]\n[[1]][[1]]\nNULL\n\n{\n  "status": "error",\n  "message": "The arguments must be paper objects"\n}\n'
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, printed, "Converting manuscript.pdf..."))
+    with pytest.raises(metacheck.MetacheckError, match="must be paper objects"):
+        metacheck.run_r("mc_import.R", [])
