@@ -2,7 +2,8 @@
 
 Each configuration writes to `<root>/reviews/<label>/paper-NN/`:
 - `review.json`: `--mode pipeline` runs `reviscope review`; `--mode plain` runs the
-  one-call baseline `eval/plain_review.py`. Both run with tools.
+  one-call baseline `eval/plain_review.py`; `--mode plain-nolist` runs that baseline
+  without the prompt's category list. All run with tools.
 - `tool-audit.json`: `eval/audit_tool_use.py --planted-errors` verdict for that paper
   (`clean`, `flagged` or `incomplete`), bound to the review's and the code's sha256.
 - `planted-error-adjudication.<judge>.json`: `eval/adjudicate_known_errors.py`.
@@ -101,9 +102,10 @@ def check_inputs(root: Path, papers: list[int], code: Path) -> None:
 
 def review_command(paper: int, source: Path, out: Path, args: argparse.Namespace) -> list[str]:
     python = sys.executable
-    if args.mode == "plain":
-        return [python, str(args.code / "eval" / "plain_review.py"), str(source), "--model", args.model,
-                "--effort", args.effort, "--timeout", str(args.timeout), "--output", str(out / "review.json")]
+    if args.mode != "pipeline":
+        command = [python, str(args.code / "eval" / "plain_review.py"), str(source), "--model", args.model,
+                   "--effort", args.effort, "--timeout", str(args.timeout), "--output", str(out / "review.json")]
+        return command + ["--no-category-list"] if args.mode == "plain-nolist" else command
     command = [python, "-m", "reviscope.cli", "review", str(source), "--profile", args.profile, "--backend", args.backend,
                "--effort", args.effort, "--timeout", str(args.timeout), "--out", str(out), "--quiet"]
     if args.backend != "fixture":
@@ -162,7 +164,7 @@ def run_paper(paper: int, args: argparse.Namespace) -> str:
         status = f"partial={partial}, tool audit {verdict}"
         if args.backend == "fixture":
             return f"{name}: fixture review, not scored ({status})"
-        if partial and args.mode == "plain":
+        if partial and args.mode != "pipeline":
             return f"{name}: plain review failed, not scored ({status})"
 
         scored = out / f"planted-error-adjudication.{args.judge_model}.json"
@@ -183,7 +185,7 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=ROOT / "runs" / "known-errors-all")
     parser.add_argument("--papers", type=int, nargs="+", choices=range(1, 11), default=list(range(1, 11)))
     parser.add_argument("--concurrency", type=int, default=3)
-    parser.add_argument("--mode", choices=["pipeline", "plain"], default="pipeline")
+    parser.add_argument("--mode", choices=["pipeline", "plain", "plain-nolist"], default="pipeline")
     parser.add_argument("--profile", default="social_psychology")
     parser.add_argument("--model", choices=sorted(MODELS), default="gpt-6-luna", help="Reviewer model; sets the backend")
     parser.add_argument("--backend", choices=["fixture"], help="Pipeline with the deterministic demo backend; no model calls, no judge")
@@ -200,7 +202,7 @@ def main() -> int:
     args.root = args.root.resolve()
     if not args.label:
         reviewer = "fixture" if args.backend == "fixture" else f"{args.model}_{args.effort}"
-        args.label = f"pipeline_{reviewer}_{args.profile}" if args.mode == "pipeline" else f"plain_{reviewer}"
+        args.label = f"pipeline_{reviewer}_{args.profile}" if args.mode == "pipeline" else f"{args.mode}_{reviewer}"
     args.code, args.digest = snapshot(args.root)
     check_inputs(args.root, args.papers, args.code)
     args.env = {**os.environ, "PYTHONPATH": str(args.code / "src")}

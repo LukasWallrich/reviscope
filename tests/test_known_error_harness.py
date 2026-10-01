@@ -73,3 +73,19 @@ def test_plain_review_records_tool_calls_that_the_audit_reads(tmp_path):
         assert result["paper"] == "known-error-7" and result["verdict"] == verdict and result["tool_calls"] == 1
         assert ("stage failed" in result["reasons"][-1]) is fail
     assert papers[6]["titles"][0] == paper7["title"]
+
+
+def test_plain_baseline_without_category_list_keeps_the_output_format():
+    plain = runpy.run_path(str(EVAL / "plain_review.py"))
+    full, nolist = plain["REVIEW_PROMPT"], plain["without_category_list"](plain["REVIEW_PROMPT"])
+    assert "Look carefully for:" in full and "Look carefully for:" not in nolist
+    assert "Construct validity issues" not in nolist and "Attrition and missing data issues" not in nolist
+    assert nolist.startswith(full[:full.index("Look carefully for:")])
+    assert nolist.endswith(full[full.index("For each issue, provide:"):]) and "- category: one of [" in nolist
+    assert plain["PROMPT_LABELS"][nolist] != plain["PROMPT_LABELS"][full]
+    driver = runpy.run_path(str(EVAL / "run_known_errors.py"))
+    args = type("Args", (), {"mode": "plain-nolist", "code": EVAL.parent, "model": "gpt-6-luna", "effort": "high", "timeout": 60})()
+    command = driver["review_command"](5, Path("in.txt"), Path("out"), args)
+    assert command[1].endswith("plain_review.py") and command[-1] == "--no-category-list"
+    args.mode = "plain"
+    assert "--no-category-list" not in driver["review_command"](5, Path("in.txt"), Path("out"), args)
