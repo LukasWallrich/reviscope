@@ -89,3 +89,19 @@ def test_plain_baseline_without_category_list_keeps_the_output_format():
     assert command[1].endswith("plain_review.py") and command[-1] == "--no-category-list"
     args.mode = "plain"
     assert "--no-category-list" not in driver["review_command"](5, Path("in.txt"), Path("out"), args)
+
+
+def test_trace_places_each_missed_error_at_the_stage_that_lost_it():
+    where_lost = runpy.run_path(str(EVAL / "trace_known_errors.py"))["where_lost"]
+
+    def judged(candidate, published="not_detected", ids=("a",)):
+        return {"candidate": {"verdict": candidate, "matched_finding_ids": list(ids)}, "published": {"verdict": published}}
+
+    findings = {"a": {"verifier_status": "contradicted", "status": "contradicted", "editorial_disposition": "rejected"},
+                "b": {"verifier_status": "unresolved", "status": "unresolved", "editorial_disposition": "needs_review"},
+                "c": {"verifier_status": "supported", "status": "llm_supported", "editorial_disposition": "merged"}}
+    assert where_lost(judged("detected", "detected"), findings) == "published"
+    assert where_lost(judged("not_detected", ids=()), findings) == "never raised"
+    assert where_lost(judged("detected"), findings) == "contradicted by verification"
+    assert where_lost(judged("detected", ids=("a", "b")), findings) == "unresolved by verification"
+    assert where_lost(judged("uncertain", ids=("b", "c")), findings) == "uncertain match; set aside by editorial (merged)"
