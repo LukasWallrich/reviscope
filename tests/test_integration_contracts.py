@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 from docx import Document
 import pytest
@@ -62,7 +61,7 @@ def finding(identifier="same", claim="A grounded concern", status="recomputed"):
 
 
 def support_all(instruction):
-    import json, re
+    import json
     block = instruction.split("CANDIDATES\n", 1)[1].split("\nDISCIPLINE RULES", 1)[0]
     candidates = json.loads(block)
     return [{"finding_id": item["finding_id"], "status": "supported", "rationale": "checked",

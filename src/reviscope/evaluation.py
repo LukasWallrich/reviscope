@@ -23,7 +23,7 @@ import urllib.error
 from urllib.parse import urlparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Iterable, Mapping, Protocol, Sequence
+from typing import Any, Awaitable, Iterable, Mapping, Protocol, Sequence
 
 from pydantic import BaseModel, Field
 

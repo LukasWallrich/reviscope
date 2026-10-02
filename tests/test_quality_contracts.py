@@ -6,7 +6,7 @@ import re
 from reviscope.backend import Backend
 from reviscope.pipeline import ReviewPipeline
 from reviscope.profiles import load_profile
-from reviscope.schemas import Evidence, Finding, Profile, StudyMap
+from reviscope.schemas import Profile, StudyMap
 from stubs import discovery_payload, is_blind_spot
 
 
