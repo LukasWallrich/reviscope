@@ -83,7 +83,8 @@ Claude session. Keep Codex concurrency at about 3 to 4 per account.
 
 On Linux, tool-enabled Codex calls need a `codex` binary installed outside the home
 directory and on `PATH` (see README), and the shell sees only system-wide Python and R
-packages. Metacheck needs R 4.5 or later (see README). The commands below use macOS `caffeinate`; on Linux start each driver as a
+packages. Metacheck needs R 4.5 or later (see README). Set `REVISCOPE_CONTACT_EMAIL` (see README) in the
+environment the drivers start from; user services inherit it from `~/.config/environment.d/`. The commands below use macOS `caffeinate`; on Linux start each driver as a
 user service instead, which survives the end of the session when lingering is enabled
 (`loginctl enable-linger`). Pass `PATH` so the service finds `codex` and `claude`:
 
