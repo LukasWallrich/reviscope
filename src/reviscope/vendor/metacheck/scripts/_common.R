@@ -35,6 +35,9 @@ mc_load <- function() {
   } else {
     mc_fail("metacheck is not installed and METACHECK_DEV_PATH is not set")
   }
+  # contact address sent with CrossRef and other API requests (CrossRef's polite pool)
+  email <- Sys.getenv("METACHECK_EMAIL", "")
+  if (nzchar(email)) tryCatch(metacheck::email(email), error = function(e) mc_fail("METACHECK_EMAIL is not a valid email address: ", email))
   invisible(TRUE)
 }
 

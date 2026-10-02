@@ -12,6 +12,7 @@ import functools
 import hashlib
 import inspect
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -104,6 +105,11 @@ NOT_CANDIDATE: dict[str, tuple[str, Callable[[dict[str, Any]], bool]]] = {
 P_VALUE_DUPLICATE = "p-value extraction inventory; the same p-values are listed with flags under stat_p_exact and stat_p_nonsig"
 
 
+# Contact address that metacheck sends with CrossRef and other API requests (CrossRef's polite
+# pool); without it metacheck sends its own default address.
+CONTACT_EMAIL = "REVISCOPE_CONTACT_EMAIL"
+
+
 class MetacheckError(RuntimeError):
     pass
 
@@ -123,8 +129,11 @@ def _json_object(stdout: str) -> dict[str, Any] | None:
 
 def run_r(script: str, args: list[str]) -> tuple[dict[str, Any], str]:
     """Run one vendored mc_*.R script; return its JSON result and stderr log."""
+    env = dict(os.environ)
+    if contact := os.environ.get(CONTACT_EMAIL):
+        env["METACHECK_EMAIL"] = contact
     result = subprocess.run(["Rscript", str(VENDOR / "scripts" / script), *args],
-                            capture_output=True, text=True, timeout=R_TIMEOUT)
+                            capture_output=True, text=True, timeout=R_TIMEOUT, env=env)
     payload = _json_object(result.stdout)
     if payload is None:
         payload = {"status": "error", "message": result.stderr[-1000:].strip() or f"no JSON object in output (exit {result.returncode})"}

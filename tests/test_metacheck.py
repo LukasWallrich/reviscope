@@ -260,3 +260,18 @@ def test_r_failure_reports_the_scripts_own_message_after_other_printed_output(mo
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, printed, "Converting manuscript.pdf..."))
     with pytest.raises(metacheck.MetacheckError, match="must be paper objects"):
         metacheck.run_r("mc_import.R", [])
+
+
+def test_contact_email_reaches_the_r_scripts_as_metacheck_email(monkeypatch):
+    import subprocess
+
+    seen = {}
+
+    def run(command, **kwargs):
+        seen.update(kwargs["env"])
+        return subprocess.CompletedProcess(command, 0, '{"status": "ok"}', "")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setenv(metacheck.CONTACT_EMAIL, "reviewer@example.org")
+    metacheck.run_r("mc_import.R", [])
+    assert seen["METACHECK_EMAIL"] == "reviewer@example.org"
