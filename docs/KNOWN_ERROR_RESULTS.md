@@ -1,5 +1,70 @@
 # Planted-error benchmark: papers 5 and 9
 
+## Engine 0.4.1 pilot (2 October 2026)
+
+All four reviews are complete and adjudicated. The tool audit is clean for both Sol
+papers and Luna's paper 9. Luna's paper 5 is flagged for a manuscript-title search
+by `statistical_inference`, and is excluded from headline recall. No model stage or
+verification batch failed. Metacheck screening is partial in each review:
+`stat_effect_size` fails in both papers; paper 9 also has failed reference accuracy
+and partial reference summary.
+
+Strict recall, with `uncertain` excluded:
+
+| Configuration | Paper | Candidate | Published | Demonstrable published | Findings (candidate / published) | Tool audit |
+|---|---|---|---|---|---|---|
+| pipeline `gpt-6-luna` | 5 | 2/10 | 2/10 | 1/2 | 20 / 9 | flagged |
+| pipeline `gpt-6-luna` | 9 | 3/10 | 3/10 | 3/6 | 25 / 13 | clean |
+| pipeline `gpt-6.1-sol` | 5 | 2/10 (+1 uncertain) | 2/10 | 1/2 | 52 / 18 | clean |
+| pipeline `gpt-6.1-sol` | 9 | 6/10 (+1 uncertain) | 5/10 (+1 uncertain) | 5/6 | 63 / 32 | clean |
+
+On the same clean papers, Sol publishes **7/20**, against **12/20** for its plain
+baseline and **4/20** for the 0.4.0 pipeline. On the eight demonstrable targets,
+Sol publishes **6/8**, matching the plain baseline's **6/8** and the same six error
+IDs: 5-02, 9-01, 9-03, 9-05, 9-09 and 9-10. Both miss 5-05 and 9-02. Luna publishes
+**3/10** on its sole clean paper (paper 9), matching its plain baseline's **3/10**;
+demonstrable recall is **3/6** for the pipeline and **2/6** for the plain baseline.
+The 0.4.0 Luna pipeline publishes 5/10 on that paper. One run per paper and
+configuration cannot attribute these differences to the implementation changes.
+
+### Verification and editorial losses
+
+There are 36 verification batches: Luna 6 and 8, Sol 11 and 11 for papers 5 and 9.
+All complete successfully. Verifier-supported findings held by unconfirmed required
+external evidence are Sol 7 and 4, compared with 13 and 23 in the 0.4.0 series, and
+Luna 0 and 2, compared with 5 and 6. Unchecked optional external items are removed
+from 4 and 8 Sol findings and 0 and 2 Luna findings. These are diagnostic finding
+counts; they include Luna's flagged paper and are not benchmark headline scores.
+
+No planted error in the 0.4.1 trace is lost to the external-source gate or to
+editorial selection. Sol publishes 5-02, 5-08 and 9-09. Its one strictly detected
+candidate that is not published is **9-02**: verification treats the order of
+standardization and averaging as unresolved information, rather than a demonstrated
+scoring error. The verifier requests a scoring formula or processing syntax to
+resolve it. **5-09** has an uncertain candidate match and stays unresolved.
+
+For **9-04**, Sol publishes a supported minor finding about causal language and
+merges a supported design duplicate into it. The judge marks both its candidate and
+published match `uncertain`, so it contributes no strict recall. The invalid merge
+into an unresolved target documented in the 0.4.0 audit does not occur in this run.
+
+Luna's misses are all discovery misses, including 9-01 and 9-09. Sol has ten targets
+with no candidate match. Thus, discovery is the principal remaining loss in this
+pilot; the remaining overall gap to the Sol plain baseline consists of weak or
+reporting-gap annotations, while demonstrable-target recall matches it.
+
+### Artifacts and scope
+
+The frozen pipeline snapshot is `8e5fc939dcfbbcf7`, engine 0.4.1a1, with Codex CLI
+0.160.0. Scores, the full loss trace and the baseline comparison are in
+`runs/known-errors-0.4.1/known-error-scores.json`, `known-error-trace.json`,
+`known-error-trace.md` and `pilot-summary.md`. Both driver services and the analysis
+service complete successfully. The Codex update timer is active after analysis.
+The pilot has two papers and one run per configuration; the plain baselines use
+macOS and the pipeline uses Linux. A full campaign is not scheduled.
+
+## Engine 0.4.0 benchmark (1 October 2026)
+
 Two papers with ten planted errors each. The results are indicative only. One run per
 configuration and paper, model-judged recall, and 20 targets (8 of them
 `valid_demonstrable_error` in the benchmark-validity audit: 5-02, 5-05, 9-01, 9-02,
