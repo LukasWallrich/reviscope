@@ -228,4 +228,42 @@ The four 0.4.1 pilot reviews and automatic analysis complete successfully on
 Sol's clean-paper strict recall is 7/20 against the plain baseline's 12/20;
 demonstrable recall is 6/8 for both, on the same six targets. Luna's clean paper 9
 has 3/10, matching its plain baseline; paper 5 is flagged. The timer is active.
-No full campaign or additional review run is scheduled.
+No full campaign is scheduled.
+
+## Engine 0.4.2 discovery exploration
+
+The four Sol/high experiments are complete under
+`runs/discovery-exploration-0.4.2`. The frozen code directory is
+`code/8acef5147f918714`, engine 0.4.2a1 with Codex CLI 0.160.0. This snapshot supplies
+operation-based discovery prompts and claim-scope verification instructions. The
+PDF-font and extracted-text cache changes on main are outside this snapshot; the
+experiments reuse the pilot's extracted sources and descriptive seed.
+
+`eval/experiment_discovery.py` runs either imported plain candidates (`replay`) or
+one new tool-enabled discovery call (`holistic`) through shared verification and
+editorial. Every candidate is processed, with verification batches of ten.
+`launch.json` records exact commands, inputs and output directories. The four
+persistent units are `rs-exp-replay-05`, `rs-exp-replay-09`,
+`rs-exp-holistic-05` and `rs-exp-holistic-09`. Each has a matching log under the root.
+Reviewers receive neither annotations nor human reviews.
+
+`finish-experiments.py` collects unchanged tool audits and tool-free Opus
+adjudications. The initial `rs-exp-analysis` unit lacks Claude on PATH and records
+four executable-not-found failures. `rs-exp-analysis-retry` supplies
+`PATH=/home/lukas/.local/bin:/usr/local/bin:/usr/bin:/bin` and completes all four
+judgments; `analysis-retry.log` and `results.json` record success. No review needs
+repeating for an adjudicator launch failure. The root update timer is active.
+
+Derived counts and target verdicts are published in
+`docs/discovery-experiment-analysis/analysis.json`. Recompute without model calls:
+
+```sh
+.venv/bin/python docs/discovery-experiment-analysis/analyze.py
+```
+
+[The exploration report](DISCOVERY_EXPERIMENT_RESULTS.md) records findings,
+limitations and development priorities. Title-search prevention is deprioritized
+for this diagnostic series; contamination audit rules remain intact. The
+[human-review comparison guide](OPEN_REVIEW_COMPARISONS.md) describes six verified
+submitted manuscripts and twelve prepared expert reports. A small usefulness
+comparison precedes a full planted-error campaign.

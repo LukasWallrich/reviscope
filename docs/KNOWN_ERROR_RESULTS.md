@@ -1,5 +1,22 @@
 # Planted-error benchmark: papers 5 and 9
 
+## Engine 0.4.2 exploration (2 October 2026)
+
+The [discovery/finalization experiments](DISCOVERY_EXPERIMENT_RESULTS.md) are
+complete: replaying all plain Sol candidates through verification and editorial
+publishes 7/20 strict matches; single-call operation-based discovery plus the same
+finalization publishes 6/20. The saved plain baseline scores 12/20. All four runs
+are complete and clean under the unchanged tool audit. The single-call path
+publishes all six demonstrable targets on paper 9, including scoring order, but
+misses paper-5 reporting gaps. It uses eight fresh model calls against the
+specialist pilot's 42, excluding imported descriptive work. Neither exploratory
+path is a default replacement or a basis for a full campaign.
+
+The report distinguishes verifier uncertainty, supported claims held by immutable
+severity, and claimed external-source checks without recorded lookups. The
+[version-matched human-review set](OPEN_REVIEW_COMPARISONS.md) supports the next
+small assessment of substantive usefulness beyond planted-error recall.
+
 ## Engine 0.4.1 pilot (2 October 2026)
 
 All four reviews are complete and adjudicated. The tool audit is clean for both Sol

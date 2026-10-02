@@ -231,18 +231,22 @@ to address this overhead.
    review and accumulated stage time. The verifier's support rate cannot stand
    in for this assessment. Report author-visible unresolved concerns as a separate
    diagnostic, without altering the established headline score.
-5. **Fix title-search prevention before another Luna benchmark.** Reject or
-   redirect manuscript-title searches at the search guard; require topic-based
-   queries and manuscript-cited external sources. Preserve contamination audit
-   rules. Do not combine flagged runs with clean runs.
+5. **Use version-matched expert reports for development comparisons.** The
+   [curated comparison set](OPEN_REVIEW_COMPARISONS.md) supplies six submitted
+   manuscripts and twelve substantive first-round reports. Assess usefulness and
+   correctness against the submitted source rather than rewarding agreement with
+   a human reviewer. Title-search prevention is not a priority for this exploratory
+   benchmark; preserve audit flags and keep flagged runs separate from clean ones.
 
 The preferred architectural hypothesis is **holistic tool-enabled discovery,
 targeted numerical/recipe checks, then batched verification and editorial**.
 The specialist fan-out should earn its place through useful additional findings
-on unseen manuscripts. The four pilot runs are complete; no additional model
-reviews or full ten-paper campaign are launched for this analysis. A small
-fixed-candidate experiment and a few unseen manuscripts should precede any
-replicated ten-paper campaign.
+on unseen manuscripts. The four pilot runs and the
+[four discovery/finalization experiments](DISCOVERY_EXPERIMENT_RESULTS.md) are
+complete. The exploratory results do not close the plain-review gap. The single-call
+path publishes the scoring-order discrepancy and uses substantially fewer calls,
+but its paper-5 reporting-gap discovery is poor. A small comparison on unseen
+manuscripts should precede any replicated ten-paper campaign.
 
 ## Evidence and reproduction
 
