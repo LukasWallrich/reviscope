@@ -195,11 +195,11 @@ def command(args: argparse.Namespace) -> int:
                                        seed=args.seed, repetition=repetition))
         except Exception as exc:
             invalid.append({"repetition": repetition, "error_type": type(exc).__name__, "error": str(exc)})
-        progress = {"ranking_config": config, "review_kinds": {row["id"]: row["kind"] for row in reviews},
+        progress = {"ranking_config": config, "backend_version": backend.version, "review_kinds": {row["id"]: row["kind"] for row in reviews},
                     "review_provenance": {row["id"]: {"kind": row["kind"], "generator_model": row.get("generator_model")} for row in reviews},
                     "judgments": judgments, "invalid": invalid, "summary": None}
         _write_json(progress, args.output)
-    payload = {"ranking_config": config, "review_kinds": {row["id"]: row["kind"] for row in reviews},
+    payload = {"ranking_config": config, "backend_version": backend.version, "review_kinds": {row["id"]: row["kind"] for row in reviews},
                "review_provenance": {row["id"]: {"kind": row["kind"], "generator_model": row.get("generator_model")} for row in reviews},
                "judgments": judgments, "invalid": invalid,
                "summary": summarize_rankings(judgments, [row["id"] for row in reviews]) if not invalid else None}

@@ -133,6 +133,14 @@ class StageRecord(BaseModel):
     error: str | None = None
     key_components: dict[str, Any] = Field(default_factory=dict)
     duration_seconds: float | None = Field(default=None, ge=0)
+    # Version of the CLI that produced the stage output, which is not part of the cache key.
+    backend_version: str | None = None
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+
+
+class StageProvenance(BaseModel):
+    """Sidecar stored next to a cached stage artifact."""
+    backend_version: str | None = None
     tool_calls: list[ToolCall] = Field(default_factory=list)
 
 

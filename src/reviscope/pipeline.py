@@ -8,14 +8,14 @@ import time
 from pathlib import Path
 from typing import Callable, Literal
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 
 from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
-from .schemas import Evidence, ExternalCheck, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageRecord, StudyMap, ToolCall
+from .schemas import Evidence, ExternalCheck, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageProvenance, StageRecord, StudyMap
 
 
 class VerificationDecision(BaseModel):
@@ -50,7 +50,6 @@ class EditorialResponse(BaseModel):
     reconciled_overview: ReconciledOverview | None = None
 
 
-TOOL_CALLS = TypeAdapter(list[ToolCall])
 
 
 def _canonical(value: object) -> str:
@@ -96,7 +95,7 @@ def _load_profile(profile: str | Path | Profile) -> tuple[Profile, str]:
 
 
 # Format of the tool-call sidecars and the event parsing behind them; a change invalidates cached stages.
-PROVENANCE_VERSION = "2"
+PROVENANCE_VERSION = "3"
 
 
 class ReviewPipeline:
@@ -128,8 +127,8 @@ class ReviewPipeline:
         artifact.parent.mkdir(parents=True, exist_ok=True)
         if artifact.is_file() and tools_artifact.is_file():  # a stage without its provenance sidecar is rerun
             self.progress(f"{name}: cache hit")
-            calls = TOOL_CALLS.validate_json(tools_artifact.read_bytes())
-            return model_type.model_validate_json(artifact.read_text()), StageRecord(name=name, status="cached", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=0, tool_calls=calls)
+            recorded = StageProvenance.model_validate_json(tools_artifact.read_bytes())
+            return model_type.model_validate_json(artifact.read_text()), StageRecord(name=name, status="cached", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=0, backend_version=recorded.backend_version, tool_calls=recorded.tool_calls)
         self.progress(f"{name}: started")
         started = time.monotonic()
         backend.take_tool_calls()
@@ -139,11 +138,11 @@ class ReviewPipeline:
             exc.tool_calls = [call.model_copy(update={"stage": name}) for call in backend.take_tool_calls()]  # type: ignore[attr-defined]
             raise
         calls = [call.model_copy(update={"stage": name}) for call in backend.take_tool_calls()]
-        _write_atomic(tools_artifact, TOOL_CALLS.dump_json(calls, indent=2).decode())
+        _write_atomic(tools_artifact, StageProvenance(backend_version=backend.version, tool_calls=calls).model_dump_json(indent=2))
         _write_atomic(artifact, value.model_dump_json(indent=2))
         elapsed = time.monotonic() - started
         self.progress(f"{name}: completed in {elapsed:.1f}s ({len(calls)} tool calls)")
-        return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, tool_calls=calls)
+        return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, backend_version=backend.version, tool_calls=calls)
 
     def _metacheck(self, manuscript: Path, out: Path, modules: list[str]) -> tuple[MetacheckRecord, str, dict[str, str]]:
         """Screening record, its fingerprint and the leads per review module. Screening never

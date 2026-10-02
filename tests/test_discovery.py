@@ -13,6 +13,7 @@ EXTERNAL = {'url': 'https://doi.org/10.1037/0033-2909.112.1.155', 'doi': None,
 
 class DiscoveryBackend(Backend):
     name, model, effort = 'discovery-test', 'test', 'high'
+    version = 'test-cli 1'
 
     def __init__(self, bad_coverage=False):
         self.calls = []
@@ -85,10 +86,12 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert 'External source (confirmed): “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
     assert '2 tool calls: 1 search, 1 fetch' in markdown and '- `verification`: 1 fetch' in markdown
     count = len(backend.calls)
+    backend.version = 'test-cli 2'  # a CLI update keeps cached stages and their recorded version
     rerun = pipeline.run(paper, output_dir=tmp_path / 'run')
     assert len(backend.calls) == count
     cached = next(s for s in rerun.stages if s.name == 'review-blind_spots')
     assert cached.status == 'cached' and cached.tool_calls[0].stage == 'review-blind_spots'
+    assert cached.backend_version == 'test-cli 1'
 
 
 def test_omitted_coverage_retains_findings_and_is_reported_without_marking_the_run_partial(tmp_path):

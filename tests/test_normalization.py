@@ -14,7 +14,7 @@ from reviscope.normalization import (
 class StubBackend:
     def __init__(self, inventory=None, audit=None, identity="stub:model:test"):
         self.inventory, self.audit = inventory, audit
-        self.identity = identity
+        self.identity, self.version = identity, None
 
     def generate(self, instruction, evidence, response_model):
         if response_model is ReviewInventory:

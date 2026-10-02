@@ -148,6 +148,11 @@ class Backend(ABC):
     def identity(self) -> str:
         return f"{self.name}:{self.model or 'default'}:{self.effort or 'default'}"
 
+    @property
+    def version(self) -> str | None:
+        """Version of the program behind the backend; provenance, not part of the identity."""
+        return None
+
     def take_tool_calls(self) -> list[ToolCall]:
         """Return and clear the tool calls recorded since the last call."""
         calls = getattr(self, "_tool_calls", [])
@@ -351,11 +356,15 @@ class SubprocessBackend(Backend):
 
     @property
     def identity(self) -> str:
-        """Model settings, CLI version and a hash of the complete command and environment policy."""
+        """Model settings and a hash of the complete command and environment policy. The CLI version
+        is left out, so updating the CLI keeps cached results; `version` records it."""
         placeholder = Path("/per-call-directory")
         config = json.dumps([self.command(placeholder), sorted(self.environment(placeholder)), self.guard])
-        return (f"{super().identity}:{cli_version(self.command(placeholder)[0])}:{hashlib.sha256(config.encode()).hexdigest()[:12]}"
-                f":policy-{policy_hash(self.binary)}")
+        return f"{super().identity}:{hashlib.sha256(config.encode()).hexdigest()[:12]}:policy-{policy_hash(self.binary)}"
+
+    @property
+    def version(self) -> str:
+        return cli_version(self.command(Path("/per-call-directory"))[0])
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout

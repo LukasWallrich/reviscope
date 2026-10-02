@@ -518,7 +518,7 @@ def _command(args: argparse.Namespace) -> int:
             if prior.get("cache_key") == key and not prior.get("invalid") and len(prior.get("judgments", [])) == len(cases):
                 return 0
         result = asyncio_run(run_comparisons(cases, backend))
-        result.update({"cache_key": key, "judge_config": config,
+        result.update({"cache_key": key, "judge_config": config, "backend_version": backend.version,
                        "order_mapping": {c.case_id: dict(c.hidden_labels) for c in cases},
                        "candidate_partial": candidate_partial, "reference_kind": args.reference_kind,
                        "scientific_validation_eligible": not candidate_partial and args.reference_kind != "synthetic_fixture",
@@ -553,7 +553,7 @@ def _command(args: argparse.Namespace) -> int:
                                 "error_type": type(exc).__name__, "error": str(exc)})
         order = {str(row.get("finding_id", row.get("id"))): index for index, row in enumerate(findings)}
         rows.sort(key=lambda row: order.get(str(row.get("finding_id")), len(order)))
-        _write_json({"backend": backend.identity, "verification_config": config,
+        _write_json({"backend": backend.identity, "backend_version": backend.version, "verification_config": config,
                      "resumed_assessments": len(prior_rows), "verifications": rows, "invalid": invalid}, args.output)
         exit_code = 2 if invalid else 0
     elif args.eval_action == "fetch-corpus":

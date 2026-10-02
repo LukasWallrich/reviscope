@@ -179,3 +179,15 @@ def test_codex_on_linux_runs_a_binary_installed_outside_the_home_directory(tmp_p
         CodexBackend("gpt-6-luna").generate("task", "evidence", Answer)
     monkeypatch.setattr(backend_module.sys, "platform", "darwin")
     assert CodexBackend("gpt-6-luna").command(tmp_path)[0] == "codex"
+
+
+def test_cli_version_is_provenance_not_part_of_the_backend_identity(monkeypatch):
+    from reviscope import backend as backend_module
+
+    monkeypatch.setattr(backend_module, "cli_version", lambda binary: "codex-cli 1.0.0")
+    before = CodexBackend("gpt-6-luna", effort="high")
+    identity, version = before.identity, before.version
+    monkeypatch.setattr(backend_module, "cli_version", lambda binary: "codex-cli 2.0.0")
+    after = CodexBackend("gpt-6-luna", effort="high")
+    assert after.identity == identity and (version, after.version) == ("codex-cli 1.0.0", "codex-cli 2.0.0")
+    assert CodexBackend("gpt-6.1-sol", effort="high").identity != identity
