@@ -221,3 +221,11 @@ smoke check against the stored 0.4.0 results verifies the clean-paper denominato
 flagged-run exclusion and all 40 trace rows. After successful analysis, the collector
 starts `codex-update.timer` to restore daily CLI updates. A collector failure leaves
 the timer stopped and records its exception in `analysis.log`.
+
+
+The four 0.4.1 pilot reviews and automatic analysis complete successfully on
+2 October 2026. Results are recorded at the start of `docs/KNOWN_ERROR_RESULTS.md`.
+Sol's clean-paper strict recall is 7/20 against the plain baseline's 12/20;
+demonstrable recall is 6/8 for both, on the same six targets. Luna's clean paper 9
+has 3/10, matching its plain baseline; paper 5 is flagged. The timer is active.
+No full campaign or additional review run is scheduled.
