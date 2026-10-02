@@ -32,7 +32,7 @@ def test_partial_adjudication_requires_explicit_diagnostic_opt_in(tmp_path):
 
 
 class SearchingBackend:
-    name, model, effort, identity = "codex", "gpt-6-luna", "high", "codex:gpt-6-luna:high"
+    name, model, effort, identity, version = "codex", "gpt-6-luna", "high", "codex:gpt-6-luna:high", "codex-cli test"
 
     def __init__(self, fail: bool = False):
         self.fail, self.calls = fail, []

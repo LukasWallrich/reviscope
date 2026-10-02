@@ -158,7 +158,7 @@ The annotation is ground truth for this task; do not assess unrelated errors."""
         "experimental_label": "development known-error smoke test; model-judged; not an accuracy estimate",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "judge": {"backend": backend.name, "model": backend.model, "effort": backend.effort, "tools": backend.tools,
-                  "identity": backend.identity},
+                  "identity": backend.identity, "version": backend.version},
         "review": {"path": str(args.review.resolve()), "sha256": sha256(args.review), "run_id": run_id,
                    "candidate_count": len(candidates), "published_count": len(published), "partial": partial,
                    "partial_diagnostic_authorized": bool(partial and args.allow_partial)},

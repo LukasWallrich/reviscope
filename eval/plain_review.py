@@ -92,7 +92,7 @@ def review(manuscript: Path, backend: Backend, prompt: str = REVIEW_PROMPT) -> d
         stage.update(status="failed", error=f"{type(exc).__name__}: {exc}")
     calls = [call.model_copy(update={"stage": STAGE}).model_dump(mode="json") for call in backend.take_tool_calls()]
     stage.update(duration_seconds=round(time.monotonic() - started, 1), tool_calls=calls)
-    return {"generator": backend.identity, "prompt": PROMPT_LABELS[prompt],
+    return {"generator": backend.identity, "generator_version": backend.version, "prompt": PROMPT_LABELS[prompt],
             "partial": stage["status"] == "failed",
             "sources": [{"id": "manuscript", "path": str(manuscript.resolve()), "kind": "manuscript",
                          "sha256": hashlib.sha256(raw).hexdigest()}],
