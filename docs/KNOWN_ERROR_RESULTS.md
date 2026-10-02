@@ -139,3 +139,45 @@ in neither pipeline.
 - The `plain` runs ran on macOS; all other runs ran on Linux. The plain baseline does not
   depend on the pipeline code.
 - Metacheck reference accuracy was unavailable during these runs (CrossRef labs outage).
+
+## Editorial merge audit
+
+Sol's paper-9 candidate `interpretation:0:CI-1` has severity minor and final status
+`llm_supported`. Its editorial model decision is `merge`, with target
+`contribution:2:TA-03`. That target's final status is `unresolved`, even though the
+editorial model gives it a `keep` decision. The deterministic merge guard requires
+at least as much evidential support in the target as in the source, so it records
+`needs_review` with reason `Invalid editorial merge target`. The loss of 9-04 is an
+invalid merge, not an editorial judgment that the causal-language criticism is too
+severe or unsupported.
+
+The editorial protocol requires canonical targets with a publishable final status
+(`llm_supported`, `supported`, `recomputed` or `verified_deterministic`). A supported
+verifier verdict alone is insufficient. If a proposed target is unresolved, the
+editor chooses a supported member as canonical or keeps the supported criticism
+separately. The deterministic publication and merge gates enforce the same rules.
+
+## Engine 0.4.1 pilot scope
+
+The pilot consists of papers 5 and 9 for the Luna and Sol pipelines, under
+`runs/known-errors-0.4.1`. It tests module-based verification batches, explicit
+required-versus-optional external evidence, shared preregistration leads, and the
+editorial merge instruction. The code snapshot is `8e5fc939dcfbbcf7`, with Codex CLI
+0.160.0. Results require completed reviews, tool audits and adjudications; service
+launches and stage completion counts do not establish recall.
+
+A full repeated 10-paper campaign depends on evidence that the pipeline can plausibly
+match the one-call baseline. Headline comparisons use clean papers and the same paper
+set in both configurations. Demonstrable errors and all annotations are reported
+separately, with the trace locating each loss. Four pilot reviews are the authorized
+scope; the full campaign is not scheduled.
+
+Discovery diagnostics use the existing named checks. `cross_section_agreement`
+already requests text-versus-table comparisons, so the 5-05 miss calls for checking
+extraction and the model's recorded comparisons. `scoring_and_denominators` and
+`analytic_flexibility` own composite construction and consequential transformations;
+the 9-02 and 9-09 misses call for inspecting whether those operations were traced.
+A deleted analysis or methodological explanation can leave no internal contradiction.
+For 5-06 and 9-06, a reporting gap must be demonstrable from the supplied manuscript,
+allowed cited methodological sources or an available registration. The manuscript's
+unmodified original remains an answer key and cannot supply that diagnosis.
