@@ -43,10 +43,14 @@ def where_lost(judgment: dict, findings: dict[str, dict]) -> str:
     if not verified:
         if any(f.get("verifier_status") == "supported" for f in matched):
             # The verifier supported the claim; the publication rule left it unresolved.
+            if any("refuted at least one cited external source" in (f.get("verification") or "") for f in matched):
+                return prefix + "unresolved: cited external source refuted by the verifier"
             external = any("no external item was confirmed" in (f.get("verification") or "") for f in matched)
             return prefix + ("unresolved: cited external source not confirmed by the verifier" if external
                              else "unresolved: no anchored manuscript quotation")
         outcomes = {f.get("verifier_status") or f.get("status") for f in matched}
+        if "unverified" in outcomes:
+            return prefix + "verification batch failed"
         return prefix + ("unresolved by verification" if "unresolved" in outcomes else "contradicted by verification")
     if not any(f.get("editorial_disposition") == "publish" for f in verified):
         return prefix + "set aside by editorial (" + ", ".join(sorted({f.get("editorial_disposition") or "?" for f in verified})) + ")"
