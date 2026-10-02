@@ -4,4 +4,4 @@ from .pipeline import ReviewPipeline, review
 from .schemas import Finding, ReviewRun, SourceDocument
 
 __all__ = ["Finding", "ReviewPipeline", "ReviewRun", "SourceDocument", "review"]
-__version__ = "0.4.1a1"
+__version__ = "0.4.2a1"

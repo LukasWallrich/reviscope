@@ -49,6 +49,14 @@ inference, never from N alone; observed or post-hoc power is never requested.
 `analytic_flexibility` covers undisclosed researcher degrees of freedom, deviations from
 a preregistration, and changed transformations, centering, exclusions or covariates.
 
+Measurement traces each outcome from item codes through transformations, aggregation
+and the final analysis scale. Consistency compares categorical facts as well as
+numbers and distinguishes the reported analysis recipe from assumptions made during
+recomputation. Verification evaluates the claim at its stated scope: demonstrating
+conflicting specifications does not establish that a particular incorrect analysis
+was implemented. Missing information needed from an inaccessible source remains
+unresolved. These protocols preserve the evidential and publication requirements.
+
 Test statistics are screened by metacheck's `stat_check` module (the statcheck R
 package), whose rows reach `statistical_inference` as leads. With `--no-metacheck`,
 `statistical_inference` recomputes every complete test report with code.

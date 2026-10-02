@@ -187,7 +187,7 @@ class RunMetadata(BaseModel):
     profile_hash: str
     input_hash: str
     output_dir: str
-    engine_version: str = "0.4.1a1"
+    engine_version: str = "0.4.2a1"
 
 
 class ReviewRun(BaseModel):
