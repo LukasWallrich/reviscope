@@ -175,3 +175,38 @@ restricted to the papers that are clean (or external) in every configuration.
 - `reviews/litvak_openai_gpt55_high_reasoning_originals` holds reviews of the
   unmodified papers. Its recall is the rate at which a review of a paper without the
   planted errors is credited with one; report it next to every configuration.
+
+## Engine 0.4.1 pilot series
+
+The 0.4.1 pipeline verifies every candidate in module-based batches of at most ten.
+Each batch has an independent cache and tool record; a failed batch leaves its own
+candidates unverified and marks the run partial. Other batches retain their results.
+External-source confirmation uses only that batch's recorded fetches and searches.
+
+The verifier classifies external evidence as required or optional, with an explicit
+explanation. Optional means that anchored manuscript evidence and established knowledge
+support the claim as worded without the external items. Unchecked optional items are
+removed from the finding and recorded in its verification trace; candidates and stage
+artifacts retain them. Unusual empirical assertions and statements about a particular
+source require external verification. Refuted external evidence always blocks support.
+Preregistration leads reach both consistency and statistical inference in full.
+Editorial merge targets must have a publishable final evidential status, rather than
+only a supported model verdict.
+
+The pilot root is `runs/known-errors-0.4.1`; the 0.4.0 series is recorded under
+`runs/known-errors-all`. The pilot uses Codex CLI 0.160.0, with the root
+`codex-update.timer` stopped for the series, and code snapshot `8e5fc939dcfbbcf7`.
+Its persistent units are `ke-041-pilot-luna.service` and `ke-041-pilot-sol.service`.
+Each runs papers 5 and 9 with concurrency 2. The driver logs are `driver-luna.log`
+and `driver-sol.log` under the pilot root.
+
+```bash
+systemctl --user status ke-041-pilot-luna ke-041-pilot-sol --no-pager
+.venv/bin/python eval/score_known_errors.py --root runs/known-errors-0.4.1
+.venv/bin/python eval/trace_known_errors.py --root runs/known-errors-0.4.1 --output runs/known-errors-0.4.1/known-error-trace.json
+```
+
+Report clean, flagged and incomplete papers separately. Compare each pilot's clean
+paper set to the same papers in the 0.4.0 series. The trace names failed verification
+batches separately from contradictions and distinguishes refuted external sources
+from sources that were not confirmed.
