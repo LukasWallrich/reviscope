@@ -275,3 +275,16 @@ def test_contact_email_reaches_the_r_scripts_as_metacheck_email(monkeypatch):
     monkeypatch.setenv(metacheck.CONTACT_EMAIL, "reviewer@example.org")
     metacheck.run_r("mc_import.R", [])
     assert seen["METACHECK_EMAIL"] == "reviewer@example.org"
+
+
+def test_preregistration_leads_reach_both_owners_in_full(tmp_path, monkeypatch):
+    outputs = [module("prereg_check", "ok", "yellow", [
+        {"candidate_id": f"prereg:{i}", "prereg_url": f"https://osf.io/registration{i}"} for i in range(61)])]
+    stub(monkeypatch, [], outputs)
+    paper = manuscript(tmp_path)
+    record = metacheck.run_metacheck(paper, tmp_path / "run")
+    routed = metacheck.leads(record, ["design", "consistency", "statistical_inference"])
+    assert set(routed) == {"consistency", "statistical_inference"}
+    assert routed["consistency"] == routed["statistical_inference"]
+    assert '"candidate_id": "prereg:60"' in routed["consistency"]
+    assert "61 candidate row(s)" in routed["consistency"]

@@ -375,19 +375,23 @@ def describe(record: MetacheckRecord) -> str:
     return text + (f"; run errors: {record.reason}" if record.reason else "")
 
 
-def route(module: str, review_modules: list[str]) -> str | None:
-    """Review module that receives a metacheck module's leads."""
+def route(module: str, review_modules: list[str]) -> list[str]:
+    """Review modules that receive a metacheck module's leads."""
     def first(*names: str) -> str | None:
         return next((name for name in names if name in review_modules), None)
+    if module == "prereg_check":
+        return [name for name in ("consistency", "statistical_inference") if name in review_modules]
     if module in STATISTICS:
-        return first("statistical_inference")
-    if module == "causal_claims":
-        return first("interpretation")
-    if module in REFERENCES:
-        return first("contribution", "social_psychology_context", "interpretation")
-    if module in TRANSPARENCY:
-        return next((name for name in review_modules if "transparency" in name), None) or first("design", "interpretation")
-    return None
+        target = first("statistical_inference")
+    elif module == "causal_claims":
+        target = first("interpretation")
+    elif module in REFERENCES:
+        target = first("contribution", "social_psychology_context", "interpretation")
+    elif module in TRANSPARENCY:
+        target = next((name for name in review_modules if "transparency" in name), None) or first("design", "interpretation")
+    else:
+        target = None
+    return [target] if target else []
 
 
 def _compact(module: str, row: dict[str, Any]) -> str:
@@ -421,27 +425,25 @@ def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str
     texts: dict[str, list[str]] = {}
     ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status in {"ok", "partial"} else None, 2))
     for item in ordered:
-        target = route(item.module, review_modules)
-        if target is None:
-            continue
-        parts = texts.setdefault(target, [LEADS_HEADER])
-        checked = item.module in candidates
-        rows, filtered, rule = candidates.get(item.module, ([], 0, None))
-        if checked:
-            block = [f"## {item.module}: metacheck light {item.traffic_light or 'none'}; {len(rows)} candidate row(s)"]
-            if filtered:
-                block[0] += f"; {filtered} further row(s) not listed: {rule}"
-            if item.status == "partial":
-                block[0] += "; partly could not check: " + "; ".join(item.warnings)
-            if item.summary_text:
-                block.append(item.summary_text.strip())
-            if counts := _counts(mc_dir, item.module):
-                block.append("Module counts: " + json.dumps(counts, ensure_ascii=False))
-        else:
-            block = [f"## {item.module}: could not check ({item.status}: {item.error or 'no reason recorded'})"]
-        rubric = RUBRICS.get(item.module)
-        if rubric and (rows or not checked) and not any(f"RUBRIC {rubric} (excerpt)" in part for part in parts):
-            block.append(_rubric_excerpt(rubric))
-        block.extend(_compact(item.module, row) for row in rows)
-        parts.append("\n".join(block))
+        for target in route(item.module, review_modules):
+            parts = texts.setdefault(target, [LEADS_HEADER])
+            checked = item.module in candidates
+            rows, filtered, rule = candidates.get(item.module, ([], 0, None))
+            if checked:
+                block = [f"## {item.module}: metacheck light {item.traffic_light or 'none'}; {len(rows)} candidate row(s)"]
+                if filtered:
+                    block[0] += f"; {filtered} further row(s) not listed: {rule}"
+                if item.status == "partial":
+                    block[0] += "; partly could not check: " + "; ".join(item.warnings)
+                if item.summary_text:
+                    block.append(item.summary_text.strip())
+                if counts := _counts(mc_dir, item.module):
+                    block.append("Module counts: " + json.dumps(counts, ensure_ascii=False))
+            else:
+                block = [f"## {item.module}: could not check ({item.status}: {item.error or 'no reason recorded'})"]
+            rubric = RUBRICS.get(item.module)
+            if rubric and (rows or not checked) and not any(f"RUBRIC {rubric} (excerpt)" in part for part in parts):
+                block.append(_rubric_excerpt(rubric))
+            block.extend(_compact(item.module, row) for row in rows)
+            parts.append("\n".join(block))
     return {target: "\n\n".join(parts) for target, parts in texts.items()}
