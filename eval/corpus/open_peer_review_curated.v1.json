@@ -1,0 +1,400 @@
+{
+  "schema_version": 1,
+  "frozen_on": "2026-10-02",
+  "purpose": "Version-matched expert review comparators for pipeline development. Curated cases are not a representative sample or a human correctness answer key.",
+  "leakage_control": "Review generation receives only the submitted manuscript and independently version-matched supplements. Human reports, editorial letters, responses, quality notes and revised or published manuscripts are held out from generation.",
+  "entries": [
+    {
+      "id": "metapsych-bonetto-2764-round1",
+      "title": "Group Membership and Deviance Punishment: Are Deviant Ingroup Members Actually Judged more Negatively than Outgroup Ones?",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2021.2764",
+      "editorial_archive": "https://osf.io/vxqj5/",
+      "review_url": "https://osf.io/download/dgu3h/",
+      "review_sha256": "8ab73cdf4a779aa80bd9937f6995f79704280a6283ff071966c5c505a844d092",
+      "manuscript_under_review_url": "https://osf.io/download/6ag2z/",
+      "manuscript_sha256": "323503163a6debfb2583b4882e313e1a8a2249f0d06eabd3cb7a0531f880538b",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "The archive separates 2674-Manuscript.docx from revised manuscript and revision 2 files. The original DOCX was modified 2021-01-21, before the reviews completed 2021-02-16 and 2021-03-29. Both review the six-study manuscript and its feelings-thermometer and group-identification passages. The archive filename uses 2674; the project, article and document title establish its association with journal article 2764.",
+      "genre": "completed experimental social psychology",
+      "recommended_profile": "social_psychology",
+      "cache_key": "bonetto",
+      "manuscript": {
+        "filename": "original.docx",
+        "bytes": 87496,
+        "archive_name": "2674-Manuscript.docx",
+        "osf_file_id": "615b535feb3ea701a35a6247",
+        "osf_file_version": 1,
+        "osf_created": "2021-10-04T19:17:51.491180Z"
+      },
+      "primary_review_id": "bolesta",
+      "human_reviews": [
+        {
+          "id": "rahal",
+          "reviewer": "Rima-Maria Rahal",
+          "round": 1,
+          "url": "https://osf.io/download/unjf5/",
+          "sha256": "14f49d70af7ec8b1818f57f9f798673f1571c2d6e80038a25db1fb45d041c88f",
+          "filename": "rahal.docx",
+          "archive_name": "2674-Review_Rahal.docx",
+          "osf_file_id": "615b5393f684f401afafa9f8",
+          "osf_file_version": 1,
+          "osf_created": "2021-10-04T19:18:43.318853Z"
+        },
+        {
+          "id": "bolesta",
+          "reviewer": "Deliah Sarah Bolesta",
+          "round": 1,
+          "url": "https://osf.io/download/dgu3h/",
+          "sha256": "8ab73cdf4a779aa80bd9937f6995f79704280a6283ff071966c5c505a844d092",
+          "filename": "bolesta.docx",
+          "archive_name": "2674-Review_Bolesta.docx",
+          "osf_file_id": "615b5392eb3ea701a65a5dd5",
+          "osf_file_version": 1,
+          "osf_created": "2021-10-04T19:18:42.542718Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Reports connect operationalization and group identification to the inference, question within-subject analysis and scoring, and identify missing analytic documentation.",
+        "limits": "Several proposed additions and manipulation checks are contestable; these are comparators, not correctness labels."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2764",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    },
+    {
+      "id": "metapsych-satrevik-2628-round1",
+      "title": "Mortality salience effects fail to replicate in traditional and novel measures",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2020.2628",
+      "editorial_archive": "https://osf.io/pf6dn/",
+      "review_url": "https://osf.io/download/q4xnf/",
+      "review_sha256": "ed2207200b9d95e17f7f5d336ee5ab8c12da950f7753fef8a96eea6a24f7234f",
+      "manuscript_under_review_url": "https://osf.io/download/z8fhs/",
+      "manuscript_sha256": "61cfdbb2cd1fb62aaa4a78efe811aff3af8e2db636bbd716ac1404398e35f4cd",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "The archive explicitly separates the initial manuscript from revised-after-review and labels both reports Review 1. The original PDF was created 2020-09-30, before Nilsson’s dated 2020-11-09 report. Reports match the two experiments, H2 on page 6 and the power calculation on page 8.",
+      "genre": "completed experimental social psychology",
+      "recommended_profile": "social_psychology",
+      "cache_key": "satrevik",
+      "manuscript": {
+        "filename": "original.pdf",
+        "bytes": 283578,
+        "archive_name": "2628-Manuscript in PDF.pdf",
+        "osf_file_id": "60eb641a924b4001ee4e4a3d",
+        "osf_file_version": 1,
+        "osf_created": "2021-07-11T21:35:22.214688Z"
+      },
+      "primary_review_id": "nilsson",
+      "human_reviews": [
+        {
+          "id": "fillon",
+          "reviewer": "Adrien Fillon",
+          "round": 1,
+          "url": "https://osf.io/download/jwk75/",
+          "sha256": "1dfcee8f8f0a133a3d9dba941e199bf2a6617097da44e6c718c89ba2de79abb8",
+          "filename": "fillon.pdf",
+          "remove_identity_lines": [
+            "Best regards,",
+            "Adrien Fillon"
+          ],
+          "archive_name": "MP.2020.2628-Review 1-Fillon.pdf",
+          "osf_file_id": "60eb6288600da501da0ac032",
+          "osf_file_version": 1,
+          "osf_created": "2021-07-11T21:28:40.817580Z"
+        },
+        {
+          "id": "nilsson",
+          "reviewer": "Artur Nilsson",
+          "round": 1,
+          "url": "https://osf.io/download/q4xnf/",
+          "sha256": "ed2207200b9d95e17f7f5d336ee5ab8c12da950f7753fef8a96eea6a24f7234f",
+          "filename": "nilsson.pdf",
+          "remove_identity_lines": [
+            "Artur Nilsson, 2020-11-09"
+          ],
+          "archive_name": "MP.2020.2628.-Review 1-Nilsson.pdf",
+          "osf_file_id": "60eb6288924b4001e24eeeb1",
+          "osf_file_version": 1,
+          "osf_created": "2021-07-11T21:28:40.789717Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Nilsson links distraction timing and operationalization to the theory and distinguishes nonsignificance from evidence of no effect. Fillon inspects preregistration and analysis files.",
+        "limits": "Fillon contains a checklist annex and an overconfident summary of nonsignificance; power and difference-score advice needs critical assessment."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2628",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    },
+    {
+      "id": "metapsych-ziano-2134-round1",
+      "title": "Perceived morality of direct versus indirect harm: Replications of the preference for indirect harm effect",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2019.2134",
+      "editorial_archive": "https://osf.io/3scaf/",
+      "review_url": "https://osf.io/download/ne58k/",
+      "review_sha256": "b2f3bfe953cc6c8ce88934d7631b7c2d2f6107b1c03dad2dbd83cf72ae74c566",
+      "manuscript_under_review_url": "https://osf.io/download/es26y/",
+      "manuscript_sha256": "5ca87794cca7124182ed9585336ca1999c2dd1cb7df9557c0b460de8e2d75bfa",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "Submission component 78k3g contains 2134-Manuscript in PDF-5310-1-4-20191024 (1).pdf; component gxchu is explicitly Review round 1. The manuscript has a 2019-10-01 PDF modification date and one OSF file version. Both reports quote the rating recoding, and Lakens identifies the same t(45)=0 comparison in the submitted table.",
+      "genre": "completed experimental social psychology",
+      "recommended_profile": "social_psychology",
+      "cache_key": "ziano",
+      "manuscript": {
+        "filename": "original.pdf",
+        "bytes": 536636,
+        "archive_name": "2134-Manuscript in PDF-5310-1-4-20191024 (1).pdf",
+        "osf_file_id": "5dc2d4cf75b4f1000b38d872",
+        "osf_file_version": 1,
+        "osf_created": "2019-11-06T14:12:31.800975Z"
+      },
+      "primary_review_id": "lakens",
+      "human_reviews": [
+        {
+          "id": "erlandsson",
+          "reviewer": "Arvid Erlandsson",
+          "round": 1,
+          "url": "https://osf.io/download/ne58k/",
+          "sha256": "b2f3bfe953cc6c8ce88934d7631b7c2d2f6107b1c03dad2dbd83cf72ae74c566",
+          "filename": "round1.pdf",
+          "start_after": "Arvid Erlandsson",
+          "end_before": "Daniël Lakens:",
+          "archive_name": "MP.2019.2134.Comments by reviewers.pdf",
+          "osf_file_id": "5dee46e7b1bf4c000c43253f",
+          "osf_file_version": 1,
+          "osf_created": "2019-12-09T13:06:47.547053Z"
+        },
+        {
+          "id": "lakens",
+          "reviewer": "Daniël Lakens",
+          "round": 1,
+          "url": "https://osf.io/download/ne58k/",
+          "sha256": "b2f3bfe953cc6c8ce88934d7631b7c2d2f6107b1c03dad2dbd83cf72ae74c566",
+          "filename": "round1.pdf",
+          "start_after": "Daniël Lakens:",
+          "archive_name": "MP.2019.2134.Comments by reviewers.pdf",
+          "osf_file_id": "5dee46e7b1bf4c000c43253f",
+          "osf_file_version": 1,
+          "osf_created": "2019-12-09T13:06:47.547053Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Reports identify incompatible rating descriptions, missing sample-size justifications and a concrete numerical comparison, while examining fidelity and interpretation of the replication.",
+        "limits": "The claim that a t-test is categorically unacceptable for the recoded outcome is debatable. Keep the two reports separate; exclude the editor decision letter."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2134",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    },
+    {
+      "id": "metapsych-heyman-2718-round1",
+      "title": "Multiverse analyses in the classroom",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2020.2718",
+      "editorial_archive": "https://osf.io/w98s6/",
+      "review_url": "https://osf.io/download/evunj/",
+      "review_sha256": "12fcb5f2e303876de4659a6acaeeedc99a089f4845e0797deb792a92fe364a45",
+      "manuscript_under_review_url": "https://osf.io/download/ky9uc/",
+      "manuscript_sha256": "b5cda1baa22ff335fde5d39eff013b531a1f5467442e27a172c44ae3478063e5",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "The cover-letter folder contains the original 2718-Manuscript in PDF-7204-1-4-20201210.pdf and a separate response to reviewers. The original PDF was created 2020-12-10 and has one OSF file version. The two expert reports match the original page-specific moderator, course-outline and formal-evaluation passages. The additional open-comment report is not assigned a review round here.",
+      "genre": "education tutorial with classroom examples",
+      "recommended_profile": "education",
+      "cache_key": "heyman",
+      "manuscript": {
+        "filename": "original.pdf",
+        "bytes": 574044,
+        "archive_name": "2718-Manuscript in PDF-7204-1-4-20201210.pdf",
+        "osf_file_id": "600a9ec0b6416f0070b0349b",
+        "osf_file_version": 1,
+        "osf_created": "2021-01-22T09:45:36.210591Z"
+      },
+      "primary_review_id": "nordstrom",
+      "human_reviews": [
+        {
+          "id": "rohrer",
+          "reviewer": "Julia Rohrer",
+          "round": 1,
+          "url": "https://osf.io/download/n3afu/",
+          "sha256": "520b4fcb66a486041ecc000fcae2dd4ed039e2a383a60b2d68bde133487c5eb5",
+          "filename": "rohrer.docx",
+          "remove_identity_lines": [
+            "Best regards,",
+            "Julia Rohrer (I sign all my reviews)"
+          ],
+          "archive_name": "2718-Review_Rohrer.docx",
+          "osf_file_id": "613907683d2d6a00d0a0022d",
+          "osf_file_version": 1,
+          "osf_created": "2021-09-08T18:56:40.689906Z"
+        },
+        {
+          "id": "nordstrom",
+          "reviewer": "Thomas Nordström",
+          "round": 1,
+          "url": "https://osf.io/download/evunj/",
+          "sha256": "12fcb5f2e303876de4659a6acaeeedc99a089f4845e0797deb792a92fe364a45",
+          "filename": "nordstrom.docx",
+          "archive_name": "2718-Review_Nordström.docx",
+          "osf_file_id": "6139076828b37600d07cbba1",
+          "osf_file_version": 1,
+          "osf_created": "2021-09-08T18:56:40.702065Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Rohrer offers calibrated, restrained feedback on model ingredients and moderators. Nordström evaluates the tutorial’s instructional audience, learning goals and actionable course design.",
+        "limits": "This is a tutorial rather than an intervention-effectiveness study; judgments must respect genre. The Zigerell open comment is held outside the selected pair."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2718",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    },
+    {
+      "id": "metapsych-mackinnon-2595-round1",
+      "title": "A Tutorial in Longitudinal Measurement Invariance and Cross-lagged Panel Models Using Lavaan",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2020.2595",
+      "editorial_archive": "https://osf.io/h9dv5/",
+      "review_url": "https://osf.io/download/w95ry/",
+      "review_sha256": "675fc96cfff316f391311c2dc2558663b455fc43cb09644241954c4662cb5657",
+      "manuscript_under_review_url": "https://osf.io/download/rz7k2/",
+      "manuscript_sha256": "3fbd1e65248eae2e3abe456c4e53f4dd85d11c7d1762cd10bc1d248a715c8b6a",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "The archive separates 2595-Manuscript in PDF-6548-1-4-20200722.pdf from revised manuscript and response-to-reviewers files. The original PDF was created 2020-07-22 and has one OSF file version. Schimmack quotes the original scalar-invariance explanation and the invariant-facets sentence; Epskamp’s page-10 and diagram comments match this tutorial version.",
+      "genre": "statistical tutorial with applied longitudinal data",
+      "recommended_profile": "quantitative_social_science",
+      "cache_key": "mackinnon",
+      "manuscript": {
+        "filename": "original.pdf",
+        "bytes": 545536,
+        "archive_name": "2595-Manuscript in PDF-6548-1-4-20200722.pdf",
+        "osf_file_id": "60095e9d86541a0a4014a5c9",
+        "osf_file_version": 1,
+        "osf_created": "2021-01-21T10:59:42.040910Z"
+      },
+      "primary_review_id": "epskamp",
+      "human_reviews": [
+        {
+          "id": "epskamp",
+          "reviewer": "Sacha Epskamp",
+          "round": 1,
+          "url": "https://osf.io/download/w95ry/",
+          "sha256": "675fc96cfff316f391311c2dc2558663b455fc43cb09644241954c4662cb5657",
+          "filename": "epskamp.docx",
+          "archive_name": "2595-Review_Epskamp.docx",
+          "osf_file_id": "61391f6c3d2d6a00dd9fce6c",
+          "osf_file_version": 1,
+          "osf_created": "2021-09-08T20:39:08.830631Z"
+        },
+        {
+          "id": "schimmack",
+          "reviewer": "Ulrich Schimmack",
+          "round": 1,
+          "url": "https://osf.io/download/3zwpu/",
+          "sha256": "71b35f7e632647ee3604eb5970e65f042e7bf7df872fa31c42915c65e0ba2af5",
+          "filename": "schimmack.docx",
+          "archive_name": "2595-Review_Schimmack.docx",
+          "osf_file_id": "61391f6c3d2d6a00dc9fca27",
+          "osf_file_version": 1,
+          "osf_created": "2021-09-08T20:39:08.131210Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Concise reports distinguish measurement invariance from substantive change and within-person from between-person inference, and critique model specification and instructional usability.",
+        "limits": "Arrow-direction criticisms require the PDF diagrams; an extracted-text-only judge cannot establish those details. Requests for RI-CLPM extensions require proportionality assessment."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2595",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    },
+    {
+      "id": "metapsych-niemeyer-884-round1",
+      "title": "Publication Bias in Meta-Analyses of Posttraumatic Stress Disorder Interventions",
+      "journal": "Meta-Psychology",
+      "article_url": "https://doi.org/10.15626/MP.2018.884",
+      "editorial_archive": "https://osf.io/my8s6/",
+      "review_url": "https://osf.io/download/tmzw5/",
+      "review_sha256": "62fd850aaa3fb3230cfece3022b42db88997fd3bc8b453afc3c1bf40de1314d3",
+      "manuscript_under_review_url": "https://osf.io/download/stb9k/",
+      "manuscript_sha256": "25183b649f39b7439c44a149820d653e37ee8f510c60e4ccedc1c7aad10c3496",
+      "version_status": "exact_pre_review_version_verified",
+      "evaluation_eligible": true,
+      "version_evidence": "Submission component ts4ec contains 884-Manuscript in PDF-2309-1-4-20180608.docx; fgmux is Review Round 1 and a separate Review Round 2 component exists. The original DOCX was modified 2018-06-07. Both expert reports are in reviews_884.docx after the editor letter and quote its selection-model rationale, small-study counts and method-comparison passages.",
+      "genre": "empirical meta-research and meta-analysis",
+      "recommended_profile": "quantitative_social_science",
+      "cache_key": "niemeyer",
+      "manuscript": {
+        "filename": "original.docx",
+        "bytes": 519243,
+        "archive_name": "884-Manuscript in PDF-2309-1-4-20180608.docx",
+        "osf_file_id": "5bfd9ab593731d0019324668",
+        "osf_file_version": 1,
+        "osf_created": "2018-11-27T19:27:49.182046Z"
+      },
+      "primary_review_id": "schonbrodt",
+      "human_reviews": [
+        {
+          "id": "coburn",
+          "reviewer": "Katie Coburn",
+          "round": 1,
+          "url": "https://osf.io/download/tmzw5/",
+          "sha256": "62fd850aaa3fb3230cfece3022b42db88997fd3bc8b453afc3c1bf40de1314d3",
+          "filename": "round1.docx",
+          "start_after": "Reviewer 1: Katie Coburn",
+          "end_before": "Reviewer 2: Felix Schonbrodt",
+          "archive_name": "reviews_884.docx",
+          "osf_file_id": "5bfd9ac77507e10017e31f5f",
+          "osf_file_version": 1,
+          "osf_created": "2018-11-27T19:28:07.078093Z"
+        },
+        {
+          "id": "schonbrodt",
+          "reviewer": "Felix Schönbrodt",
+          "round": 1,
+          "url": "https://osf.io/download/tmzw5/",
+          "sha256": "62fd850aaa3fb3230cfece3022b42db88997fd3bc8b453afc3c1bf40de1314d3",
+          "filename": "round1.docx",
+          "start_after": "Reviewer 2: Felix Schonbrodt",
+          "remove_identity_lines": [
+            "Felix Schönbrodt"
+          ],
+          "archive_name": "reviews_884.docx",
+          "osf_file_id": "5bfd9ac77507e10017e31f5f",
+          "osf_file_version": 1,
+          "osf_created": "2018-11-27T19:28:07.078093Z"
+        }
+      ],
+      "quality_screening": {
+        "basis": "Manual reading of each selected report and checks against the submitted text; substantive expertise and actionable criticism, not a correctness certification.",
+        "strengths": "Reports examine the power and assumptions of bias diagnostics, selection-model omissions, effect-size versus significance interpretation, and the feasibility of proposed sensitivity analyses.",
+        "limits": "The initial manuscript is long and technical; external-method assertions and alternative aggregation advice are not automatically true. Exclude the editor letter from human comparators."
+      },
+      "license": {
+        "published_article": "CC BY 4.0",
+        "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/884",
+        "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
+      }
+    }
+  ]
+}

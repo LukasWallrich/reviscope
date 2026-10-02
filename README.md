@@ -54,6 +54,8 @@ A quotation match establishes provenance; it does not establish the criticism's 
 
 Exit status is 0 for successful commands, 1 for invalid input, and 2 for a partial review or evaluation. Partial reports explicitly identify failed or unavailable stages. Empty findings do not establish that a paper is sound.
 
+PDF extraction includes embedded CFF font support. Cache identity includes the extracted text as well as the source bytes, so an extraction change invalidates the descriptive study map and dependent review stages.
+
 ## Tailor a discipline
 
 Copy [the external profile example](examples/education_profile) and change its `profile.json`, generation protocols, verification protocols, and editorial rules. It can inherit from a bundled profile:
@@ -68,6 +70,8 @@ Inherit from `quantitative_social_science` to reuse the authored methods, verifi
 ## Evaluate
 
 The included [corpus manifest](eval/corpus/open_peer_review.v1.json) records two version-matched Meta-Psychology manuscript/review pairs, plus Communications Psychology leads whose original reviewed versions remain unverified. The matched papers are methods-heavy technical cases, not a representative social-psychology benchmark.
+
+The [curated comparison set](eval/corpus/open_peer_review_curated.v1.json) contains six version-matched Meta-Psychology submissions with twelve substantive first-round reports: three experimental social-psychology papers, a publication-bias analysis, and two tutorials. The [comparison guide](docs/OPEN_REVIEW_COMPARISONS.md) describes version evidence, content screening and limitations. Prepare hash-pinned manuscripts and separate, anonymized human reports with `.venv/bin/python eval/prepare_open_reviews.py`. Human reports are held-out judge inputs; generation receives only the submitted manuscript and verified supplements.
 
 ```bash
 uv run reviscope evaluate check eval/corpus/open_peer_review.v1.json
