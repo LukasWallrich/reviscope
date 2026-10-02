@@ -1,0 +1,289 @@
+{
+  "scope": "Sol only; two clean pilot papers, one run each. Descriptive artifact comparison; no inference of run-to-run effects or precision. Stage-duration sums exclude metacheck and are not billing data or campaign elapsed time. Plain and pipeline runs use different machines and CLI versions.",
+  "matching_method": "Manual semantic matching of published Sol pipeline findings against plain Sol issues. A match indicates a related criticism, not identical scope, equal quality, or factual correctness. Empty matches indicate no clear counterpart in this reading. This comparison is not blinded or an independent precision assessment.",
+  "papers": {
+    "5": {
+      "candidates": 52,
+      "published": 18,
+      "plain_issues": 34,
+      "verifier_supported": 51,
+      "verifier_unresolved": 1,
+      "verifier_contradicted": 0,
+      "final_llm_supported": 44,
+      "pipeline_model_calls": 21,
+      "plain_model_calls": 1,
+      "pipeline_stage_seconds": 7845.196114577178,
+      "plain_stage_seconds": 678.1,
+      "pipeline_tool_records": 371,
+      "plain_tool_records": 29,
+      "matched_pipeline_findings": 16,
+      "unmatched_pipeline_findings": 2,
+      "pipeline_tools": {
+        "exec": 73,
+        "search": 233,
+        "fetch": 65
+      },
+      "plain_tools": {
+        "exec": 5,
+        "search": 20,
+        "other": 1,
+        "fetch": 3
+      },
+      "published_severity": {
+        "major": 2,
+        "minor": 16
+      },
+      "plain_severity": {
+        "major": 13,
+        "moderate": 20,
+        "minor": 1
+      },
+      "editorial_disposition": {
+        "merged": 26,
+        "publish": 18,
+        "needs_review": 8
+      },
+      "verifier_status": {
+        "supported": 51,
+        "unresolved": 1
+      },
+      "published_remedy_status": {
+        "supported": 18
+      },
+      "module_disposition": {
+        "contribution": {
+          "merged": 3,
+          "publish": 3,
+          "needs_review": 2
+        },
+        "statistical_inference": {
+          "merged": 3,
+          "publish": 5,
+          "needs_review": 3
+        },
+        "interpretation": {
+          "publish": 5,
+          "merged": 6,
+          "needs_review": 1
+        },
+        "consistency": {
+          "merged": 7,
+          "publish": 3,
+          "needs_review": 1
+        },
+        "design": {
+          "merged": 2
+        },
+        "measurement": {
+          "merged": 2,
+          "publish": 1,
+          "needs_review": 1
+        },
+        "social_psychology_context": {
+          "merged": 3
+        },
+        "blind_spots": {
+          "publish": 1
+        }
+      },
+      "unmatched_pipeline_ids": [
+        "consistency:2:ICA-03",
+        "blind_spots:0:blind_spot_audit:0:BSA-01"
+      ],
+      "plain_indices_with_counterpart": [
+        1,
+        2,
+        3,
+        5,
+        7,
+        8,
+        9,
+        10,
+        13,
+        14,
+        15,
+        16,
+        17,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ]
+    },
+    "9": {
+      "candidates": 63,
+      "published": 32,
+      "plain_issues": 43,
+      "verifier_supported": 60,
+      "verifier_unresolved": 3,
+      "verifier_contradicted": 0,
+      "final_llm_supported": 56,
+      "pipeline_model_calls": 21,
+      "plain_model_calls": 1,
+      "pipeline_stage_seconds": 8226.890901206061,
+      "plain_stage_seconds": 743.9,
+      "pipeline_tool_records": 332,
+      "plain_tool_records": 30,
+      "matched_pipeline_findings": 27,
+      "unmatched_pipeline_findings": 5,
+      "pipeline_tools": {
+        "exec": 68,
+        "search": 191,
+        "fetch": 73
+      },
+      "plain_tools": {
+        "exec": 3,
+        "search": 25,
+        "fetch": 2
+      },
+      "published_severity": {
+        "major": 6,
+        "minor": 26
+      },
+      "plain_severity": {
+        "major": 28,
+        "moderate": 15
+      },
+      "editorial_disposition": {
+        "publish": 32,
+        "merged": 24,
+        "needs_review": 7
+      },
+      "verifier_status": {
+        "supported": 60,
+        "unresolved": 3
+      },
+      "published_remedy_status": {
+        "supported": 32
+      },
+      "module_disposition": {
+        "contribution": {
+          "publish": 6,
+          "merged": 1,
+          "needs_review": 1
+        },
+        "measurement": {
+          "merged": 2,
+          "publish": 3
+        },
+        "statistical_inference": {
+          "publish": 6,
+          "merged": 4,
+          "needs_review": 1
+        },
+        "interpretation": {
+          "merged": 6,
+          "publish": 4,
+          "needs_review": 3
+        },
+        "consistency": {
+          "merged": 7,
+          "publish": 8
+        },
+        "social_psychology_context": {
+          "merged": 1
+        },
+        "design": {
+          "merged": 3,
+          "publish": 1
+        },
+        "blind_spots": {
+          "publish": 4,
+          "needs_review": 2
+        }
+      },
+      "unmatched_pipeline_ids": [
+        "interpretation:10:F11",
+        "consistency:12:IC-13",
+        "consistency:13:IC-14",
+        "consistency:14:IC-15",
+        "blind_spots:4:blind_spot_audit:05"
+      ],
+      "plain_indices_with_counterpart": [
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        14,
+        16,
+        17,
+        19,
+        21,
+        23,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        34,
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43
+      ]
+    }
+  },
+  "totals": {
+    "candidates": 115,
+    "published": 50,
+    "plain_issues": 77,
+    "verifier_supported": 111,
+    "verifier_unresolved": 4,
+    "verifier_contradicted": 0,
+    "final_llm_supported": 100,
+    "pipeline_model_calls": 42,
+    "plain_model_calls": 2,
+    "pipeline_stage_seconds": 16072.08701578324,
+    "plain_stage_seconds": 1422.0,
+    "pipeline_tool_records": 703,
+    "plain_tool_records": 59,
+    "matched_pipeline_findings": 43,
+    "unmatched_pipeline_findings": 7
+  },
+  "model_call_ratio": 21.0,
+  "stage_duration_ratio": 11.302452191127454,
+  "safety_pi_reconstruction": {
+    "inputs_r": [
+      0.083,
+      -0.205,
+      -0.335,
+      -0.445,
+      -0.396,
+      -0.28,
+      -0.303
+    ],
+    "inputs_n": [
+      90,
+      90,
+      80,
+      116,
+      94,
+      374,
+      81
+    ],
+    "assumptions": "Fisher-z effects, variances 1/(N-3), intercept-only REML, normal 95% intervals; rounded inputs, not the original analysis output",
+    "tau2": 0.02156093981520791,
+    "pooled_r": -0.2765398512668498,
+    "se_z": 0.06690987403459052,
+    "ci": [
+      -0.3927711255698986,
+      -0.15161258852726173
+    ],
+    "pi": [
+      -0.5371892161037436,
+      0.032322018621010175
+    ]
+  }
+}
