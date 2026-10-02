@@ -53,7 +53,7 @@ def test_audit_flags_review_sites_in_results_and_reports_incomplete_provenance(t
     path = tmp_path / "review.json"
     path.write_text(json.dumps({"sources": [{"sha256": "aaa"}], "stages": [
         {"name": "review-design", "status": "failed", "error": "TimeoutError: codex timed out", "tool_calls": []},
-        {"name": "verification", "status": "completed", "cache_key": "k"}]}))
+        {"name": "verification-design-1", "status": "completed", "cache_key": "k"}]}))
     result = audit(path)
     assert result["verdict"] == "incomplete" and len(result["reasons"]) == 2
 

@@ -229,7 +229,8 @@ def test_external_source_counts_as_checked_only_when_opened_or_named_in_a_query(
     assert not touched("https://example.org/source", [call("search", query="example.org/source/extra review")])
 
 
-def test_one_refuted_external_source_blocks_support():
+@pytest.mark.parametrize("dependency", ["required", "optional"])
+def test_one_refuted_external_source_blocks_support(dependency):
     from datetime import datetime, timezone
     from reviscope.schemas import ToolCall
     quote = "The multilevel estimate was -0.25"
@@ -238,9 +239,31 @@ def test_one_refuted_external_source_blocks_support():
                       external_evidence=[{"url": url, "quote": "q", "shows": "s"} for url in urls])
     verdicts = {urls[0]: "confirmed", urls[1]: "refuted", urls[2]: "not_found"}
     decision = {"status": "supported", "rationale": "ok", "evidence": [{"source_id": "main", "quote": quote}],
+                "external_dependency": dependency, "external_dependency_rationale": "Manuscript arithmetic is sufficient.",
                 "external_checks": [{"locator": url, "verdict": verdict, "rationale": "opened"} for url, verdict in verdicts.items()]}
     opened = [ToolCall(backend="t", sequence=i, kind="fetch", name="WebFetch", url=url, opened_urls=[url],
                        timestamp=datetime.now(timezone.utc)) for i, url in enumerate(urls[:2])]
     result = verify_findings([finding], [source()], {"e": decision}, verifier_calls=opened)[0]
     assert [item.check for item in result.external_evidence] == ["confirmed", "refuted", "unchecked"]
     assert result.status == "unresolved" and "refuted" in result.verification
+
+
+@pytest.mark.parametrize("dependency, explanation, expected", [
+    ("required", "The cited study supplies the comparison.", "unresolved"),
+    ("optional", "", "unresolved"),
+    ("optional", "The manuscript gives the denominator; division establishes the discrepancy.", "llm_supported"),
+])
+def test_unchecked_external_evidence_can_be_dropped_only_with_independent_support(dependency, explanation, expected):
+    finding = Finding(id="e", module="m", claim="c", rationale="r", remedy="x",
+                      evidence=[Evidence(source_id="main", quote="SE = 0.10")],
+                      external_evidence=[{"url": "https://example.org/a", "quote": "q", "shows": "s"}])
+    decision = {"status": "supported", "rationale": "checked", "external_dependency": dependency,
+                "external_dependency_rationale": explanation,
+                "external_checks": [{"locator": "https://example.org/a", "verdict": "confirmed", "rationale": "familiar"}]}
+    result = verify_findings([finding], [source()], {"e": decision})[0]
+    assert result.status == expected
+    assert bool(result.external_evidence) == (expected != "llm_supported")
+    assert len(finding.external_evidence) == 1
+    assert result.external_dependency == dependency
+    if expected == "llm_supported":
+        assert "external_source_dropped=https://example.org/a" in result.verification

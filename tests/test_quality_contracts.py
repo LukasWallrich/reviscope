@@ -88,12 +88,41 @@ def keep_all(rows):
             for row in rows]
 
 
+def test_verification_batches_retain_successes_and_retry_only_failed_batch(tmp_path):
+    calls = []
+
+    def verify(rows):
+        calls.append([row["finding_id"] for row in rows])
+        if any(":f10" in row["finding_id"] for row in rows):
+            raise RuntimeError("one batch failed")
+        return [decision(row) for row in rows]
+
+    generator = QualityBackend(findings=[candidate(f"f{i}") for i in range(23)], editorial=keep_all)
+    verifier = QualityBackend(model="verifier", verification=verify)
+    pipeline = ReviewPipeline(generator, one_module(), verifier)
+    source, out = paper(tmp_path), tmp_path / "out"
+    run = pipeline.run(source, output_dir=out)
+    assert run.partial
+    assert [len(rows) for rows in calls] == [10, 10, 3]
+    assert len({identifier for rows in calls for identifier in rows}) == 23
+    assert sum(f.status == "llm_supported" for f in run.findings) == 13
+    assert sum(f.status == "unverified" for f in run.findings) == 10
+    verifier.verification = lambda rows: [decision(row) for row in rows]
+    verifier.instructions.clear()
+    rerun = pipeline.run(source, output_dir=out)
+    assert not rerun.partial
+    assert sum(kind == "VerificationResponse" for kind, _ in verifier.instructions) == 1
+    assert all(f.status == "llm_supported" for f in rerun.findings)
+    stages = [s for s in rerun.stages if s.name.startswith("verification-")]
+    assert [s.status for s in stages] == ["cached", "completed", "cached"]
+
+
 def test_verifier_exception_yields_rendered_partial_audit(tmp_path):
     generator = QualityBackend(findings=[candidate("a")], editorial=keep_all)
     verifier = QualityBackend(model="verifier", fail_verification=True)
     run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     assert run.partial and (tmp_path / "out" / "review.json").is_file()
-    assert next(stage for stage in run.stages if stage.name == "verification").status == "failed"
+    assert next(stage for stage in run.stages if stage.name.startswith("verification-")).status == "failed"
     assert run.metadata.verification_relationship == "not_run"
     assert all(item.editorial_disposition == "needs_review" for item in run.findings)
     assert "### Major:" not in (tmp_path / "out" / "review.md").read_text()

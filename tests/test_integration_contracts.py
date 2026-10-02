@@ -127,7 +127,7 @@ def test_bad_verifier_join_fails_closed_and_marks_partial(tmp_path, mode):
     run = ReviewPipeline(generator, profile("a"), ScriptedBackend(verify=bad)).run(
         paper, output_dir=tmp_path / "out")
     assert run.partial
-    assert next(stage for stage in run.stages if stage.name == "verification").status != "completed"
+    assert next(stage for stage in run.stages if stage.name.startswith("verification-")).status != "completed"
     assert all(item.status in {"unverified", "unresolved"} for item in run.findings)
 
 
@@ -249,7 +249,7 @@ def test_rejected_verifier_output_keeps_its_tool_calls(tmp_path):
     generator = ScriptedBackend(modules={"RUN a": _fix_source_ids([finding()], ingest(paper).id)})
     verifier = SearchingVerifier(verify=[{"finding_id": "unknown", "status": "supported", "rationale": "x"}])
     run = ReviewPipeline(generator, profile("a"), verifier).run(paper, output_dir=tmp_path / "out")
-    stage = next(stage for stage in run.stages if stage.name == "verification")
+    stage = next(stage for stage in run.stages if stage.name.startswith("verification-"))
     assert stage.status == "failed" and stage.tool_calls[0].query == "q"
 
 

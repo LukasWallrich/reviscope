@@ -207,7 +207,10 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
     evidence and listed in the verification note. A finding is publishable (`llm_supported`) when
     the verifier supports it and at least one anchored quotation comes from the manuscript itself;
     supplements and preregistrations add support but cannot carry a finding alone. A finding that
-    cites external evidence also needs at least one item confirmed and none refuted.
+    cites required external evidence also needs at least one item confirmed and none refuted.
+    The verifier can classify external evidence as optional with an explicit explanation of
+    how manuscript evidence and established knowledge support the claim without it. Unchecked
+    optional items are dropped from the finding; refuted items always block support.
     """
     source_list = list(sources)
     source_maps = [{"source_id": source.id, "text": source.text} for source in source_list]
@@ -241,6 +244,15 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
         manuscript_anchored = any(source_by_id[item.source_id].kind == "manuscript"
                                   for item in evidence if item.source_id in source_by_id)
         external = check_external(finding.external_evidence, decision.get("external_checks", []) if decision else [], verifier_calls)
+        dependency = decision.get("external_dependency", "required") if decision else None
+        dependency_rationale = str(decision.get("external_dependency_rationale") or "").strip() if decision else None
+        checked_external = external
+        if (verdict == "supported" and dependency == "optional" and dependency_rationale
+                and manuscript_anchored and not any(item.check == "refuted" for item in external)):
+            external = [item for item in external if item.check == "confirmed"]
+            for item in checked_external:
+                if item.check == "unchecked":
+                    trace.append(f"external_source_dropped={item.locator}: {dependency_rationale}")
         verifier_rationale = str(decision.get("rationale") or "The verifier supplied no rationale.") if decision else None
         if not evidence:
             status, rationale = "unresolved", "No cited quotation could be anchored in its named source."
@@ -273,6 +285,8 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
         verified.append(finding.model_copy(update={"status": status, "verification": "; ".join(trace),
                                                    "evidence": evidence, "external_evidence": external,
                                                    "verifier_status": verdict, "verifier_rationale": verifier_rationale,
+                                                   "external_dependency": dependency,
+                                                   "external_dependency_rationale": dependency_rationale,
                                                    "remedy_status": remedy_status,
                                                    "remedy_verification": remedy_verification}))
     return verified

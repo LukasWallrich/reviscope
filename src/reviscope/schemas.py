@@ -118,6 +118,8 @@ class Finding(BaseModel):
     # reflects quote anchoring and external-source checks.
     verifier_status: Literal["supported", "contradicted", "unresolved"] | None = None
     verifier_rationale: str | None = None
+    external_dependency: Literal["required", "optional"] | None = None
+    external_dependency_rationale: str | None = None
     remedy_status: Literal["supported", "overreaching", "unresolved"] | None = None
     remedy_verification: str | None = None
     editorial_disposition: Literal["publish", "merged", "rejected", "needs_review"] = "publish"
@@ -185,7 +187,7 @@ class RunMetadata(BaseModel):
     profile_hash: str
     input_hash: str
     output_dir: str
-    engine_version: str = "0.4.0a1"
+    engine_version: str = "0.4.1a1"
 
 
 class ReviewRun(BaseModel):

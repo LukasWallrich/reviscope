@@ -64,6 +64,12 @@ review. All new findings undergo the same verification and editorial gates.
 
 ## Verification and publication
 
+Verification processes every candidate in module-based batches of at most ten. This
+is a per-call workload, not a finding limit. Each batch is independently cached and
+records its backend version and tool calls. A failed batch marks the run partial and
+leaves its candidates unverified; successful batches retain their results. An external
+confirmation uses only the tool calls from the batch that checked the candidate.
+
 Quotations anchor when they match the named source exactly, modulo whitespace and
 common PDF artefacts; numbers must match exactly. A quotation shortened with an
 ellipsis (`...`, `…` or `[...]`) anchors when every segment around the ellipsis has at
@@ -99,7 +105,16 @@ shows goes into a finding's `external_evidence` (URL or DOI, exact quotation, wh
 shows). Every finding also needs an anchored quotation from the manuscript itself. The
 verifier re-opens each external source and returns a verdict per item. An item counts as
 confirmed only when the verifier says so and its recorded tool calls touched that URL or DOI;
-a finding whose external items are all unchecked, or any of which is refuted, cannot be supported.
+a finding whose required external items are all unchecked, or any of which is refuted, cannot be supported.
+The verifier may classify external evidence as optional with an explicit explanation
+of how anchored manuscript evidence and established methodological or disciplinary
+knowledge support the claim as worded without it. Unchecked optional items are removed
+from the finding, with their locators and the explanation retained in its verification
+trace; the original candidates and raw verifier decisions retain the full evidence.
+Source-specific quotations, attributions, novelty claims and unusual empirical
+assertions require external verification. Familiarity with a source cannot establish
+its contents. A claim that depends on an inaccessible source stays unresolved. A
+refuted item blocks support even when the verifier labels external evidence optional.
 
 Each stage records its tool calls (search queries, fetched URLs, shell commands and
 truncated outputs) in `review.json` and in a sidecar next to the cached stage artifact,

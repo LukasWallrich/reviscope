@@ -24,6 +24,8 @@ class VerificationDecision(BaseModel):
     rationale: str
     evidence: list[Evidence] = Field(default_factory=list)
     external_checks: list[ExternalCheck] = Field(default_factory=list)
+    external_dependency: Literal["required", "optional"] = "required"
+    external_dependency_rationale: str = ""
     remedy_status: Literal["supported", "overreaching", "unresolved"] = "unresolved"
     remedy_rationale: str = ""
 
@@ -99,7 +101,7 @@ PROVENANCE_VERSION = "3"
 
 
 class ReviewPipeline:
-    STAGE_VERSION = "0.4.0a1"
+    STAGE_VERSION = "0.4.1a1"
 
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
@@ -195,7 +197,6 @@ class ReviewPipeline:
         evidence = self._evidence(sources)
         if len(evidence) > 150_000:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
-        verification_stage: StageRecord | None = None
         try:
             study_instruction = "Extract the research question, claimed contribution, overall design, distinct studies, and concrete evidence-based strengths. Describe the contribution as the manuscript claims it; later stages assess novelty. Anchor claims in exact quotations with valid SOURCE_ID values. This is descriptive synthesis, not fault-finding."
             result, stage = self._cached(out, "study_map", {"sources": input_hash, "instruction_hash": _hash(REVIEW_GUARD + study_instruction)}, StudyMap, lambda: self.backend.generate(study_instruction, evidence, StudyMap))
@@ -269,52 +270,65 @@ class ReviewPipeline:
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (stage failed)")
                 run.stages.append(self._failed(f"review-{module}", exc))
-        try:
-            from .verification import verify_findings
+        from .verification import verify_findings
 
-            anchored = verify_findings(run.candidates, sources)
-            pending = [f for f in anchored if f.status == "unresolved"]
-            if pending:
-                candidate_by_id = {f.id: f for f in run.candidates}
-                def quoted(f: Finding) -> list[dict[str, object]]:
-                    anchored_quotes = {(e.source_id, e.quote) for e in f.evidence}
-                    return [{"source_id": e.source_id, "quote": e.quote, "anchored": (e.source_id, e.quote) in anchored_quotes}
-                            for e in candidate_by_id[f.id].evidence]
-                compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim, "remedy": f.remedy, "quoted_evidence": quoted(f), "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in pending]
-                instruction = "Run a separate verification pass for each criticism using its claim, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the claim, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
-                verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt
-                verification, stage = self._cached(out, "verification", {"upstream": _hash([f.model_dump() for f in anchored]), "evidence": _hash(evidence), "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse), self.verifier_backend)
-                verification_stage = stage
-                decisions = {}
-                for decision in verification.decisions:  # type: ignore[attr-defined]
-                    decisions[decision.finding_id] = decision.model_dump()
-                returned_ids = [d.finding_id for d in verification.decisions]  # type: ignore[attr-defined]
-                expected_ids = {f.id for f in pending}
-                if len(returned_ids) != len(set(returned_ids)) or not set(returned_ids) <= expected_ids:
-                    raise ValueError("Verifier returned duplicate or unknown finding IDs")
-                missing_ids = expected_ids - set(returned_ids)
-                if missing_ids and self.verifier_backend.name != "fixture":
-                    if stage.artifact:
-                        Path(stage.artifact).unlink(missing_ok=True)
-                    raise ValueError(f"Verifier omitted finding IDs: {', '.join(sorted(missing_ids))}")
-                run.findings = verify_findings(run.candidates, sources, decisions, run.metadata.verification_relationship, stage.tool_calls)
-                run.stages.append(stage)
-            else:
-                run.findings = anchored
+        anchored = verify_findings(run.candidates, sources)
+        pending = [f for f in anchored if f.status == "unresolved"]
+        if not pending:
+            run.findings = anchored
+            run.metadata.verification_relationship = "not_run"
+            run.stages.append(StageRecord(name="verification", status="completed"))
+        else:
+            candidate_by_id = {f.id: f for f in run.candidates}
+            verified_by_id = {f.id: f for f in anchored}
+            groups: dict[str, list[Finding]] = {}
+            for finding in pending:
+                groups.setdefault(finding.module, []).append(finding)
+            successful_batches = 0
+            for module, findings in groups.items():
+                for offset in range(0, len(findings), 10):
+                    batch = findings[offset:offset + 10]
+                    name = f"verification-{module}-{offset // 10 + 1}"
+                    stage = None
+                    try:
+                        def quoted(f: Finding) -> list[dict[str, object]]:
+                            anchored_quotes = {(e.source_id, e.quote) for e in f.evidence}
+                            return [{"source_id": e.source_id, "quote": e.quote, "anchored": (e.source_id, e.quote) in anchored_quotes}
+                                    for e in candidate_by_id[f.id].evidence]
+                        compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim,
+                                    "remedy": f.remedy, "quoted_evidence": quoted(f),
+                                    "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in batch]
+                        instruction = "Run a separate verification pass for each criticism using its claim, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Classify external_dependency as required or optional and explain it in external_dependency_rationale. Use optional only when the claim as worded follows from anchored manuscript evidence and established methodological or disciplinary knowledge without relying on the cited external items; identify that evidence and knowledge explicitly. Familiarity with an unusual claim or with a specific source is not enough. A source-specific quotation, attribution, novelty claim, or unusual empirical assertion requires external verification. Attempt to open every source even when optional. If an inaccessible source is necessary to establish the claim, use unresolved; do not assert its contents from memory. Unchecked optional items are removed from the published finding. Refuted evidence blocks support even when labelled optional. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the claim, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity and do not rely on the generating rationale.\n\nCANDIDATES\n" + _canonical(compact)
+                        verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt
+                        verification, stage = self._cached(out, name, {
+                            "upstream": _hash([f.model_dump() for f in batch]), "evidence": _hash(evidence),
+                            "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse,
+                            lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse),
+                            self.verifier_backend)
+                        returned_ids = [d.finding_id for d in verification.decisions]
+                        expected_ids = {f.id for f in batch}
+                        if len(returned_ids) != len(set(returned_ids)) or not set(returned_ids) <= expected_ids:
+                            raise ValueError("Verifier returned duplicate or unknown finding IDs")
+                        missing_ids = expected_ids - set(returned_ids)
+                        if missing_ids and self.verifier_backend.name != "fixture":
+                            raise ValueError(f"Verifier omitted finding IDs: {', '.join(sorted(missing_ids))}")
+                        decisions = {d.finding_id: d.model_dump() for d in verification.decisions}
+                        verified = verify_findings([candidate_by_id[f.id] for f in batch], sources, decisions,
+                                                   run.metadata.verification_relationship, stage.tool_calls)
+                        verified_by_id.update({f.id: f for f in verified})
+                        run.stages.append(stage)
+                        successful_batches += 1
+                    except Exception as exc:
+                        if stage and stage.artifact:
+                            Path(stage.artifact).unlink(missing_ok=True)
+                        run.partial = True
+                        run.stages.append(self._failed(name, exc, stage))
+                        for finding in batch:
+                            verified_by_id[finding.id] = finding.model_copy(update={
+                                "status": "unverified", "verification": f"Verification failed: {type(exc).__name__}: {exc}"})
+            run.findings = [verified_by_id[f.id] for f in anchored]
+            if not successful_batches:
                 run.metadata.verification_relationship = "not_run"
-                run.stages.append(StageRecord(name="verification", status="completed"))
-        except ImportError:
-            run.metadata.verification_relationship = "not_run"
-            run.findings = [f.model_copy(update={"status": "unverified", "verification": "Verification component unavailable."}) for f in run.candidates]
-            run.partial = True
-            run.stages.append(StageRecord(name="verification", status="skipped", error="Verification component unavailable"))
-        except Exception as exc:
-            run.metadata.verification_relationship = "not_run"
-            if verification_stage and verification_stage.artifact:
-                Path(verification_stage.artifact).unlink(missing_ok=True)
-            run.findings = [f.model_copy(update={"status": "unverified", "verification": f"Verification failed: {type(exc).__name__}: {exc}"}) for f in run.candidates]
-            run.partial = True
-            run.stages.append(self._failed("verification", exc, verification_stage))
         editorial_stage: StageRecord | None = None
         try:
             editorial_input = [f.model_dump() for f in run.findings]

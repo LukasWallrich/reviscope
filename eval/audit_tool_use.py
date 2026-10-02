@@ -141,7 +141,7 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
             "verdict": "flagged" if reasons else "incomplete" if gaps else "clean", "reasons": [*reasons, *gaps]}
 
 
-MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification|editorial)$")
+MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial)$")
 
 
 def provenance_gaps(stages: list[dict[str, Any]]) -> list[str]:

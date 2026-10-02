@@ -75,7 +75,7 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert not run.partial
     assert len(run.candidates) == 7
     assert sum(f.editorial_disposition == 'publish' for f in run.findings) == 7
-    assert len(backend.calls) == 5
+    assert len(backend.calls) == 6
     blind = next(c for c in backend.calls if 'Perform one blind-spot audit' in c[1])
     assert 'statistical_inference issue 5' in blind[2] and 'COVERAGE LEDGER' in blind[2]
     assert any('power_and_sensitivity: assessed' in row for row in run.coverage)
@@ -84,7 +84,7 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert published.external_evidence[0].url == EXTERNAL['url']
     markdown = (tmp_path / 'run/review.md').read_text()
     assert 'External source (confirmed): “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
-    assert '2 tool calls: 1 search, 1 fetch' in markdown and '- `verification`: 1 fetch' in markdown
+    assert '3 tool calls: 1 search, 2 fetch' in markdown and '- `verification-blind_spots-1`: 1 fetch' in markdown
     count = len(backend.calls)
     backend.version = 'test-cli 2'  # a CLI update keeps cached stages and their recorded version
     rerun = pipeline.run(paper, output_dir=tmp_path / 'run')
@@ -107,3 +107,21 @@ def test_omitted_coverage_retains_findings_and_is_reported_without_marking_the_r
     raw_path = next((tmp_path / 'run/raw-discovery').glob('statistical_inference-*.json'))
     raw = json.loads(raw_path.read_text())
     assert len(raw['checks']) == 1 and len(raw['findings']) == 6
+
+
+def test_external_confirmation_cannot_borrow_a_fetch_from_another_batch(tmp_path):
+    class IsolatedBackend(DiscoveryBackend):
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == 'VerificationResponse' and 'blind_spots issue' in instruction:
+                self._tool_calls = []
+            return result
+
+    paper = tmp_path / 'paper.txt'
+    paper.write_text('24 of 60 people withdrew. ' + 'Context. ' * 200)
+    profile = Profile(id='deep-test', title='test', modules=['statistical_inference'],
+                      module_prompts={'statistical_inference': 'Review statistics.'})
+    run = ReviewPipeline(IsolatedBackend(), profile).run(paper, output_dir=tmp_path / 'run')
+    blind = next(f for f in run.findings if f.module == 'blind_spots')
+    assert blind.status == 'unresolved' and blind.external_evidence[0].check == 'unchecked'
+    assert all(f.status == 'llm_supported' for f in run.findings if f.module == 'statistical_inference')
