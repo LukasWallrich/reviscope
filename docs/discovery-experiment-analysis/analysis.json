@@ -1,0 +1,1079 @@
+{
+  "label": "Four exploratory Sol/high reviews; single-run diagnostic, not an accuracy estimate",
+  "snapshot": {
+    "code": "/home/lukas/Documents/Coding/coarse-socpsy/runs/discovery-exploration-0.4.2/code/8acef5147f918714",
+    "sha256": "8acef5147f918714b7d111e787201a43b94f95d168a8d58524ff29a60933f6a5"
+  },
+  "validity_audit_sha256": "62d1cdf73d36fc96e0e2c38936c811f7ad5dbe55a7050170757b237e78a231d2",
+  "runs": [
+    {
+      "mode": "replay",
+      "paper": 5,
+      "review_sha256": "9349388aa71157205ca309d3b2b70160f4f8314e698b8cbc007127877546825b",
+      "judgment_sha256": "e44c7a4b404107ea6d418d90af374b2f37e1da60eaf2c1649c92e5bdfbd31969",
+      "judge": {
+        "backend": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "tools": false,
+        "identity": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+        "version": "2.1.280 (Claude Code)"
+      },
+      "audit_verdicts": [
+        "clean"
+      ],
+      "partial": false,
+      "candidates": 34,
+      "editorial": {
+        "needs_review": 12,
+        "publish": 18,
+        "rejected": 1,
+        "merged": 3
+      },
+      "verification": {
+        "supported": 23,
+        "contradicted": 1,
+        "unresolved": 10
+      },
+      "new_model_calls": 5,
+      "new_stage_minutes": 32.60646525913326,
+      "new_stage_versions": [
+        "codex-cli 0.160.0"
+      ],
+      "by_validity": {
+        "material_reporting_gap": {
+          "denominator": 4,
+          "candidate": 3,
+          "published": 1
+        },
+        "valid_demonstrable_error": {
+          "denominator": 2,
+          "candidate": 1,
+          "published": 0
+        },
+        "weak_or_invalid": {
+          "denominator": 4,
+          "candidate": 2,
+          "published": 1
+        }
+      },
+      "candidate_summary": {
+        "counts": {
+          "detected": 6,
+          "not_detected": 3,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.6,
+        "detected_error_ids": [
+          "5-01",
+          "5-02",
+          "5-07",
+          "5-08",
+          "5-09",
+          "5-10"
+        ]
+      },
+      "published_summary": {
+        "counts": {
+          "detected": 2,
+          "not_detected": 7,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.2,
+        "detected_error_ids": [
+          "5-08",
+          "5-09"
+        ]
+      },
+      "held": [
+        {
+          "id": "plain:01",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:02",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:24",
+          "reason": "verifier_unresolved",
+          "severity": "major"
+        },
+        {
+          "id": "plain:04",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:15",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:17",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:18",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:19",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:23",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:25",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:26",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:27",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        }
+      ],
+      "targets": [
+        {
+          "error_id": "5-01",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:19"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-02",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:01"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-03",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-04",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "plain:34"
+            ]
+          },
+          "published": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "plain:34"
+            ]
+          }
+        },
+        {
+          "error_id": "5-05",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-06",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-07",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:26"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-08",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:31",
+              "plain:30"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:31"
+            ]
+          }
+        },
+        {
+          "error_id": "5-09",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:20"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:20"
+            ]
+          }
+        },
+        {
+          "error_id": "5-10",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:24"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        }
+      ]
+    },
+    {
+      "mode": "replay",
+      "paper": 9,
+      "review_sha256": "5b35586cca3b5ae00b331f7e195fbc757aad0b1c4e9992d0e1712eeb36e8197e",
+      "judgment_sha256": "dc9a387d9874dc357878dad07c37571cb57080228c8832b3d26259c28f5bad4b",
+      "judge": {
+        "backend": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "tools": false,
+        "identity": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+        "version": "2.1.280 (Claude Code)"
+      },
+      "audit_verdicts": [
+        "clean"
+      ],
+      "partial": false,
+      "candidates": 43,
+      "editorial": {
+        "publish": 28,
+        "needs_review": 14,
+        "merged": 1
+      },
+      "verification": {
+        "supported": 38,
+        "unresolved": 5
+      },
+      "new_model_calls": 6,
+      "new_stage_minutes": 42.64570962935201,
+      "new_stage_versions": [
+        "codex-cli 0.160.0"
+      ],
+      "by_validity": {
+        "material_reporting_gap": {
+          "denominator": 2,
+          "candidate": 1,
+          "published": 0
+        },
+        "valid_demonstrable_error": {
+          "denominator": 6,
+          "candidate": 5,
+          "published": 4
+        },
+        "weak_or_invalid": {
+          "denominator": 2,
+          "candidate": 1,
+          "published": 1
+        }
+      },
+      "candidate_summary": {
+        "counts": {
+          "detected": 7,
+          "not_detected": 2,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.7,
+        "detected_error_ids": [
+          "9-01",
+          "9-03",
+          "9-04",
+          "9-05",
+          "9-07",
+          "9-09",
+          "9-10"
+        ]
+      },
+      "published_summary": {
+        "counts": {
+          "detected": 5,
+          "not_detected": 4,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.5,
+        "detected_error_ids": [
+          "9-01",
+          "9-04",
+          "9-05",
+          "9-09",
+          "9-10"
+        ]
+      },
+      "held": [
+        {
+          "id": "plain:06",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:13",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:17",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:18",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:19",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:21",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:32",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:33",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:34",
+          "reason": "supported_claim_editorial",
+          "severity": "major"
+        },
+        {
+          "id": "plain:39",
+          "reason": "verifier_unresolved",
+          "severity": "major"
+        },
+        {
+          "id": "plain:08",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:22",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:24",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "plain:25",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        }
+      ],
+      "targets": [
+        {
+          "error_id": "9-01",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:01"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:01"
+            ]
+          }
+        },
+        {
+          "error_id": "9-02",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-03",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:32"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-04",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:36"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:36"
+            ]
+          }
+        },
+        {
+          "error_id": "9-05",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:10"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:10"
+            ]
+          }
+        },
+        {
+          "error_id": "9-06",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "plain:12"
+            ]
+          },
+          "published": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "plain:12"
+            ]
+          }
+        },
+        {
+          "error_id": "9-07",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:33"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-08",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-09",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:11"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:11"
+            ]
+          }
+        },
+        {
+          "error_id": "9-10",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:23"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "plain:23"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "mode": "holistic",
+      "paper": 5,
+      "review_sha256": "50f00221697bd20ac330e08a08f69c060deb65cfd87490a86d9c95592ece98b7",
+      "judgment_sha256": "25f90aa4ead22f64ab5f3dba86cb50ce76865483b852d7d012d0c3977df0eb2a",
+      "judge": {
+        "backend": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "tools": false,
+        "identity": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+        "version": "2.1.280 (Claude Code)"
+      },
+      "audit_verdicts": [
+        "clean"
+      ],
+      "partial": false,
+      "candidates": 14,
+      "editorial": {
+        "publish": 11,
+        "needs_review": 3
+      },
+      "verification": {
+        "supported": 13,
+        "unresolved": 1
+      },
+      "new_model_calls": 4,
+      "new_stage_minutes": 30.788502298265424,
+      "new_stage_versions": [
+        "codex-cli 0.160.0"
+      ],
+      "by_validity": {
+        "material_reporting_gap": {
+          "denominator": 4,
+          "candidate": 0,
+          "published": 0
+        },
+        "valid_demonstrable_error": {
+          "denominator": 2,
+          "candidate": 1,
+          "published": 0
+        },
+        "weak_or_invalid": {
+          "denominator": 4,
+          "candidate": 0,
+          "published": 0
+        }
+      },
+      "candidate_summary": {
+        "counts": {
+          "detected": 1,
+          "not_detected": 8,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.1,
+        "detected_error_ids": [
+          "5-02"
+        ]
+      },
+      "published_summary": {
+        "counts": {
+          "detected": 0,
+          "not_detected": 9,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.0,
+        "detected_error_ids": []
+      },
+      "held": [
+        {
+          "id": "holistic:06",
+          "reason": "verifier_unresolved",
+          "severity": "minor"
+        },
+        {
+          "id": "holistic:09",
+          "reason": "required_external_unchecked",
+          "severity": "minor"
+        },
+        {
+          "id": "holistic:14",
+          "reason": "required_external_unchecked",
+          "severity": "minor"
+        }
+      ],
+      "targets": [
+        {
+          "error_id": "5-01",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-02",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:06"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-03",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-04",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-05",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-06",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-07",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-08",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "holistic:13"
+            ]
+          },
+          "published": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "holistic:13"
+            ]
+          }
+        },
+        {
+          "error_id": "5-09",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "5-10",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        }
+      ]
+    },
+    {
+      "mode": "holistic",
+      "paper": 9,
+      "review_sha256": "9ffa763be8e426084a3cb644636ab92db7a1eba2120044d3c34402e05077df3d",
+      "judgment_sha256": "88818a6bdb00f11abd03c371f6af493eae60d718af3576e5f96ce79b391d80b6",
+      "judge": {
+        "backend": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "tools": false,
+        "identity": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+        "version": "2.1.280 (Claude Code)"
+      },
+      "audit_verdicts": [
+        "clean"
+      ],
+      "partial": false,
+      "candidates": 17,
+      "editorial": {
+        "publish": 16,
+        "needs_review": 1
+      },
+      "verification": {
+        "supported": 16,
+        "unresolved": 1
+      },
+      "new_model_calls": 4,
+      "new_stage_minutes": 37.12369466823293,
+      "new_stage_versions": [
+        "codex-cli 0.160.0"
+      ],
+      "by_validity": {
+        "material_reporting_gap": {
+          "denominator": 2,
+          "candidate": 0,
+          "published": 0
+        },
+        "valid_demonstrable_error": {
+          "denominator": 6,
+          "candidate": 6,
+          "published": 6
+        },
+        "weak_or_invalid": {
+          "denominator": 2,
+          "candidate": 0,
+          "published": 0
+        }
+      },
+      "candidate_summary": {
+        "counts": {
+          "detected": 6,
+          "not_detected": 2,
+          "uncertain": 2,
+          "unscorable": 0
+        },
+        "strict_recall": 0.6,
+        "detected_error_ids": [
+          "9-01",
+          "9-02",
+          "9-03",
+          "9-05",
+          "9-09",
+          "9-10"
+        ]
+      },
+      "published_summary": {
+        "counts": {
+          "detected": 6,
+          "not_detected": 3,
+          "uncertain": 1,
+          "unscorable": 0
+        },
+        "strict_recall": 0.6,
+        "detected_error_ids": [
+          "9-01",
+          "9-02",
+          "9-03",
+          "9-05",
+          "9-09",
+          "9-10"
+        ]
+      },
+      "held": [
+        {
+          "id": "holistic:05",
+          "reason": "verifier_unresolved",
+          "severity": "major"
+        }
+      ],
+      "targets": [
+        {
+          "error_id": "9-01",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:01"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:01"
+            ]
+          }
+        },
+        {
+          "error_id": "9-02",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:11"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:11"
+            ]
+          }
+        },
+        {
+          "error_id": "9-03",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:12"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:12"
+            ]
+          }
+        },
+        {
+          "error_id": "9-04",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-05",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:09"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:09"
+            ]
+          }
+        },
+        {
+          "error_id": "9-06",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "holistic:15"
+            ]
+          },
+          "published": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "holistic:15"
+            ]
+          }
+        },
+        {
+          "error_id": "9-07",
+          "validity": "material_reporting_gap",
+          "candidate": {
+            "verdict": "uncertain",
+            "matched_ids": [
+              "holistic:05"
+            ]
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-08",
+          "validity": "weak_or_invalid",
+          "candidate": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          },
+          "published": {
+            "verdict": "not_detected",
+            "matched_ids": []
+          }
+        },
+        {
+          "error_id": "9-09",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:02"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:02"
+            ]
+          }
+        },
+        {
+          "error_id": "9-10",
+          "validity": "valid_demonstrable_error",
+          "candidate": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:07"
+            ]
+          },
+          "published": {
+            "verdict": "detected",
+            "matched_ids": [
+              "holistic:07"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "replay": {
+      "candidates": 77,
+      "published_findings": 46,
+      "new_model_calls": 11,
+      "new_stage_minutes": 75.25217488848527,
+      "candidate": 13,
+      "published": 7
+    },
+    "holistic": {
+      "candidates": 31,
+      "published_findings": 27,
+      "new_model_calls": 8,
+      "new_stage_minutes": 67.91219696649836,
+      "candidate": 7,
+      "published": 6
+    }
+  }
+}
