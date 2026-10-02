@@ -63,6 +63,18 @@ def test_input_change_invalidates_stage_cache(tmp_path: Path):
     assert changed.stages[0].status == "completed"
 
 
+def test_extraction_change_invalidates_study_map_with_identical_source_bytes(monkeypatch, tmp_path: Path):
+    manuscript = tmp_path / "paper.md"
+    manuscript.write_text("A source with an incomplete extracted table.")
+    pipeline = ReviewPipeline(FixtureBackend(), profile())
+    first = pipeline.run(manuscript, output_dir=tmp_path / "run")
+    better = first.sources[0].model_copy(update={"text": "A source with a complete extracted table and its values."})
+    monkeypatch.setattr("reviscope.pipeline.ingest", lambda *args, **kwargs: better)
+    changed = pipeline.run(manuscript, output_dir=tmp_path / "run")
+    assert changed.sources[0].sha256 == first.sources[0].sha256
+    assert changed.stages[0].status == "completed"
+
+
 def test_all_scanned_pdf_is_rejected(monkeypatch, tmp_path: Path):
     class BlankPage:
         def extract_text(self):

@@ -179,7 +179,7 @@ class ReviewPipeline:
         sources = [ingest(manuscript)]
         sources += [ingest(p, "supplement") for p in supplements or []]
         sources += [ingest(p, "preregistration") for p in preregistrations or []]
-        input_hash = _hash([(s.kind, s.sha256) for s in sources])
+        input_hash = _hash([(s.kind, s.sha256, _hash(s.text)) for s in sources])
         metadata = RunMetadata(run_id=input_hash[:12], backend=self.backend.name, model=self.backend.model, effort=self.backend.effort,
                                verifier_backend=self.verifier_backend.name, verifier_model=self.verifier_backend.model,
                                verifier_effort=self.verifier_backend.effort,
