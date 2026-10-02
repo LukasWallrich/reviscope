@@ -210,3 +210,14 @@ Report clean, flagged and incomplete papers separately. Compare each pilot's cle
 paper set to the same papers in the 0.4.0 series. The trace names failed verification
 batches separately from contradictions and distinguishes refuted external sources
 from sources that were not confirmed.
+
+`ke-041-pilot-analysis.service` waits for both pilot drivers, then runs frozen copies
+of the scoring and trace scripts. It writes `known-error-scores.json`,
+`known-error-trace.json`, `known-error-trace.md` and `pilot-summary.md` under the pilot
+root. The summary compares each pipeline with its plain baseline on the same clean
+papers and input hashes, and reports missing adjudications explicitly. The local
+collector is `runs/known-errors-0.4.1/finish-pilot.py`; its log is `analysis.log`. A
+smoke check against the stored 0.4.0 results verifies the clean-paper denominators,
+flagged-run exclusion and all 40 trace rows. After successful analysis, the collector
+starts `codex-update.timer` to restore daily CLI updates. A collector failure leaves
+the timer stopped and records its exception in `analysis.log`.
