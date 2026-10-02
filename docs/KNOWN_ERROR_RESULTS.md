@@ -63,6 +63,10 @@ service complete successfully. The Codex update timer is active after analysis.
 The pilot has two papers and one run per configuration; the plain baselines use
 macOS and the pipeline uses Linux. A full campaign is not scheduled.
 
+[Pilot diagnosis and development priorities](KNOWN_ERROR_PILOT_ANALYSIS.md)
+separates reporting-gap misses from numerical errors, compares non-planted
+findings and stage costs, and describes a bounded fixed-candidate experiment.
+
 ## Engine 0.4.0 benchmark (1 October 2026)
 
 Two papers with ten planted errors each. The results are indicative only. One run per
