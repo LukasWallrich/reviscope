@@ -15,8 +15,8 @@ from .backend import Backend, ClaudeBackend, CodexBackend
 from .verification import verify_quote
 
 
-PROMPT_VERSION = "review-normalization-v2"
-AUDIT_PROMPT_VERSION = "review-normalization-audit-v3"
+PROMPT_VERSION = "review-normalization-v3"
+AUDIT_PROMPT_VERSION = "review-normalization-audit-v4"
 
 
 NonEmptySpan = Annotated[str, StringConstraints(min_length=1)]
@@ -51,8 +51,8 @@ class InventoryAudit(BaseModel):
     rationale: str
 
 
-def _instruction(max_issues: int) -> str:
-    return f"""Convert one peer review into a neutral inventory of at most {max_issues} atomic substantive assessments.
+def _instruction() -> str:
+    return """Convert one peer review into a neutral inventory of every atomic substantive assessment. The number of assessments is not limited.
 Use only the review. Do not consult or infer from the manuscript. Preserve mathematical notation, alleged errors,
 qualifications, uncertainty, and missing evaluation/rationale/evidence/remedy fields. Include criticisms, strengths,
 endorsements, and substantive overall assessments; label assessment_type accordingly. Use an empty string or empty
@@ -88,7 +88,7 @@ def _exact_source_span(span: str, review: str) -> tuple[str | None, str | None]:
     return review[recovered.source_char_start:recovered.source_char_end], "pdf_linewrap_dehyphenation"
 
 
-def _assemble_inventory(review: str, inventory: ReviewInventory, backend: Backend, max_issues: int) -> dict[str, Any]:
+def _assemble_inventory(review: str, inventory: ReviewInventory, backend: Backend) -> dict[str, Any]:
     ids = [item.issue_id for item in inventory.issues]
     duplicate_ids = sorted({item for item in ids if ids.count(item) > 1})
     seen_content: dict[tuple[str, tuple[str, ...]], str] = {}
@@ -113,7 +113,6 @@ def _assemble_inventory(review: str, inventory: ReviewInventory, backend: Backen
         "backend": backend.identity,
         "backend_version": backend.version,
         "source_review_sha256": hashlib.sha256(review.encode()).hexdigest(),
-        "max_issues": max_issues,
         "inventory": inventory.model_dump(),
         "deterministic_checks": {
             "all_source_spans_matched": not unmatched,
@@ -121,17 +120,14 @@ def _assemble_inventory(review: str, inventory: ReviewInventory, backend: Backen
             "source_span_corrections": span_corrections,
             "duplicate_issue_ids": duplicate_ids,
             "duplicate_content": duplicate_content,
-            "issue_cap_reached": len(inventory.issues) >= max_issues,
         },
     }
     return result
 
 
-def normalize_review(review: str, backend: Backend, *, max_issues: int = 40) -> dict[str, Any]:
-    if max_issues < 1:
-        raise ValueError("max_issues must be positive")
-    inventory = backend.generate(_instruction(max_issues), review, ReviewInventory)
-    return _assemble_inventory(review, inventory, backend, max_issues)
+def normalize_review(review: str, backend: Backend) -> dict[str, Any]:
+    inventory = backend.generate(_instruction(), review, ReviewInventory)
+    return _assemble_inventory(review, inventory, backend)
 
 
 def revise_inventory(review: str, prior: Mapping[str, Any], audit: Mapping[str, Any], backend: Backend) -> dict[str, Any]:
@@ -141,13 +137,12 @@ def revise_inventory(review: str, prior: Mapping[str, Any], audit: Mapping[str, 
     expected = hashlib.sha256(review.encode()).hexdigest()
     if prior.get("source_review_sha256") != expected or audit.get("source_review_sha256") != expected:
         raise ValueError("revision inputs do not match the source review")
-    max_issues = int(prior["max_issues"])
-    instruction = (_instruction(max_issues) + "\nThis is the single bounded revision. Correct every omission, strengthening, "
+    instruction = (_instruction() + "\nThis is the single bounded revision. Correct every omission, strengthening, "
                    "unsupported field, or duplicate identified by the audit. The source review remains the only ground truth.")
     evidence = ("SOURCE REVIEW\n" + review + "\n\nPRIOR INVENTORY\n" + json.dumps(prior["inventory"], ensure_ascii=False)
                 + "\n\nFAILED AUDIT\n" + json.dumps(audit["audit"], ensure_ascii=False))
     inventory = backend.generate(instruction, evidence, ReviewInventory)
-    result = _assemble_inventory(review, inventory, backend, max_issues)
+    result = _assemble_inventory(review, inventory, backend)
     result["revision"] = {"bounded_revision": 1,
                           "prior_sha256": hashlib.sha256(json.dumps(prior, sort_keys=True).encode()).hexdigest(),
                           "audit_sha256": hashlib.sha256(json.dumps(audit, sort_keys=True).encode()).hexdigest()}
@@ -180,11 +175,10 @@ def audit_inventory(review: str, normalized: Mapping[str, Any], backend: Backend
                      tuple(sorted(" ".join(span.casefold().split()) for span in row["source_review_spans"])))
                     for row in inventory_rows]
     duplicate_content = len(content_keys) != len(set(content_keys))
-    issue_cap_reached = len(inventory_rows) >= int(normalized["max_issues"])
     eligible = bool(
         audit.faithful and audit.complete
         and not audit.missing_issues and not audit.unsupported_issue_ids and not audit.duplicate_issue_ids
-        and not duplicate_ids and not duplicate_content and not issue_cap_reached
+        and not duplicate_ids and not duplicate_content
         and not unmatched
         and not invalid_missing_spans and not unknown_ids
     )
@@ -198,7 +192,6 @@ def audit_inventory(review: str, normalized: Mapping[str, Any], backend: Backend
         "audit": audit.model_dump(),
         "deterministic_checks": {"unmatched_inventory_spans": unmatched,
                                  "duplicate_issue_ids": duplicate_ids, "duplicate_content": duplicate_content,
-                                 "issue_cap_reached": issue_cap_reached,
                                  "invalid_missing_spans": invalid_missing_spans, "unknown_issue_ids": unknown_ids},
         "comparison_eligible": eligible,
         "normalization": dict(normalized),
@@ -215,7 +208,7 @@ def render_inventory(normalized: Mapping[str, Any]) -> str:
         normalized = normalized["normalization"]
     checks = normalized.get("deterministic_checks", {})
     if (not checks.get("all_source_spans_matched") or checks.get("duplicate_issue_ids")
-            or checks.get("duplicate_content") or checks.get("issue_cap_reached")):
+            or checks.get("duplicate_content")):
         raise ValueError("normalized inventory failed deterministic checks")
     parts: list[str] = []
     for item in normalized["inventory"]["issues"]:
@@ -240,7 +233,7 @@ def validate_normalized_pair(candidate: Mapping[str, Any], reference: Mapping[st
         raise ValueError("inventory audit must use a different model family from normalization")
     if candidate.get("backend") != reference.get("backend"):
         raise ValueError("normalized comparison inputs used different audit models")
-    for field in ("normalization_schema_version", "prompt_version", "backend", "max_issues"):
+    for field in ("normalization_schema_version", "prompt_version", "backend"):
         if left.get(field) != right.get(field):
             raise ValueError(f"normalized comparison inputs differ on {field}")
 
@@ -265,11 +258,11 @@ def command(args: argparse.Namespace) -> int:
     from .evaluation import read_review
     review = read_review(args.review)
     if args.normalization_action == "create":
-        payload = normalize_review(review, _backend(args), max_issues=args.max_issues)
+        payload = normalize_review(review, _backend(args))
         _write(payload, args.output)
         checks = payload["deterministic_checks"]
         return 0 if (checks["all_source_spans_matched"] and not checks["duplicate_issue_ids"]
-                     and not checks["duplicate_content"] and not checks["issue_cap_reached"]) else 2
+                     and not checks["duplicate_content"]) else 2
     if args.normalization_action == "revise":
         prior = json.loads(args.inventory.read_text(encoding="utf-8"))
         audit = json.loads(args.audit.read_text(encoding="utf-8"))
@@ -277,7 +270,7 @@ def command(args: argparse.Namespace) -> int:
         _write(payload, args.output)
         checks = payload["deterministic_checks"]
         return 0 if (checks["all_source_spans_matched"] and not checks["duplicate_issue_ids"]
-                     and not checks["duplicate_content"] and not checks["issue_cap_reached"]) else 2
+                     and not checks["duplicate_content"]) else 2
     normalized = json.loads(args.inventory.read_text(encoding="utf-8"))
     payload = audit_inventory(review, normalized, _backend(args))
     _write(payload, args.output)
@@ -290,7 +283,6 @@ def register(subparsers: Any) -> None:
     create = actions.add_parser("create")
     create.add_argument("--review", required=True, type=Path)
     create.add_argument("--output", required=True, type=Path)
-    create.add_argument("--max-issues", type=int, default=40)
     audit = actions.add_parser("audit")
     audit.add_argument("--review", required=True, type=Path)
     audit.add_argument("--inventory", required=True, type=Path)

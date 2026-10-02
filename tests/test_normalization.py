@@ -71,3 +71,23 @@ def test_cli_registers_normalize_review():
     args = parser().parse_args(["normalize-review", "create", "--review", "r.txt", "--output", "o.json",
                                 "--backend", "claude", "--model", "claude-opus-5-5"])
     assert args.backend == "claude" and args.timeout == 900
+
+
+def test_large_complete_inventory_passes_normalization_audit_and_revision():
+    from reviscope.normalization import revise_inventory
+
+    rows = []
+    for i in range(61):
+        row = inventory()["issues"][0] | {"issue_id": f"i{i}", "evaluation": f"Assessment {i}",
+                                         "source_review_spans": [f"Assessment {i} is stated."]}
+        rows.append(row)
+    source = " ".join(row["source_review_spans"][0] for row in rows)
+    backend = StubBackend({"issues": rows})
+    normalized = normalize_review(source, backend)
+    audited = audit_inventory(source, normalized, StubBackend(audit=clean_audit(), identity="audit:model:test"))
+    assert audited["comparison_eligible"]
+    assert len(normalized["inventory"]["issues"]) == 61
+    assert "ASSESSMENT i60" in render_inventory(audited)
+    revised = revise_inventory(source, normalized, audited | {"comparison_eligible": False}, backend)
+    assert len(revised["inventory"]["issues"]) == 61
+    assert "max_issues" not in revised and "issue_cap_reached" not in revised["deterministic_checks"]
