@@ -270,6 +270,12 @@ class ReviewPipeline:
                 run.partial = True
                 run.coverage.append(f"{module}: not assessed (stage failed)")
                 run.stages.append(self._failed(f"review-{module}", exc))
+        return self._finalize(run, out, insufficient=insufficient)
+
+    def _finalize(self, run: ReviewRun, out: Path, *, insufficient: bool = False) -> ReviewRun:
+        """Verify, edit and render a draft while retaining its discovery provenance."""
+        sources = run.sources
+        evidence = self._evidence(sources)
         from .verification import verify_findings
 
         anchored = verify_findings(run.candidates, sources)
