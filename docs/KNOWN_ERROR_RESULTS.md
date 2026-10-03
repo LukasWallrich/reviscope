@@ -1,5 +1,18 @@
 # Planted-error benchmark: papers 5 and 9
 
+## Engine 0.4.3 broad-first development (3 October 2026)
+
+The [development analysis](PIPELINE_DEVELOPMENT_RESULTS.md) records 12/20 published
+matches and 7/8 audited demonstrable errors, against the saved plain baseline's
+12/20 and 6/8. Both papers are complete and clean. The verifier rejects a stronger
+reproducibility complaint after opening linked code and reproducing the results.
+On two submitted manuscripts, an independent audit improves the broad-first report
+under both judge families but does not establish an advantage over plain review.
+The audit remains optional. A small untouched retrieval and expert-calibration check
+precedes a replicated campaign; the [validation plan](PIPELINE_VALIDATION_PLAN.md)
+defines the required controls. These are development observations, not validated
+performance estimates.
+
 ## Engine 0.4.2 exploration (2 October 2026)
 
 The [discovery/finalization experiments](DISCOVERY_EXPERIMENT_RESULTS.md) are

@@ -1,0 +1,1069 @@
+{
+  "scope": "Two development submissions, one run per arm; multiple reports and presentation orders are repeated assessments, not independent papers.",
+  "cost_note": "Stage minutes sum sequential model calls. Audit-arm logical cost includes reused broad/verification calls at their archived duration; incremental cost counts calls made to extend the shared run. Metacheck and judge time are excluded.",
+  "snapshots": {
+    "baseline": {
+      "code": "/home/lukas/Documents/Coding/coarse-socpsy/runs/pipeline-redesign-20261003/code/2cbe2d3120a1385c",
+      "sha256": "2cbe2d3120a1385cbf063a5b9f1dc9b59d01e82c0972ecb429b3ab2c602c158b"
+    },
+    "candidate": {
+      "code": "/home/lukas/Documents/Coding/coarse-socpsy/runs/pipeline-redesign-20261003/code/5fe44c42b1dcb1bc",
+      "sha256": "5fe44c42b1dcb1bcb828aad657cda3cb1b5505110dbd15aa398debfe294d35b1"
+    },
+    "evaluation": {
+      "code": "/home/lukas/Documents/Coding/coarse-socpsy/runs/pipeline-redesign-20261003/code/88e328faacef66d0",
+      "sha256": "88e328faacef66d07d485fdfc6528bf9c94b42025b483ddcd9c4b9037712ef91"
+    }
+  },
+  "reviews": [
+    {
+      "case": "bonetto",
+      "arm": "plain",
+      "sha256": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505",
+      "engine_version": null,
+      "partial": false,
+      "candidate_count": 34,
+      "published_count": 34,
+      "published_severity": {
+        "major": 16,
+        "moderate": 18
+      },
+      "published_kind": {
+        "plain_schema": 34
+      },
+      "finding_status": {},
+      "editorial_disposition": {},
+      "logical_model_calls": 1,
+      "fresh_model_calls": 1,
+      "logical_stage_minutes": 11.24,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 11.24,
+      "tool_calls": 30,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 0,
+      "source_task_checks": {},
+      "backend_versions": []
+    },
+    {
+      "case": "bonetto",
+      "arm": "holistic",
+      "sha256": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6",
+      "engine_version": "0.4.3a1",
+      "partial": false,
+      "candidate_count": 20,
+      "published_count": 20,
+      "published_severity": {
+        "major": 1,
+        "minor": 19
+      },
+      "published_kind": {
+        "specification_conflict": 3,
+        "defect": 5,
+        "clarification_request": 12
+      },
+      "finding_status": {
+        "llm_supported": 20
+      },
+      "editorial_disposition": {
+        "publish": 20
+      },
+      "logical_model_calls": 4,
+      "fresh_model_calls": 4,
+      "logical_stage_minutes": 46.55,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 46.55,
+      "tool_calls": 112,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 13,
+      "source_task_checks": {
+        "unchecked": 6,
+        "confirmed": 7
+      },
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ]
+    },
+    {
+      "case": "bonetto",
+      "arm": "audit",
+      "sha256": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+      "engine_version": "0.4.3a1",
+      "partial": false,
+      "candidate_count": 40,
+      "published_count": 23,
+      "published_severity": {
+        "major": 1,
+        "minor": 22
+      },
+      "published_kind": {
+        "specification_conflict": 3,
+        "defect": 7,
+        "clarification_request": 13
+      },
+      "finding_status": {
+        "llm_supported": 38,
+        "unresolved": 2
+      },
+      "editorial_disposition": {
+        "publish": 23,
+        "merged": 15,
+        "needs_review": 2
+      },
+      "logical_model_calls": 7,
+      "fresh_model_calls": 4,
+      "logical_stage_minutes": 85.61,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 42.4,
+      "tool_calls": 221,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 20,
+      "source_task_checks": {
+        "unchecked": 8,
+        "confirmed": 12
+      },
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ]
+    },
+    {
+      "case": "ziano",
+      "arm": "plain",
+      "sha256": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f",
+      "engine_version": null,
+      "partial": false,
+      "candidate_count": 33,
+      "published_count": 33,
+      "published_severity": {
+        "major": 13,
+        "moderate": 18,
+        "minor": 2
+      },
+      "published_kind": {
+        "plain_schema": 33
+      },
+      "finding_status": {},
+      "editorial_disposition": {},
+      "logical_model_calls": 1,
+      "fresh_model_calls": 1,
+      "logical_stage_minutes": 23.97,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 23.97,
+      "tool_calls": 35,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 0,
+      "source_task_checks": {},
+      "backend_versions": []
+    },
+    {
+      "case": "ziano",
+      "arm": "holistic",
+      "sha256": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9",
+      "engine_version": "0.4.3a1",
+      "partial": false,
+      "candidate_count": 25,
+      "published_count": 20,
+      "published_severity": {
+        "major": 5,
+        "minor": 15
+      },
+      "published_kind": {
+        "defect": 12,
+        "clarification_request": 4,
+        "specification_conflict": 4
+      },
+      "finding_status": {
+        "unresolved": 5,
+        "llm_supported": 20
+      },
+      "editorial_disposition": {
+        "needs_review": 5,
+        "publish": 20
+      },
+      "logical_model_calls": 5,
+      "fresh_model_calls": 5,
+      "logical_stage_minutes": 32.14,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 32.14,
+      "tool_calls": 145,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 11,
+      "source_task_checks": {
+        "unchecked": 7,
+        "confirmed": 4
+      },
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ]
+    },
+    {
+      "case": "ziano",
+      "arm": "audit",
+      "sha256": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+      "engine_version": "0.4.3a1",
+      "partial": false,
+      "candidate_count": 48,
+      "published_count": 24,
+      "published_severity": {
+        "major": 5,
+        "minor": 19
+      },
+      "published_kind": {
+        "defect": 16,
+        "clarification_request": 4,
+        "specification_conflict": 4
+      },
+      "finding_status": {
+        "unresolved": 8,
+        "llm_supported": 40
+      },
+      "editorial_disposition": {
+        "needs_review": 8,
+        "publish": 24,
+        "merged": 16
+      },
+      "logical_model_calls": 9,
+      "fresh_model_calls": 5,
+      "logical_stage_minutes": 68.73,
+      "unknown_stage_durations": [],
+      "incremental_stage_minutes": 39.33,
+      "tool_calls": 262,
+      "audit_verdict": "clean",
+      "audit_reasons": [],
+      "source_task_count": 21,
+      "source_task_checks": {
+        "unchecked": 13,
+        "confirmed": 8
+      },
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "holistic",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "77b7b3aa3a4fa5e67b210d111c7968a586e0ff7c582b3af4780cb2f4913ee00d",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "holistic": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.66
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.6
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "human-bolesta",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "cd729c6c3d8f55d23c74cc6f51ba5a9f1912d473750d3affa84e8fa85336ce60",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "human-bolesta": "f2494629d6dec21d20ab2d828274573649ff3765921ab49cdff88b11ce213557"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "human-bolesta": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "human-rahal",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "94e82ac1cd5dcf856e6464b7b85fa1aa8e556a1605bdc28c8d59732924e77077",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "human-rahal": "7df231a1dc8b2b3fa9337067270d0f52c974186a31e22879cef15b9e06910e78"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "human-rahal": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "plain",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "4098482b0bfc167eed233c89f624808c5676a6e7e1488d8647d688d0ae1aae42",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.62
+        },
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.66
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "holistic",
+      "right": "human-bolesta",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "423c2c4b6e75e7d5d2eda573286bea7775aaf0d66ce63bc604d4e117a3d1fdaa",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6",
+        "human-bolesta": "f2494629d6dec21d20ab2d828274573649ff3765921ab49cdff88b11ce213557"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "human-bolesta": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "holistic",
+      "right": "human-rahal",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "d63b0195005a68a22e78b971372bb40bb9fd3fae3a8d1f0e01f2bc4fdaa94928",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6",
+        "human-rahal": "7df231a1dc8b2b3fa9337067270d0f52c974186a31e22879cef15b9e06910e78"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "human-rahal": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "holistic",
+      "right": "plain",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "13ea2e1edaa6bf5e86ff83c4cb4bc6aa20a8fbc4dbf4849c91ce7d429f24d246",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.62
+        },
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.62
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "plain",
+      "right": "human-bolesta",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "12c6ac6c78e16a8c310db514dcb6a3a4fe7cc2cb7d129e48b68d92e68d263b7f",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505",
+        "human-bolesta": "f2494629d6dec21d20ab2d828274573649ff3765921ab49cdff88b11ce213557"
+      },
+      "audit_groups": {
+        "plain": "clean",
+        "human-bolesta": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "plain",
+      "right": "human-rahal",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "abbaace60c96910a64d459fad7b80ad262d578226048f42852166ddb6a267bd9",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505",
+        "human-rahal": "7df231a1dc8b2b3fa9337067270d0f52c974186a31e22879cef15b9e06910e78"
+      },
+      "audit_groups": {
+        "plain": "clean",
+        "human-rahal": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "holistic",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "331f2fa2c50c37ae6c7dc65a2b45f2828c69d30031305d80dbea6fcd5cc64c8b",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "holistic": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.8
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "human-erlandsson",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "c7260616abab30a5b16c854615f158c7813347d9e53d0250c1ccf876e760fa14",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "human-erlandsson": "fa42522e909f518c5bf9631ebc131f98485471089a57fef9876e1114d31429a0"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "human-erlandsson": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "human-lakens",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "08bcebe62189b2cc21f31f410412558720ecde7fe09cdab78cfdb9702109fcb8",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "human-lakens": "c41fe48fb938b2b042019068d3d4a91bc072577b2e782b72a01a02e74a8e9f5f"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "human-lakens": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.86
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "plain",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "be8694c6ccbe46b6ab49bbf299ccdd4db5ec1c17afd69a091c2f25df25418bde",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.66
+        },
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.68
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "holistic",
+      "right": "human-erlandsson",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "c19392bc8ee5c4873dfc1ceabc8f2ca8b715a875a7168013d8e0918a7cbcc013",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9",
+        "human-erlandsson": "fa42522e909f518c5bf9631ebc131f98485471089a57fef9876e1114d31429a0"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "human-erlandsson": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "holistic",
+      "right": "human-lakens",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "cd44f20e3296ca6b5c99cab74598b364082ebae161d9152b28c0dc4a2a6b1824",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9",
+        "human-lakens": "c41fe48fb938b2b042019068d3d4a91bc072577b2e782b72a01a02e74a8e9f5f"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "human-lakens": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.85
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.86
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "holistic",
+      "right": "plain",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "0259c8c979b9d7fb9e7695a6120c848fb2035120e067e8d3a4ccbfd0fdd49a3b",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.74
+        },
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "plain",
+      "right": "human-erlandsson",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "542f18266b0f60ce0fac5b15751406437757dead814a9777c76676c3838b7357",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f",
+        "human-erlandsson": "fa42522e909f518c5bf9631ebc131f98485471089a57fef9876e1114d31429a0"
+      },
+      "audit_groups": {
+        "plain": "clean",
+        "human-erlandsson": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.9
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.93
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "plain",
+      "right": "human-lakens",
+      "judge": "claude-opus-5-5",
+      "backend_version": "2.1.280 (Claude Code)",
+      "cache_key": "393655f172fab95b80bdecad3bfbae8e4883f9f38a2078cb7279027a44d17f6d",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f",
+        "human-lakens": "c41fe48fb938b2b042019068d3d4a91bc072577b2e782b72a01a02e74a8e9f5f"
+      },
+      "audit_groups": {
+        "plain": "clean",
+        "human-lakens": "held_out_human"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.88
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "holistic",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "acdaf4f2a75577d2f47f38c129f127ce5d1579bb5acc4a335218573da5f96ea4",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "holistic": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.8
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.82
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "audit",
+      "right": "plain",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "7150bf35f04cbfc671b249e0b9b2fc0e2af4e4daf860f2babc7ce7066e8a738f",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "audit": "4f2271cc3421d60de6f1268239cfcfd809e098bf7e113cf73674d369be96994c",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "tie"
+      },
+      "order_discordant": 1,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "tie",
+          "confidence": 0.83
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.74
+        }
+      ]
+    },
+    {
+      "case": "bonetto",
+      "left": "holistic",
+      "right": "plain",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "03e5cf9720df7e1f0d8de8f95a91f77cdbe3af350b4e5dae9d2a87d56af1027a",
+      "source_hashes": {
+        "manuscript": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+        "holistic": "25093af43a2a205cbcdc55e91e9b28cebda92d12e87ebcaf3208808ddd9713f6",
+        "plain": "3bc0ef3bcbb238762e8490e1b4b8ab7aec6f63c2dcded514cfa5847f1014a505"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-bonetto-2764-round1": "tie"
+      },
+      "order_discordant": 1,
+      "orders": [
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.72
+        },
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.77
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "holistic",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "1095744adfe87a2132e05994117bdffc522ec7810d444ccb0fdb3052db2f0340",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "holistic": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "candidate"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "candidate",
+          "confidence": 0.8
+        },
+        {
+          "order": "candidate_first",
+          "winner": "candidate",
+          "confidence": 0.72
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "audit",
+      "right": "plain",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "82cf1c78bd8bb4b5b1f159f196205925bbe03503aee4f3e33359ceb0048e6c9d",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "audit": "3b90ddb265da6c2101a80a850350a1bec41bfd3cb3a9719f1dac83d976f13405",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f"
+      },
+      "audit_groups": {
+        "audit": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.77
+        },
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.72
+        }
+      ]
+    },
+    {
+      "case": "ziano",
+      "left": "holistic",
+      "right": "plain",
+      "judge": "gpt-6.1-sol",
+      "backend_version": "codex-cli 0.160.0",
+      "cache_key": "e1a1af8c103f567e446d25aab6172bd11a53b1852bf43c3708a4431f9efec446",
+      "source_hashes": {
+        "manuscript": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+        "holistic": "d1af5ad14984e7d3fae1d248bb5652c996c749cf354c25e47b57c39f53ed13a9",
+        "plain": "e6db46a24297260feb2a347c93e2dd58c64fe63fd6270698cb154ac2d233ee6f"
+      },
+      "audit_groups": {
+        "holistic": "clean",
+        "plain": "clean"
+      },
+      "invalid": [],
+      "outcome": {
+        "metapsych-ziano-2134-round1": "reference"
+      },
+      "order_discordant": 0,
+      "orders": [
+        {
+          "order": "reference_first",
+          "winner": "reference",
+          "confidence": 0.82
+        },
+        {
+          "order": "candidate_first",
+          "winner": "reference",
+          "confidence": 0.84
+        }
+      ]
+    }
+  ]
+}

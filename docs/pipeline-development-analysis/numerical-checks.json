@@ -1,0 +1,184 @@
+{
+  "scope": "Selected post-review development checks; conditional on reported inputs, not raw-data validation",
+  "sources": {
+    "bonetto": {
+      "paper_id": "metapsych-bonetto-2764-round1",
+      "manuscript_text_sha256": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8"
+    },
+    "ziano": {
+      "paper_id": "metapsych-ziano-2134-round1",
+      "manuscript_text_sha256": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8"
+    }
+  },
+  "scipy_version": "1.11.4",
+  "checks": [
+    {
+      "id": "bonetto-thermometer",
+      "case": "bonetto",
+      "location": "Table 1, Study 1, feeling thermometer",
+      "reported": {
+        "n": [
+          151,
+          149
+        ],
+        "mean": [
+          0.05,
+          -0.47
+        ],
+        "sd": [
+          1.01,
+          1.0
+        ],
+        "t": -0.81,
+        "d": 0.1
+      },
+      "calculated": {
+        "absolute_t": 4.480622829478257,
+        "absolute_d": 0.517389257014089
+      },
+      "conclusion": "The means, SDs and sample sizes contradict the reported absolute t and d. Group order cannot resolve the magnitude discrepancy."
+    },
+    {
+      "id": "bonetto-blame-p",
+      "case": "bonetto",
+      "location": "Table 1, Study 1, blame",
+      "reported": {
+        "t": 0.52,
+        "df": 298,
+        "p": 0.96
+      },
+      "calculated": {
+        "two_sided_p": 0.6034496403364024
+      },
+      "conclusion": "The reported t and p are incompatible under the specified two-sided t test."
+    },
+    {
+      "id": "bonetto-pooled-demographics",
+      "case": "bonetto",
+      "location": "Six recruitment descriptions and Results, pooled sample",
+      "reported": {
+        "n": [
+          300,
+          199,
+          209,
+          143,
+          120,
+          161
+        ],
+        "male_percent": [
+          60.0,
+          32.0,
+          31.43,
+          21.7,
+          9.2,
+          9.3
+        ],
+        "mean_age": [
+          34.65,
+          19.15,
+          19.04,
+          19.2,
+          30.61,
+          20.33
+        ],
+        "pooled_n": 1132,
+        "pooled_mean_age": 23.83,
+        "pooled_male_percent": 27.27
+      },
+      "calculated": {
+        "total_n": 1132,
+        "weighted_mean_age": 24.626448763250885,
+        "weighted_male_percent": 32.368613074204944,
+        "unweighted_mean_age": 23.83,
+        "unweighted_male_percent": 27.271666666666665
+      },
+      "conclusion": "The reported pooled demographics match unweighted study averages, not participant-weighted summaries. This assumes each recruitment N is the demographic denominator; missing demographic responses need clarification."
+    },
+    {
+      "id": "ziano-correlation-stars",
+      "case": "ziano",
+      "location": "Table 5, MTurk organ, intent Not a Reason",
+      "reported": {
+        "r": 0.166,
+        "maximum_n": 314,
+        "stars_threshold": 0.001
+      },
+      "calculated": {
+        "t": 2.973398270759013,
+        "two_sided_p": 0.0031747380885519317,
+        "minimum_two_sided_p_with_rounding": 0.003083344942850843,
+        "minimum_one_sided_p_with_rounding": 0.0015416724714254215
+      },
+      "conclusion": "Even the maximum N and favourable coefficient rounding do not support p < .001 under a conventional Pearson test. The subgroup N can only weaken this evidence."
+    },
+    {
+      "id": "ziano-comparison-p",
+      "case": "ziano",
+      "location": "Table 4, MTurk scenario comparison",
+      "reported": {
+        "t": -2.03,
+        "df": 313,
+        "p": 0.04
+      },
+      "calculated": {
+        "two_sided_p": 0.043201990717051636,
+        "rounding_p_interval": [
+          0.042693201317851884,
+          0.04371591927657784
+        ]
+      },
+      "conclusion": "The displayed t rounding does not yield the displayed three-decimal p value; this is a small reporting discrepancy."
+    },
+    {
+      "id": "ziano-negative-correlations",
+      "case": "ziano",
+      "location": "Reasons paragraph and Table 5, Not a Reason rows",
+      "reported": {
+        "description": "half were negative",
+        "coefficients": [
+          -0.058,
+          0.101,
+          -0.11,
+          0.293,
+          0.262,
+          0.228,
+          0.08,
+          0.166,
+          -0.029,
+          0.191,
+          0.191,
+          0.29,
+          0.22,
+          0.171,
+          -0.199,
+          0.132
+        ]
+      },
+      "calculated": {
+        "negative": 4,
+        "total": 16
+      },
+      "conclusion": "Four of sixteen correlations are negative. Half applies only to the Hong Kong subset, not the complete set described."
+    },
+    {
+      "id": "ziano-replication-label",
+      "case": "ziano",
+      "location": "Table 4, MTurk zoo",
+      "reported": {
+        "original_d": 0.7,
+        "replication_ci": [
+          0.24,
+          0.47
+        ],
+        "label": "Signal; consistent"
+      },
+      "criterion_source": "https://ppw.kuleuven.be/okp/_pdf/LeBel2019ABGTE.pdf",
+      "criterion": "Signal requires the replication CI to exclude zero; consistency requires it to include the original effect point estimate.",
+      "calculated": {
+        "signal": true,
+        "consistent": false
+      },
+      "conclusion": "The reported CI implies signal with an inconsistent, smaller estimate under the manuscript's named LeBel criterion. This classification does not itself establish a failed substantive replication."
+    }
+  ]
+}
