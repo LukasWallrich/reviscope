@@ -85,6 +85,15 @@ sample. Judges should assess the claim against the manuscript without the genera
 persuasive rationale or verification badge. Mark claims requiring unavailable external
 evidence uncertain; separately investigate disputed claims with tools and code.
 
+Check explanatory rationales as well as headline claims. The pipeline verifier receives
+the claim, proposed remedy, quotations and external items; the generating rationale is
+excluded to avoid treating it as evidence. A supported headline therefore does not
+establish every factual assertion in its rationale. Calibration includes a true headline
+with an incorrect supporting calculation or an unavailable source-specific assertion.
+Extending mandatory verification to the complete rationale is an owner decision under
+the verification-rule constraint. Operation code/output matching establishes a recorded
+execution, rather than an independent check of the calculation or its assumptions.
+
 Position, verbosity and self-preference biases are documented in
 [Zheng et al.'s judge study](https://arxiv.org/abs/2306.05685). Order swaps, two judge
 families, representation checks and human calibration are controls for this task;
