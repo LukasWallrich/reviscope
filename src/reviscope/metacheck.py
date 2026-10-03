@@ -58,7 +58,7 @@ LOOKUP_FAILURE = re.compile(r"could not connect|could not resolve|download faile
 PANDOC_READER = "markdown-raw_tex-raw_attribute-raw_html-tex_math_dollars-tex_math_single_backslash-latex_macros"
 LIGHT_ORDER = {"red": 0, "yellow": 1, None: 2, "info": 3, "green": 4, "na": 5}
 LEADS_HEADER = """METACHECK SCREENING LEADS (UNVERIFIED)
-Automated candidates from the metacheck R package for your module. They are leads, not evidence:
+Automated candidates from the metacheck R package. They are leads, not evidence:
 check each one against the manuscript (and with your tools) before raising it, and cite the
 manuscript, not the lead. A module marked "could not check" was not checked; do not treat it as
 clean. Rows are JSON; empty fields are omitted. A row with repo_error could not be checked.
@@ -413,7 +413,7 @@ def _rubric_excerpt(name: str) -> str:
     return f"RUBRIC {name} (excerpt)\n{excerpt.strip()}"
 
 
-def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str, str]:
+def leads(record: MetacheckRecord | None, review_modules: list[str] | None) -> dict[str, str]:
     """Lead text per review module.
 
     Modules are taken red first, then yellow, failed, info, green; each adds its header, the
@@ -425,7 +425,7 @@ def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str
     texts: dict[str, list[str]] = {}
     ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status in {"ok", "partial"} else None, 2))
     for item in ordered:
-        for target in route(item.module, review_modules):
+        for target in (["holistic"] if review_modules is None else route(item.module, review_modules)):
             parts = texts.setdefault(target, [LEADS_HEADER])
             checked = item.module in candidates
             rows, filtered, rule = candidates.get(item.module, ([], 0, None))
@@ -447,3 +447,8 @@ def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str
             block.extend(_compact(item.module, row) for row in rows)
             parts.append("\n".join(block))
     return {target: "\n\n".join(parts) for target, parts in texts.items()}
+
+
+def holistic_leads(record: MetacheckRecord | None) -> str:
+    """Every retained screening row once, including modules without a specialist route."""
+    return leads(record, None).get("holistic", "")

@@ -42,7 +42,10 @@ def to_markdown(run: ReviewRun) -> str:
     if not kept:
         lines.append("No supported substantive findings were produced.")
     for finding in kept:
-        lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**Verification:** `{finding.status}` — {finding.verification or 'No verification note.'}", "", finding.rationale, ""])
+        kind = {"defect": "Claimed defect", "specification_conflict": "Conflicting specifications",
+                "clarification_request": "Reporting clarification"}[finding.kind]
+        support = "Supported in a separate model check with anchored manuscript evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
+        lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**{kind}.** {support}", "", finding.rationale, ""])
         if finding.remedy_status in {"overreaching", "unresolved"}:
             lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])
         else:
@@ -65,6 +68,15 @@ def to_markdown(run: ReviewRun) -> str:
         detail = f": {stage.error}" if stage.error else ""
         lines.append(f"- `{stage.name}` — {stage.status}{detail}")
     lines.extend(_tool_use(run))
+    if run.source_tasks:
+        lines.extend(["", "### External-source tasks", ""])
+        for task in run.source_tasks:
+            lookup = "recorded lookup" if task.lookup_recorded else "no recorded lookup"
+            lines.append(f"- `{task.finding_id}` / `{task.stage}`: {task.locator} — {task.dependency}, {lookup}, {task.check}; claim at this attempt: {task.claim_status}")
+    if kept:
+        lines.extend(["", "### Verification details", ""])
+        for finding in kept:
+            lines.append(f"- `{finding.id}`: {finding.verification or 'No verification note.'}")
     set_aside = [f for f in run.findings if f not in kept and f not in unconfirmed]
     if set_aside:
         lines.extend(["", "### Set-aside findings", ""])

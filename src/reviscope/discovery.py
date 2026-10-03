@@ -6,11 +6,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .schemas import Evidence, Finding, SourceDocument
+from .schemas import CandidateFinding, Evidence, SourceDocument
 from .verification import verify_quote
 
 
 TOPICS = {
+    'broad': [],
+    'evidence_audit': ['reported_quantities', 'analysis_and_scores', 'categorical_agreement', 'inferential_targets'],
     'contribution': ['question_and_claims', 'theoretical_argument', 'design_addresses_question'],
     'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
     'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],
@@ -41,7 +43,7 @@ class CoverageCheck(BaseModel):
 
 
 class DiscoveryResponse(BaseModel):
-    findings: list[Finding]
+    findings: list[CandidateFinding]
     checks: list[CoverageCheck] = Field(min_length=1)
     search_incomplete: bool
 
@@ -52,7 +54,9 @@ def discovery_instruction(module: str, base: str) -> str:
 distinct, justified issue you find. There is no quota and no limit on the number of findings.
 Keep each issue grounded in an exact quotation, a concrete consequence, and the strongest plausible
 alternative explanation or defeating context. An omission needs an inferential consequence, not merely
-a missing checklist item. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
+a missing checklist item. Use kind=defect for an alleged error, specification_conflict for incompatible
+reported specifications, and clarification_request for missing information needed to assess a named
+analysis or conclusion. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
 by default. Missing information alone cannot be major or critical without a demonstrated material
 consequence. Set search_incomplete=true if you could not complete the audit of your responsibility.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "reviscope"
-version = "0.4.2a1"
+version = "0.4.3a1"
 description = "Auditable, modular peer-review pipeline for the social sciences"
 readme = "README.md"
 requires-python = ">=3.11"

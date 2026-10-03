@@ -288,3 +288,18 @@ def test_preregistration_leads_reach_both_owners_in_full(tmp_path, monkeypatch):
     assert routed["consistency"] == routed["statistical_inference"]
     assert '"candidate_id": "prereg:60"' in routed["consistency"]
     assert "61 candidate row(s)" in routed["consistency"]
+
+
+def test_holistic_leads_include_unrouted_modules_and_preregistration_once(tmp_path):
+    from reviscope.schemas import MetacheckModule, MetacheckRecord
+
+    (tmp_path / "modules").mkdir()
+    modules = []
+    for name, count in (("prereg_check", 1), ("unrouted_screen", 55)):
+        rows = [{"candidate_id": f"p:{name}:r{i}", "concern": f"Specific concern {i}."} for i in range(count)]
+        (tmp_path / "modules" / f"{name}.json").write_text(json.dumps(module(name, "ok", "yellow", rows)))
+        modules.append(MetacheckModule(module=name, status="ok", n_rows=count))
+    record = MetacheckRecord(status="completed", output_dir=str(tmp_path), modules=modules)
+    text = metacheck.holistic_leads(record)
+    assert text.count('"candidate_id": "p:prereg_check:r0"') == 1
+    assert text.count('"candidate_id": "p:unrouted_screen:') == 55

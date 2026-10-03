@@ -23,20 +23,15 @@ class Evidence(BaseModel):
     source_char_end: int | None = Field(default=None, ge=0)
 
 
-class ExternalEvidence(BaseModel):
-    """A passage from a source outside the supplied documents, found with a tool.
-
-    `check` is set by the pipeline after verification: confirmed only when the verifier said so
-    and its own recorded tool calls touched this URL or DOI."""
-
+class ExternalCitation(BaseModel):
+    """An external passage and the inference it is offered to support."""
     url: str | None = None
     doi: str | None = None
     quote: str = Field(min_length=1)
     shows: str = Field(min_length=1)
-    check: Literal["confirmed", "refuted", "unchecked"] = "unchecked"
 
     @model_validator(mode="after")
-    def _needs_locator(self) -> "ExternalEvidence":
+    def _needs_locator(self) -> "ExternalCitation":
         if not (self.url or self.doi):
             raise ValueError("external evidence needs a url or doi")
         return self
@@ -44,6 +39,12 @@ class ExternalEvidence(BaseModel):
     @property
     def locator(self) -> str:
         return (self.url or self.doi or "").strip()
+
+
+class ExternalEvidence(ExternalCitation):
+    """Confirmation belongs to verification and requires its own recorded lookup."""
+
+    check: Literal["confirmed", "refuted", "unchecked"] = "unchecked"
 
 
 class ExternalCheck(BaseModel):
@@ -101,16 +102,21 @@ class StudyMap(BaseModel):
     strengths: list[str]
 
 
-class Finding(BaseModel):
+class CandidateFinding(BaseModel):
     id: str
     module: str
     claim: str
     rationale: str
     remedy: str
     severity: Severity = Severity.major
+    kind: Literal["defect", "specification_conflict", "clarification_request"] = "defect"
     evidence: list[Evidence] = Field(default_factory=list)
-    external_evidence: list[ExternalEvidence] = Field(default_factory=list)
+    external_evidence: list[ExternalCitation] = Field(default_factory=list)
     study_id: str | None = None
+
+
+class Finding(CandidateFinding):
+    external_evidence: list[ExternalEvidence] = Field(default_factory=list)
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)
     verification: str | None = None
@@ -187,7 +193,19 @@ class RunMetadata(BaseModel):
     profile_hash: str
     input_hash: str
     output_dir: str
-    engine_version: str = "0.4.2a1"
+    engine_version: str = "0.4.3a1"
+    discovery_strategy: Literal["specialist", "holistic"] = "specialist"
+    evidence_audit: bool = False
+
+
+class ExternalSourceTask(BaseModel):
+    finding_id: str
+    locator: str
+    stage: str
+    dependency: Literal["required", "optional"]
+    lookup_recorded: bool
+    check: Literal["confirmed", "refuted", "unchecked"]
+    claim_status: str
 
 
 class ReviewRun(BaseModel):
@@ -200,6 +218,7 @@ class ReviewRun(BaseModel):
     stages: list[StageRecord] = Field(default_factory=list)
     coverage: list[str] = Field(default_factory=list)
     metacheck: MetacheckRecord | None = None
+    source_tasks: list[ExternalSourceTask] = Field(default_factory=list)
     partial: bool = False
 
 

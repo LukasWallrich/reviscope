@@ -339,7 +339,11 @@ class SubprocessBackend(Backend):
     binary: str
 
     def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True):
-        self.model, self.timeout, self.effort, self.tools = model, timeout, effort, tools
+        models = {"codex": ("gpt-6-luna", "gpt-6.1-sol"), "claude": ("claude-opus-5-5",)}
+        self.model = model or (models[self.name][0] if self.name in models else None)
+        if self.name in models and self.model not in models[self.name]:
+            raise ValueError(f"Unsupported {self.name} model: {self.model}")
+        self.timeout, self.effort, self.tools = timeout, effort or "high", tools
         self._tool_calls = []
 
     @property
@@ -532,6 +536,9 @@ class FixtureBackend(Backend):
             coverage = {"search_incomplete": False, "checks": [
                 {"check": name, "status": "not_applicable", "rationale": "Deterministic demonstration output; not assessed."}
                 for name in requested_checks(instruction)]}
+            if "study_map" in fields:
+                coverage["study_map"] = self.generate("Describe the demonstration.", evidence, StudyMap).model_dump()
+                coverage["checks"] = []
             if not any(term in instruction.lower() for term in ("design", "sampling", "participant")):
                 return response_model.model_validate({"findings": [], **coverage})
             quote = "Participants were recruited from the university pool."
