@@ -8,7 +8,16 @@ material, usable criticism or remove incorrect advice at a defensible cost. Tool
 quote anchors and a high verifier support rate are not substitutes for that assessment.
 Finding count is not a success criterion, and no production stage caps findings.
 
-The opt-in candidate combines a broad read, claim-specific verification, recorded
+Review quality covers errors and inconsistencies, citation-claim agreement,
+interpretation and overclaims, methodological and conceptual reasoning, and reporting
+or presentation changes with a concrete benefit to the reader. Error retrieval measures
+one part of that quality. Comparisons assess useful contributions across this full
+scope, alongside incorrect criticism, unnecessary requests and the cost to authors.
+These are evaluation dimensions, not discovery quotas or a requirement to find an
+issue of each type. A justified suggestion can improve a paper without alleging an
+error; its premises, purpose and proportionality still require assessment.
+
+The opt-in candidate combines a broad read, full-criticism verification, recorded
 source tasks and editorial reconciliation. A separate operational audit is an optional
 arm. These are development hypotheses; the specialist strategy remains available and
 no configuration has established scientific validity.
@@ -86,13 +95,15 @@ persuasive rationale or verification badge. Mark claims requiring unavailable ex
 evidence uncertain; separately investigate disputed claims with tools and code.
 
 Check explanatory rationales as well as headline claims. The pipeline verifier receives
-the claim, proposed remedy, quotations and external items; the generating rationale is
-excluded to avoid treating it as evidence. A supported headline therefore does not
-establish every factual assertion in its rationale. Calibration includes a true headline
-with an incorrect supporting calculation or an unavailable source-specific assertion.
-Extending mandatory verification to the complete rationale is an owner decision under
-the verification-rule constraint. Operation code/output matching establishes a recorded
-execution, rather than an independent check of the calculation or its assumptions.
+the complete claim and rationale, proposed remedy, quotations and external items. It
+treats the generating rationale as untrusted assertions requiring independent checks.
+Support requires justified factual premises, calculations, citation use and reasoning
+throughout the criticism. An inaccessible source needed by the rationale leaves the
+criticism unresolved even when its headline is plausible. The proposed remedy is
+assessed separately for necessity and proportionality. Calibration includes a true
+headline with an incorrect supporting calculation or an unavailable source-specific
+assertion. Operation code/output matching establishes a recorded execution, rather
+than an independent check of the calculation or its assumptions.
 
 Position, verbosity and self-preference biases are documented in
 [Zheng et al.'s judge study](https://arxiv.org/abs/2306.05685). Order swaps, two judge

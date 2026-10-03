@@ -44,7 +44,7 @@ def to_markdown(run: ReviewRun) -> str:
     for finding in kept:
         kind = {"defect": "Claimed defect", "specification_conflict": "Conflicting specifications",
                 "clarification_request": "Reporting clarification"}[finding.kind]
-        support = "Claim supported in a separate model check against anchored manuscript evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
+        support = "Claim and rationale supported in a separate model check against anchored manuscript evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
         lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**{kind}.** {support}", "", finding.rationale, ""])
         if finding.remedy_status in {"overreaching", "unresolved"}:
             lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])

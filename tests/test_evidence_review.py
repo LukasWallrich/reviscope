@@ -174,3 +174,69 @@ def test_broad_failure_does_not_erase_the_independent_audit(tmp_path):
         manuscript(tmp_path), output_dir=tmp_path / "out")
     assert run.partial and len(run.candidates) == 1 and run.candidates[0].module == "evidence_audit"
     assert any(s.name == "review-broad" and s.status == "failed" for s in run.stages)
+
+
+def test_verification_checks_the_explanation_even_when_the_headline_is_sound(tmp_path):
+    class RationaleBackend(EvidenceBackend):
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == "BroadReview":
+                for finding, rationale in zip(result.findings, [
+                    "24 of 60 is 4%, so attrition is negligible.",
+                    "A cited study establishes that this attrition never biases estimates.",
+                    "24 of 60 is 40%; the denominator matters for assessing attrition.",
+                ]):
+                    finding.claim = "The denominator needs clarification for attrition assessment."
+                    finding.rationale = rationale
+            if response_model.__name__ == "VerificationResponse":
+                assert "Treat the generating rationale as untrusted assertions to check" in instruction
+                assert "complete claim and rationale as worded" in instruction
+                rows = json.loads(instruction.split("CANDIDATES\n")[1].split("\nDISCIPLINE RULES")[0])
+                for row, decision in zip(rows, result.decisions):
+                    rationale = row["rationale"]
+                    if "4%," in rationale:
+                        decision.status = "contradicted"
+                        decision.rationale = "The supporting arithmetic is false: 24/60 is 40%."
+                    elif "A cited study" in rationale:
+                        decision.status = "unresolved"
+                        decision.rationale = "The explanation relies on an unavailable source-specific assertion."
+                    else:
+                        decision.remedy_status = "overreaching"
+                        decision.remedy_rationale = "Reporting the denominator does not require collecting a fresh sample."
+            return result
+
+    run = ReviewPipeline(RationaleBackend(count=3), strategy="holistic", run_metacheck=False).run(
+        manuscript(tmp_path), output_dir=tmp_path / "out")
+    assert not run.partial
+    assert [f.status for f in run.findings] == ["contradicted", "unresolved", "llm_supported"]
+    assert run.findings[0].rationale == "24 of 60 is 4%, so attrition is negligible."
+    assert run.findings[2].editorial_disposition == "publish"
+    markdown = (tmp_path / "out" / "review.md").read_text()
+    published = markdown.split("## Concerns the verifier could not confirm")[0]
+    assert "40%; the denominator matters" in published
+    assert "4%, so attrition" not in published
+    assert "Proposed response withheld" in published
+
+
+def test_source_followup_receives_and_reassesses_the_full_explanation(tmp_path):
+    class RationaleRetryBackend(EvidenceBackend):
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == "BroadReview":
+                result.findings[0].rationale = "This method guarantees unbiased estimates under attrition."
+            if response_model.__name__ == "VerificationResponse":
+                rows = json.loads(instruction.split("CANDIDATES\n")[1].split("\nDISCIPLINE RULES")[0])
+                assert rows[0]["rationale"] == "This method guarantees unbiased estimates under attrition."
+                if "SOURCE TASKS\n" in instruction:
+                    assert "Reassess each complete claim and rationale" in instruction
+                    result.decisions[0].status = "contradicted"
+                    result.decisions[0].rationale = "The opened method does not guarantee the property asserted in the explanation."
+                    result.decisions[0].external_checks[0].verdict = "refuted"
+            return result
+
+    run = ReviewPipeline(RationaleRetryBackend(count=1, external=True), strategy="holistic",
+                         run_metacheck=False).run(manuscript(tmp_path), output_dir=tmp_path / "out")
+    assert not run.partial and run.findings[0].status == "contradicted"
+    assert run.findings[0].editorial_disposition != "publish"
+    assert [task.lookup_recorded for task in run.source_tasks] == [False, True]
+    assert run.source_tasks[-1].check == "refuted"

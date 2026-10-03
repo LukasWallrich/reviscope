@@ -107,6 +107,14 @@ review. All new findings undergo the same verification and editorial gates.
 
 ## Verification and publication
 
+Verification checks the complete criticism: headline claim, explanatory rationale,
+factual premises, calculations, citation use and inferential scope. The rationale is
+untrusted material to test against sources, rather than evidence for its own assertions.
+A supported headline cannot carry a false or unresolved substantive explanation.
+Methodological and conceptual judgments are assessed on their justified premises and
+scope, including citation misuse and overclaims. Remedies receive a separate check
+for necessity and proportionality; unsupported remedies are withheld.
+
 Verification processes every candidate in module-based batches of at most ten. This
 is a per-call workload, not a finding limit. Each batch is independently cached and
 records its backend version and tool calls. A failed batch marks the run partial and
