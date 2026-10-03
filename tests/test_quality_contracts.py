@@ -239,5 +239,5 @@ def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
     assert "`" + by_name["open"].id + "`" not in audit
     blinded = strip_review_metadata(markdown)
     assert "Claim confirmed" in blinded and "Claim open" not in blinded
-    assert "Supported in a separate model check" not in blinded
+    assert "Claim supported in a separate model check" not in blinded
     assert "Claimed defect." not in blinded
