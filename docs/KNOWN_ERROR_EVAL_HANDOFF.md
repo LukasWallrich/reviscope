@@ -267,3 +267,19 @@ for this diagnostic series; contamination audit rules remain intact. The
 [human-review comparison guide](OPEN_REVIEW_COMPARISONS.md) describes six verified
 submitted manuscripts and twelve prepared expert reports. A small usefulness
 comparison precedes a full planted-error campaign.
+
+## Broad-first development series
+
+`runs/pipeline-redesign-20261003` retains the complete 0.4.3 development series:
+two plain manuscript reviews, nested broad-first and independent-audit arms, both
+judge families, and broad-first retrieval on papers 5 and 9. The two regression
+baselines are saved reviews with matching input hashes. `candidate-launch.json`,
+`baseline-launch.json`, `retrieval-launch.json` and the snapshot files record exact
+commands and provenance. Each nested arm is archived before the shared working
+directory receives the other arm. The root Codex timer is active after collection.
+
+The [development results](PIPELINE_DEVELOPMENT_RESULTS.md) link public derived
+comparison, numerical and retrieval data. Human reports and raw manuscripts remain
+in the ignored cache. The candidate's code is frozen independently of evaluation
+code. The pilot's frozen judge rubric and the current uncertainty-aware rubric are
+distinct conditions; pilot judgments retain their recorded protocol.

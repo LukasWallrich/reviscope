@@ -1,0 +1,1636 @@
+{
+  "scope": "Papers 5 and 9 are development regression cases; one candidate run, saved one-call comparators on identical input hashes. No change to annotation scoring or contamination groups.",
+  "comparison": {
+    "papers": [
+      5,
+      9
+    ],
+    "configurations": {
+      "pipeline_holistic_sol_opus": {
+        "all_targets": {
+          "candidate": {
+            "detected": 13,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.65
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 7,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.875
+          },
+          "published": {
+            "detected": 7,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.875
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            },
+            "published": {
+              "detected": 3,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.5
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            },
+            "published": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 2,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            },
+            "published": {
+              "detected": 2,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            }
+          }
+        }
+      },
+      "plain-nolist_gpt-6.1-sol_high": {
+        "all_targets": {
+          "candidate": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          },
+          "published": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 5,
+              "uncertain": 0,
+              "denominator": 6,
+              "recall": 0.8333333333333334
+            },
+            "published": {
+              "detected": 5,
+              "uncertain": 0,
+              "denominator": 6,
+              "recall": 0.8333333333333334
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 1,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.16666666666666666
+            },
+            "published": {
+              "detected": 1,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.16666666666666666
+            }
+          }
+        }
+      },
+      "plain_gpt-6.1-sol_high": {
+        "all_targets": {
+          "candidate": {
+            "detected": 12,
+            "uncertain": 3,
+            "denominator": 20,
+            "recall": 0.6
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 3,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          },
+          "published": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            },
+            "published": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 2,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            },
+            "published": {
+              "detected": 2,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            }
+          }
+        }
+      }
+    },
+    "excluded_no_headline_papers": []
+  },
+  "judge_model": "claude-opus-5-5",
+  "audit_sha256": "62d1cdf73d36fc96e0e2c38936c811f7ad5dbe55a7050170757b237e78a231d2",
+  "configurations": {
+    "pipeline_holistic_sol_opus": {
+      "headline": {
+        "all_targets": {
+          "candidate": {
+            "detected": 13,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.65
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 7,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.875
+          },
+          "published": {
+            "detected": 7,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.875
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            },
+            "published": {
+              "detected": 3,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.5
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            },
+            "published": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 2,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            },
+            "published": {
+              "detected": 2,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            }
+          }
+        }
+      },
+      "groups": {
+        "clean": {
+          "papers": [
+            5,
+            9
+          ],
+          "all_targets": {
+            "candidate": {
+              "detected": 13,
+              "uncertain": 2,
+              "denominator": 20,
+              "recall": 0.65
+            },
+            "published": {
+              "detected": 12,
+              "uncertain": 2,
+              "denominator": 20,
+              "recall": 0.6
+            }
+          },
+          "demonstrable_subset": {
+            "candidate": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            },
+            "published": {
+              "detected": 7,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.875
+            }
+          },
+          "by_audit_verdict": {
+            "material_reporting_gap": {
+              "candidate": {
+                "detected": 4,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.6666666666666666
+              },
+              "published": {
+                "detected": 3,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.5
+              }
+            },
+            "needs_external_verification": {
+              "candidate": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              },
+              "published": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              }
+            },
+            "valid_demonstrable_error": {
+              "candidate": {
+                "detected": 7,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.875
+              },
+              "published": {
+                "detected": 7,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.875
+              }
+            },
+            "weak_or_invalid": {
+              "candidate": {
+                "detected": 2,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.3333333333333333
+              },
+              "published": {
+                "detected": 2,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.3333333333333333
+              }
+            }
+          }
+        }
+      },
+      "papers": [
+        {
+          "paper": "5",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 27,
+          "published_count": 23,
+          "candidate_detected": 5,
+          "published_detected": 4,
+          "generator": {
+            "backend": "codex",
+            "model": "gpt-6.1-sol",
+            "effort": "high",
+            "profile": "social_psychology",
+            "profile_hash": "c6687f766796c868295cbfd910c4041929886d8e70fdc8c391a37c0c499ab1b9"
+          },
+          "judge": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31",
+          "artifacts": {
+            "reviews/pipeline_holistic_sol_opus/paper-05/review.json": "c64235398ef0880c0d4bda3b4db2f9944738294d1f02e355527ba8ca29a7d688",
+            "reviews/pipeline_holistic_sol_opus/paper-05/planted-error-adjudication.claude-opus-5-5.json": "bc1234f3374d67ffd6d653d3d2d67f63817131dd5530b46d8ac90afbe2c2bfeb"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "8d57fd816ec5610756f256f132e7761b80a4bb5e198317115748d5915e8b6e9d",
+          "verdicts": {
+            "05-01": {
+              "candidate": "detected",
+              "published": "not_detected"
+            },
+            "05-02": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-03": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-04": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-05": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-06": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-07": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-08": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-10": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            }
+          }
+        },
+        {
+          "paper": "9",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 37,
+          "published_count": 34,
+          "candidate_detected": 8,
+          "published_detected": 8,
+          "generator": {
+            "backend": "codex",
+            "model": "gpt-6.1-sol",
+            "effort": "high",
+            "profile": "social_psychology",
+            "profile_hash": "c6687f766796c868295cbfd910c4041929886d8e70fdc8c391a37c0c499ab1b9"
+          },
+          "judge": "claude:claude-opus-5-5:high:00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4",
+          "artifacts": {
+            "reviews/pipeline_holistic_sol_opus/paper-09/review.json": "d9285166b89d8a5864261c89abb6c620ec3205941cb6f1a2dd4cd5319fe88b49",
+            "reviews/pipeline_holistic_sol_opus/paper-09/planted-error-adjudication.claude-opus-5-5.json": "ea5c16c23174e00ad4446550cae00ca9e2bea5d41de46cc3ce56daf01c3ad60c"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "8d57fd816ec5610756f256f132e7761b80a4bb5e198317115748d5915e8b6e9d",
+          "verdicts": {
+            "09-01": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-02": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-03": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-04": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-05": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-06": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-07": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            },
+            "09-08": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "09-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-10": {
+              "candidate": "detected",
+              "published": "detected"
+            }
+          }
+        }
+      ]
+    },
+    "plain-nolist_gpt-6.1-sol_high": {
+      "headline": {
+        "all_targets": {
+          "candidate": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 2,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          },
+          "published": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 5,
+              "uncertain": 0,
+              "denominator": 6,
+              "recall": 0.8333333333333334
+            },
+            "published": {
+              "detected": 5,
+              "uncertain": 0,
+              "denominator": 6,
+              "recall": 0.8333333333333334
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 1,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.16666666666666666
+            },
+            "published": {
+              "detected": 1,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.16666666666666666
+            }
+          }
+        }
+      },
+      "groups": {
+        "clean": {
+          "papers": [
+            5,
+            9
+          ],
+          "all_targets": {
+            "candidate": {
+              "detected": 12,
+              "uncertain": 2,
+              "denominator": 20,
+              "recall": 0.6
+            },
+            "published": {
+              "detected": 12,
+              "uncertain": 2,
+              "denominator": 20,
+              "recall": 0.6
+            }
+          },
+          "demonstrable_subset": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "by_audit_verdict": {
+            "material_reporting_gap": {
+              "candidate": {
+                "detected": 5,
+                "uncertain": 0,
+                "denominator": 6,
+                "recall": 0.8333333333333334
+              },
+              "published": {
+                "detected": 5,
+                "uncertain": 0,
+                "denominator": 6,
+                "recall": 0.8333333333333334
+              }
+            },
+            "needs_external_verification": {
+              "candidate": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              },
+              "published": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              }
+            },
+            "valid_demonstrable_error": {
+              "candidate": {
+                "detected": 6,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.75
+              },
+              "published": {
+                "detected": 6,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.75
+              }
+            },
+            "weak_or_invalid": {
+              "candidate": {
+                "detected": 1,
+                "uncertain": 2,
+                "denominator": 6,
+                "recall": 0.16666666666666666
+              },
+              "published": {
+                "detected": 1,
+                "uncertain": 2,
+                "denominator": 6,
+                "recall": 0.16666666666666666
+              }
+            }
+          }
+        }
+      },
+      "papers": [
+        {
+          "paper": "5",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 34,
+          "published_count": 34,
+          "candidate_detected": 5,
+          "published_detected": 5,
+          "generator": "codex:gpt-6.1-sol:high:codex-cli 0.159.2:77f4d256aab4:policy-e3b0c44298fc",
+          "judge": "claude:claude-opus-5-5:high:2.1.280 (Claude Code):00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31",
+          "artifacts": {
+            "reviews/plain-nolist_gpt-6.1-sol_high/paper-05/review.json": "ea118976f6b6569b8d4d53f405d721ebed6fc9369da0a451b2e56c8400f4460c",
+            "reviews/plain-nolist_gpt-6.1-sol_high/paper-05/planted-error-adjudication.claude-opus-5-5.json": "db7c3fcb735d5d131e6fe5fde36e5b41b944a5609b47a2eadc59c3cb76664c9c"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "17648e7561d2be262ed18986c00e2a8d1657fd57e73704ee8a780bed440f9c00",
+          "verdicts": {
+            "05-01": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-02": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-03": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-04": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-05": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-06": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-07": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-08": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-10": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            }
+          }
+        },
+        {
+          "paper": "9",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 44,
+          "published_count": 44,
+          "candidate_detected": 7,
+          "published_detected": 7,
+          "generator": "codex:gpt-6.1-sol:high:codex-cli 0.159.2:77f4d256aab4:policy-e3b0c44298fc",
+          "judge": "claude:claude-opus-5-5:high:2.1.280 (Claude Code):00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4",
+          "artifacts": {
+            "reviews/plain-nolist_gpt-6.1-sol_high/paper-09/review.json": "ba3a9a1bba0088ae31576bbce1c9454ac3f14f35b3d2b389018cf9f37303f9f4",
+            "reviews/plain-nolist_gpt-6.1-sol_high/paper-09/planted-error-adjudication.claude-opus-5-5.json": "8eb2c253a3c199b1e8e188d9e974f61d3d1e61cde59bfe95601874439b87f0fd"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "17648e7561d2be262ed18986c00e2a8d1657fd57e73704ee8a780bed440f9c00",
+          "verdicts": {
+            "09-01": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-02": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "09-03": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-04": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            },
+            "09-05": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-06": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-07": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-08": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "09-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-10": {
+              "candidate": "detected",
+              "published": "detected"
+            }
+          }
+        }
+      ]
+    },
+    "plain_gpt-6.1-sol_high": {
+      "headline": {
+        "all_targets": {
+          "candidate": {
+            "detected": 12,
+            "uncertain": 3,
+            "denominator": 20,
+            "recall": 0.6
+          },
+          "published": {
+            "detected": 12,
+            "uncertain": 3,
+            "denominator": 20,
+            "recall": 0.6
+          }
+        },
+        "demonstrable_subset": {
+          "candidate": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          },
+          "published": {
+            "detected": 6,
+            "uncertain": 0,
+            "denominator": 8,
+            "recall": 0.75
+          }
+        },
+        "by_audit_verdict": {
+          "material_reporting_gap": {
+            "candidate": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            },
+            "published": {
+              "detected": 4,
+              "uncertain": 1,
+              "denominator": 6,
+              "recall": 0.6666666666666666
+            }
+          },
+          "needs_external_verification": {
+            "candidate": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            },
+            "published": {
+              "detected": 0,
+              "uncertain": 0,
+              "denominator": 0,
+              "recall": null
+            }
+          },
+          "valid_demonstrable_error": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "weak_or_invalid": {
+            "candidate": {
+              "detected": 2,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            },
+            "published": {
+              "detected": 2,
+              "uncertain": 2,
+              "denominator": 6,
+              "recall": 0.3333333333333333
+            }
+          }
+        }
+      },
+      "groups": {
+        "clean": {
+          "papers": [
+            5,
+            9
+          ],
+          "all_targets": {
+            "candidate": {
+              "detected": 12,
+              "uncertain": 3,
+              "denominator": 20,
+              "recall": 0.6
+            },
+            "published": {
+              "detected": 12,
+              "uncertain": 3,
+              "denominator": 20,
+              "recall": 0.6
+            }
+          },
+          "demonstrable_subset": {
+            "candidate": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            },
+            "published": {
+              "detected": 6,
+              "uncertain": 0,
+              "denominator": 8,
+              "recall": 0.75
+            }
+          },
+          "by_audit_verdict": {
+            "material_reporting_gap": {
+              "candidate": {
+                "detected": 4,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.6666666666666666
+              },
+              "published": {
+                "detected": 4,
+                "uncertain": 1,
+                "denominator": 6,
+                "recall": 0.6666666666666666
+              }
+            },
+            "needs_external_verification": {
+              "candidate": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              },
+              "published": {
+                "detected": 0,
+                "uncertain": 0,
+                "denominator": 0,
+                "recall": null
+              }
+            },
+            "valid_demonstrable_error": {
+              "candidate": {
+                "detected": 6,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.75
+              },
+              "published": {
+                "detected": 6,
+                "uncertain": 0,
+                "denominator": 8,
+                "recall": 0.75
+              }
+            },
+            "weak_or_invalid": {
+              "candidate": {
+                "detected": 2,
+                "uncertain": 2,
+                "denominator": 6,
+                "recall": 0.3333333333333333
+              },
+              "published": {
+                "detected": 2,
+                "uncertain": 2,
+                "denominator": 6,
+                "recall": 0.3333333333333333
+              }
+            }
+          }
+        }
+      },
+      "papers": [
+        {
+          "paper": "5",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 34,
+          "published_count": 34,
+          "candidate_detected": 5,
+          "published_detected": 5,
+          "generator": "codex:gpt-6.1-sol:high:codex-cli 0.159.2:2ec1ecbd1d87:policy-e3b0c44298fc",
+          "judge": "claude:claude-opus-5-5:high:2.1.284 (Claude Code):00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31",
+          "artifacts": {
+            "reviews/plain_gpt-6.1-sol_high/paper-05/review.json": "0cd232332c5252f7327d3f139efd592f951429cc252c36185c89f12f123badd4",
+            "reviews/plain_gpt-6.1-sol_high/paper-05/planted-error-adjudication.claude-opus-5-5.json": "0dfcabad788951f0e4f9daab4a3fd6fd06b12e6a323aea9d726bf60f0a3695ef"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "17648e7561d2be262ed18986c00e2a8d1657fd57e73704ee8a780bed440f9c00",
+          "verdicts": {
+            "05-01": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-02": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-03": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-04": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            },
+            "05-05": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-06": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "05-07": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-08": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "05-10": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            }
+          }
+        },
+        {
+          "paper": "9",
+          "group": "clean",
+          "partial": false,
+          "candidate_count": 43,
+          "published_count": 43,
+          "candidate_detected": 7,
+          "published_detected": 7,
+          "generator": "codex:gpt-6.1-sol:high:codex-cli 0.159.2:2ec1ecbd1d87:policy-e3b0c44298fc",
+          "judge": "claude:claude-opus-5-5:high:2.1.284 (Claude Code):00f58898b34d:policy-e3b0c44298fc",
+          "judge_tools": false,
+          "input_sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4",
+          "artifacts": {
+            "reviews/plain_gpt-6.1-sol_high/paper-09/review.json": "7ed904830f38558ad5ffa5d0e6e12a68a6ae533941ece1d3c985d1e7143dc886",
+            "reviews/plain_gpt-6.1-sol_high/paper-09/planted-error-adjudication.claude-opus-5-5.json": "a76d3598cc24ef7d57d7eb2699a5e4149918f737eac7b2f66edc9d48c8c8337e"
+          },
+          "annotations_sha256": "5c32b834a98c295a287cf3ab82d6611b1114419bfca1f9e17db29b3b5b404bf9",
+          "adjudicator_sha256": "17648e7561d2be262ed18986c00e2a8d1657fd57e73704ee8a780bed440f9c00",
+          "verdicts": {
+            "09-01": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-02": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "09-03": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-04": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-05": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-06": {
+              "candidate": "uncertain",
+              "published": "uncertain"
+            },
+            "09-07": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-08": {
+              "candidate": "not_detected",
+              "published": "not_detected"
+            },
+            "09-09": {
+              "candidate": "detected",
+              "published": "detected"
+            },
+            "09-10": {
+              "candidate": "detected",
+              "published": "detected"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "trace": [
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-01",
+      "category": "statistical_errors",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "detected",
+      "published": "not_detected",
+      "matched": [
+        {
+          "id": "broad:17:F18",
+          "module": "broad",
+          "verifier_status": "contradicted",
+          "status": "contradicted",
+          "editorial_disposition": "rejected"
+        }
+      ],
+      "lost_at": "contradicted by verification"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-02",
+      "category": "methodological_design",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:12:F13",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-03",
+      "category": "construct_validity",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "not_detected",
+      "published": "not_detected",
+      "matched": [],
+      "lost_at": "never raised"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-04",
+      "category": "causal_inference",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "not_detected",
+      "published": "not_detected",
+      "matched": [],
+      "lost_at": "never raised"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-05",
+      "category": "internal_consistency",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "not_detected",
+      "published": "not_detected",
+      "matched": [],
+      "lost_at": "never raised"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-06",
+      "category": "reporting_completeness",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "not_detected",
+      "published": "not_detected",
+      "matched": [],
+      "lost_at": "never raised"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-07",
+      "category": "generalizability",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:22:F23",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-08",
+      "category": "theoretical_conceptual",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:9:F10",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-09",
+      "category": "analytic_flexibility",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:18:F19",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "5-10",
+      "category": "attrition_missing_data",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "uncertain",
+      "published": "uncertain",
+      "matched": [
+        {
+          "id": "broad:20:F21",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "uncertain match; published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-01",
+      "category": "statistical_errors",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:0:F01",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-02",
+      "category": "methodological_design",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:29:F30",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-03",
+      "category": "construct_validity",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:35:F36",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-04",
+      "category": "causal_inference",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:7:F08",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-05",
+      "category": "internal_consistency",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:19:F20",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-06",
+      "category": "reporting_completeness",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:26:F27",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-07",
+      "category": "generalizability",
+      "validity_audit": "material_reporting_gap",
+      "candidate": "uncertain",
+      "published": "uncertain",
+      "matched": [
+        {
+          "id": "broad:14:F15",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "uncertain match; published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-08",
+      "category": "theoretical_conceptual",
+      "validity_audit": "weak_or_invalid",
+      "candidate": "not_detected",
+      "published": "not_detected",
+      "matched": [],
+      "lost_at": "never raised"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-09",
+      "category": "analytic_flexibility",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:1:F02",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "error_id": "9-10",
+      "category": "attrition_missing_data",
+      "validity_audit": "valid_demonstrable_error",
+      "candidate": "detected",
+      "published": "detected",
+      "matched": [
+        {
+          "id": "broad:15:F16",
+          "module": "broad",
+          "verifier_status": "supported",
+          "status": "llm_supported",
+          "editorial_disposition": "publish"
+        }
+      ],
+      "lost_at": "published"
+    }
+  ],
+  "stage_metrics": [
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "paper": 5,
+      "review_sha256": "c64235398ef0880c0d4bda3b4db2f9944738294d1f02e355527ba8ca29a7d688",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31"
+        }
+      ],
+      "model_calls": 5,
+      "stage_minutes": 37.18,
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ],
+      "metacheck_status": "partial"
+    },
+    {
+      "configuration": "pipeline_holistic_sol_opus",
+      "paper": 9,
+      "review_sha256": "d9285166b89d8a5864261c89abb6c620ec3205941cb6f1a2dd4cd5319fe88b49",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4"
+        }
+      ],
+      "model_calls": 6,
+      "stage_minutes": 41.63,
+      "backend_versions": [
+        "2.1.280 (Claude Code)",
+        "codex-cli 0.160.0"
+      ],
+      "metacheck_status": "partial"
+    },
+    {
+      "configuration": "plain-nolist_gpt-6.1-sol_high",
+      "paper": 5,
+      "review_sha256": "ea118976f6b6569b8d4d53f405d721ebed6fc9369da0a451b2e56c8400f4460c",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31"
+        }
+      ],
+      "model_calls": 1,
+      "stage_minutes": 18.8,
+      "backend_versions": [],
+      "metacheck_status": null
+    },
+    {
+      "configuration": "plain-nolist_gpt-6.1-sol_high",
+      "paper": 9,
+      "review_sha256": "ba3a9a1bba0088ae31576bbce1c9454ac3f14f35b3d2b389018cf9f37303f9f4",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4"
+        }
+      ],
+      "model_calls": 1,
+      "stage_minutes": 12.76,
+      "backend_versions": [],
+      "metacheck_status": null
+    },
+    {
+      "configuration": "plain_gpt-6.1-sol_high",
+      "paper": 5,
+      "review_sha256": "0cd232332c5252f7327d3f139efd592f951429cc252c36185c89f12f123badd4",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "b247e1f36a2f3cf2b17b5580c7392feaeb6f52bff23a97d546d9e190551cef31"
+        }
+      ],
+      "model_calls": 1,
+      "stage_minutes": 11.3,
+      "backend_versions": [],
+      "metacheck_status": null
+    },
+    {
+      "configuration": "plain_gpt-6.1-sol_high",
+      "paper": 9,
+      "review_sha256": "7ed904830f38558ad5ffa5d0e6e12a68a6ae533941ece1d3c985d1e7143dc886",
+      "sources": [
+        {
+          "kind": "manuscript",
+          "sha256": "1227477c3bac59d9c0d21db324e6502d2df78e456e74d6e73aaddf5369cc33d4"
+        }
+      ],
+      "model_calls": 1,
+      "stage_minutes": 12.4,
+      "backend_versions": [],
+      "metacheck_status": null
+    }
+  ]
+}
