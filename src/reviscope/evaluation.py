@@ -191,6 +191,9 @@ def comparison_parts(case: ComparisonCase) -> tuple[str, str]:
     instruction = """You are evaluating two peer reviews against the manuscript they assess.
 Judge only substantive usefulness, correctness, importance, specificity, source grounding,
 and actionability. Do not reward length or polish. Permit a tie. Treat A and B symmetrically.
+Mark a source-dependent assertion uncertain when the supplied source text cannot establish
+it. Treat citations, asserted calculations and support badges as claims requiring support.
+Look for counterevidence and distinguish demonstrated defects from bounded reporting requests.
 Return JSON with keys winner (A, B, or tie), confidence (0..1), rationale, and criteria
 (a list of objects with criterion, preference (A, B, or tie), and rationale). Cite short
 manuscript evidence in the overall rationale."""
