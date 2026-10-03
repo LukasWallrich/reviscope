@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from reviscope.backend import ClaudeBackend, CodexBackend
-from reviscope.evaluation import build_pairwise_cases, run_comparisons
+from reviscope.evaluation import build_pairwise_cases, comparison_parts, run_comparisons
 
 
 def sha(path):
@@ -39,21 +39,26 @@ def review_text(data):
 
 def compare(job, model, out):
     backend = ClaudeBackend(model, effort="high", tools=False) if model == "claude-opus-5-5" else CodexBackend(model, effort="high", tools=False)
-    content = {key: value for key, value in job.items() if key not in {"audit_groups"}}
-    key = hashlib.sha256(json.dumps({"input": content, "backend": backend.identity,
-                                   "protocol": "development-criticism-comparison-v1"}, sort_keys=True).encode()).hexdigest()
+    paper = {"paper_id": job["paper_id"], "manuscript": job["manuscript"],
+             "candidate_review": job["left_text"], "reference_review": job["right_text"]}
+    cases = build_pairwise_cases([paper], seed=42, order_swap=True)
+    # Artifact hashes record provenance. The complete judge prompts and its model
+    # settings determine reuse; CLI-version metadata does not enter the key.
+    key = hashlib.sha256(json.dumps({"input": [comparison_parts(case) for case in cases], "backend": backend.identity,
+                                   "protocol": "development-criticism-comparison-v3"}, sort_keys=True).encode()).hexdigest()
     target = out / model / job["case"] / (job["left"] + "-vs-" + job["right"] + ".json")
     if target.exists():
         prior = json.loads(target.read_text())
         if prior.get("cache_key") == key and not prior.get("invalid"):
+            prior.update(audit_groups=job["audit_groups"], source_hashes=job["source_hashes"])
+            target.write_text(json.dumps(prior, indent=2) + "\n")
             return prior
-    paper = {"paper_id": job["paper_id"], "manuscript": job["manuscript"],
-             "candidate_review": job["left_text"], "reference_review": job["right_text"]}
-    result = asyncio.run(run_comparisons(build_pairwise_cases([paper], seed=42, order_swap=True), backend))
+    result = asyncio.run(run_comparisons(cases, backend))
     result.update(cache_key=key, model=model, backend_version=backend.version, case=job["case"],
                   paper_id=job["paper_id"], left=job["left"], right=job["right"],
                   audit_groups=job["audit_groups"], source_hashes=job["source_hashes"],
                   representation="criticism-focused, metadata stripped; no study overview, support badge or stage IDs",
+                  protocol="development-criticism-comparison-v3",
                   reviewer_independence="Human reports are judge-only inputs; generator sessions do not receive them")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2) + "\n")
