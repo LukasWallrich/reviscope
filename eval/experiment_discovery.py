@@ -144,10 +144,8 @@ def main() -> int:
             if set(names) != set(CHECKS) or len(names) != len(set(names)):
                 run.coverage.append("holistic: operation coverage has missing, unknown or duplicate entries; findings retained")
             for index, finding in enumerate(response.findings, 1):
-                run.candidates.append(finding.model_copy(update={"id": f"holistic:{index:02d}", "module": "holistic",
-                    "status": "candidate", "confidence": None, "verification": None, "verifier_status": None,
-                    "verifier_rationale": None, "remedy_status": None, "remedy_verification": None,
-                    "editorial_disposition": "publish", "editorial_reason": None, "merged_into": None}))
+                run.candidates.append(Finding.model_validate({**finding.model_dump(),
+                    "id": f"holistic:{index:02d}", "module": "holistic"}))
             run.stages.append(stage)
             run.coverage.extend(f"holistic/{c.check}: {c.status} — {c.rationale}" for c in response.checks)
             if response.search_incomplete:
