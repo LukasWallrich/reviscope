@@ -170,14 +170,19 @@ Plain and the audit-extended candidate cover all seven checks; broad-first misse
 negative-correlation count. This is a retrospectively selected development check set,
 not a complete error inventory or an estimate of precision.
 
-The verifier receives headline claims, remedies, quotations and external items. Its
-instruction excludes reliance on the generating rationale. A supported headline therefore
-does not establish every factual assertion in the rationale. In the harm audit, the
-published aggregation rationale asserts eight original scenarios while the verifier
-cannot open the source and judges the bounded headline independently of that exact count.
-That illustrates the coverage boundary. Mandatory verification of factual rationales
-requires an explicit owner decision under the verification-rule constraint. Claim-level
-support language in the current renderer states the scope precisely.
+The frozen pilot verifier receives headline claims, remedies, quotations and external
+items. Its instruction excludes reliance on the generating rationale. A supported
+headline therefore does not establish every factual assertion in the rationale. In the
+harm audit, the published aggregation rationale asserts eight original scenarios while
+the verifier cannot open the source and judges the bounded headline independently of
+that exact count. That illustrates the pilot's coverage boundary.
+
+The current verification design covers the complete claim and rationale, with the
+explanation supplied as untrusted assertions to check. Factual premises, calculations,
+citation use and inferential scope require support; a plausible headline cannot carry a
+false or unresolved explanation. Remedies are assessed separately for necessity and
+proportionality. The pilot results do not validate this expanded coverage. Fresh
+calibration and manuscript comparisons must assess the complete criticism.
 
 The frozen pilot judge rubric asks for correctness and grounding, but rationales sometimes
 call external assertions verified without supplied source text. The current judge rubric
