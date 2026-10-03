@@ -2,6 +2,41 @@
 
 Status: implemented for every profile; scientific benefit not yet established.
 
+## Holistic discovery and optional evidence audit
+
+`--strategy holistic` uses one broad tool-enabled read of the manuscript and all
+retained metacheck leads. It returns candidates and a descriptive study map in the
+same call, without receiving a separate overview or specialist inventory. It asks
+for methodological, statistical and conceptual criticism rather than named category
+quotas. The broad read does not manufacture a coverage ledger.
+
+`--evidence-audit` adds a separate tool-enabled source read with concrete operations:
+reported quantities, analysis/scoring recipes, categorical agreement and inferential
+targets. It receives full sources and all retained screening leads, without the
+broad review's candidates, overview or coverage. Its separate input does not establish
+independent-model evidence when the same model performs both reads. Every operation
+records evidence, reported inputs, assumptions, method, result and unfinished work.
+Calculations include code and the short printed result. The pipeline labels code/output
+as recorded only when both match the audit's own successful shell trace. This proves
+recording, not mathematical correctness or independent reproduction. The complete
+operation ledger remains in the stage artifact; coverage reports every operation.
+
+The audit is optional so its marginal findings and work can be measured. Origin-based
+verification batches and content-keyed caches reuse broad discovery and broad
+verification when the audit is added. Editorial reconciles the combined findings.
+The specialist strategy is the default comparison path; holistic discovery and the
+optional audit are experimental. Both use the same verification and publication gates.
+
+Discovery owns a lean candidate schema, including claim type, wording, severity,
+remedy and evidence. It does not assign evidential status, confidence, editorial
+disposition or external-source confirmation. A defect alleges an error; a
+specification conflict compares incompatible reported specifications; a clarification
+request identifies missing information and the particular assessment or reproduction
+it prevents. Kind does not override the complete wording or discipline criteria.
+Verification assesses the claim at that scope, and essential inaccessible material
+leaves the claim unresolved. Severity stays immutable during editorial. Classification
+does not automatically support an omission or change its severity.
+
 ## Discovery
 
 Each profile module audits the whole manuscript within its responsibility and returns
@@ -12,8 +47,8 @@ publication cap. The JSON audit keeps all candidates and their dispositions.
 Each specialist must return exactly its assigned coverage checks with an explicit
 status and reason. “Assessed” requires anchored quotations; it is still a model's
 claim of coverage, not proof of a sound analysis. Missing, duplicated or unanchored
-coverage is recorded as not checked and marks the run partial, as does a module that
-reports an incomplete search. Raw discovery responses and candidate findings are
+coverage is recorded as not checked. An incomplete search is reported in coverage;
+a stage failure marks the review partial. Raw discovery responses and candidate findings are
 retained; candidates still undergo verification. Not-applicable and
 insufficient-evidence states are retained, including when no criticism is generated.
 The full structured evidence is in stage JSON; the report displays the coverage
@@ -77,6 +112,15 @@ is a per-call workload, not a finding limit. Each batch is independently cached 
 records its backend version and tool calls. A failed batch marks the run partial and
 leaves its candidates unverified; successful batches retain their results. An external
 confirmation uses only the tool calls from the batch that checked the candidate.
+
+An external-source task ledger records each cited locator, its claim, dependency,
+lookup record and resulting check for each verification attempt. A supported claim
+held by an unperformed required-source lookup receives one focused re-verification
+attempt, naming its source tasks. The replacement decision must include its own
+manuscript evidence and source checks, and confirmation uses only that attempt's tool
+record. A follow-up cannot borrow another stage's fetch or repeatedly retry until it
+gets support. Unfinished checks retain the same unresolved status; a failed follow-up
+marks the run partial and retains the initial gated decisions.
 
 Quotations anchor when they match the named source exactly, modulo whitespace and
 common PDF artefacts; numbers must match exactly. A quotation shortened with an
