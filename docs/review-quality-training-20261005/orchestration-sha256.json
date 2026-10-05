@@ -1,0 +1,16 @@
+{
+  "recover_mackinnon_assessment.py": "2226f55e0c60d1c0ab685b2b202faebf524436214dab05bc397deb95d56c03b8",
+  "rewrap_niemeyer_opus.py": "0e6875794491b81e2dfd4ccf215a5dcee87241503da11b05a91f4c9cc4c2f95c",
+  "assess_campaign.py": "5ca46def762ecff8d28ec249ad37bdd5a95f96a02ddf7a3c1085cd5af4fa969f",
+  "export_training_results.py": "9370227fd3a8f86d2523205fcde29a631d3f1e32d629ee70f946146746c245f4",
+  "render_provenance_negative_checks.py": "431823e304c35c503b4928db167cb7b20b333fb7f22ca4bab37f20d3f3ed7798",
+  "assess_campaign_v2.py": "fd7ab35783fe2d08c73b4c91554f567ad57b118350a762172318a0f720d38d92",
+  "summarize.py": "505e4517c9f2845356b666ecc4128acbf00caee8723a1bf588c90e3c96bb55ca",
+  "recover_niemeyer_assessment.py": "8ebd1d2659c49b3b538c37e46083b3eeea8a322789c4b235370fddd3c7154701",
+  "campaign.py": "f3baa50d6cf333fa2799a3bd6abf3cc2df68e517aad1219b342f2505d013f0e8",
+  "offline_finalize.py": "73273d599bb19f3a7c9c8f7912dc738d0373eba219bfe0746d28464e74ba6e00",
+  "provenance_negative_checks.py": "4d420428204aba0589f2d577b509b2a820f11fb58ffb8db2a184e661344bd75a",
+  "provenance_audit.py": "4e9fdc748f33b7396d8f0fecacb4e9041c5a095f6f177f8ffbd85cb4c6482613",
+  "criticism_audit.py": "096f4d3c0fdb3e18d87de50704eadf2d4a18c559b5ea7ac56c4d20a204b34738",
+  "retain_partial_niemeyer.py": "1103127fc287565ccc0301712f3c05da994b77a5b0e2a95dd1d7279da3bd1052"
+}

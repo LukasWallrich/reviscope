@@ -38,11 +38,16 @@ and source-dependency gates were loosened.
 
 Generation remains frozen at `f7aab38`; it contains the numeric-boundary bug. Original
 v1 criticism judgments and v3 preferences remain intact. Offline rederivation restores
-14 Bonetto Opus labels and one Sol label that failed only quote bookkeeping. These are
-restored model opinions, not newly confirmed scientific criticisms. At the first impact
-check, the only candidate quotation changed by the matcher was Sætrevik's `N = 781`,
-repeated in both nested arms; its finding was already published. Recheck the completed
-corpus before reporting a final count. No published decision is rewritten by this check.
+29 labels across six judge outputs that failed only quote bookkeeping: Bonetto Opus
+14 and Sol 1, Sætrevik Sol 11, Mackinnon Sol 1, and Niemeyer Opus 1 and Sol 1. These
+are restored model opinions, not newly confirmed scientific criticisms. The completed
+candidate-evidence-only scan finds 3 arm occurrences and 2 unique candidate quotations:
+Sætrevik's `N = 781` in both nested arms, and the audit's `Support for less sharing in MS
+group (N = 781`. The first finding was already published; the latter was merged. This
+scan does not cover verifier-generated quotations or dropped coverage quotations; it
+is not an inventory of every affected check or a counterfactual lost-criticism count.
+No published decision is rewritten. Final per-case v1 rederivation counts are retained
+in the six-case results artifact rather than inferred from this candidate-only scan.
 
 Fresh deduplicated v2 judgments and v4 preferences use a separate frozen assessment
 snapshot, `09dd60b0a0b8a826…`. Final metadata/guard corrections are applied using retained

@@ -1,0 +1,171 @@
+{
+  "results": [
+    {
+      "case": "bonetto",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/bonetto.json",
+      "original_sha256": "1cc25c17af66f912f4102d744ddc561b5ca2f55b0f0bfab13b7230e2a80c2257",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+      "changed_labels": [
+        "item-002",
+        "item-008",
+        "item-011",
+        "item-013",
+        "item-014",
+        "item-022",
+        "item-028",
+        "item-037",
+        "item-040",
+        "item-054",
+        "item-059",
+        "item-064",
+        "item-069",
+        "item-073"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "bonetto",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/bonetto.json",
+      "original_sha256": "2acf5ac1bdd4f156da661f0638386b1dc21aa2b151f22e4a2c42b93b7a3db519",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+      "changed_labels": [
+        "item-022"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "satrevik",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/satrevik.json",
+      "original_sha256": "c53378e6e23c11104bc0b134fea54eaa445dd2895cc1f3e5a5c6f395018978e6",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "a9da9febf7fe8c0706f8c1db41f23916a4977d57f47dca8ff9358dd320171e38",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "satrevik",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/satrevik.json",
+      "original_sha256": "33e9ce7d906fb9b3d858c7538fc297724fade300b0d25586ed55e3abf45297ba",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "a9da9febf7fe8c0706f8c1db41f23916a4977d57f47dca8ff9358dd320171e38",
+      "changed_labels": [
+        "item-001",
+        "item-013",
+        "item-015",
+        "item-047",
+        "item-048",
+        "item-050",
+        "item-061",
+        "item-069",
+        "item-071",
+        "item-076",
+        "item-084"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "ziano",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/ziano.json",
+      "original_sha256": "2ecef00888a520d256626ec957f3f69570d6da80838d4b965cb8ad8b2ccaccb9",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "ziano",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/ziano.json",
+      "original_sha256": "a36dd8f108f6714c046a47ff065bab14587ecad5702a93d8d326293cdc0de3a6",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "heyman",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/heyman.json",
+      "original_sha256": "f480e042f02f794d6b456131ab5099ed713bcee5ceb184d41737498ae29ef503",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "a1caef40b10e16b454d4779968107b937d73cab6635445b2a7617b7b7d0b48f2",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "heyman",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/heyman.json",
+      "original_sha256": "dd130f19361110912afe8eccce9dfb31463c7779cc47ce55cc8185ae9695df06",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "a1caef40b10e16b454d4779968107b937d73cab6635445b2a7617b7b7d0b48f2",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "mackinnon",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/mackinnon.json",
+      "original_sha256": "8f6df5443d29c2105ba0241ebec4e546221efdf08c7f5cabc1e5893bc8af2cdd",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "7b0d535fe1f09fe9ba0e40e24b6dea6bcf9e9b1f5971f2f97425cf7f2f9b21cd",
+      "changed_labels": [],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "mackinnon",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/mackinnon.json",
+      "original_sha256": "420e24c71a3b3b25c613d2bfbb87f675e5e52493399a0d9a1b401f4ba79c4f2b",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "7b0d535fe1f09fe9ba0e40e24b6dea6bcf9e9b1f5971f2f97425cf7f2f9b21cd",
+      "changed_labels": [
+        "item-015"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "niemeyer",
+      "model": "claude-opus-5-5",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/claude-opus-5-5/niemeyer.json",
+      "original_sha256": "ab9f3d55b6d15a92e98e902c3dd35bad42e5c3a68abea54420bc36402ba1209b",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "162a3db63f9c714fe95d32d7d065829dfe175db8e688f11a7978ed2e9addfe94",
+      "changed_labels": [
+        "item-047"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    },
+    {
+      "case": "niemeyer",
+      "model": "gpt-6.1-sol",
+      "original_artifact": "runs/reasoning-quality-20261005/criticism-assessments/gpt-6.1-sol/niemeyer.json",
+      "original_sha256": "6d64704feaec3ecda72bd86c6165000fe78d947945a95a10c59078ae53031acc",
+      "method_sha256": "4b16c5e120af4548386a06e34cd726a24b59a7aee32c8cfd290082d052eae78a",
+      "matcher_module": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3/src/reviscope/verification.py",
+      "input_sha256": "162a3db63f9c714fe95d32d7d065829dfe175db8e688f11a7978ed2e9addfe94",
+      "changed_labels": [
+        "item-046"
+      ],
+      "limits": "Offline quotation bookkeeping only. No new model judgments, no correction of scientific reasoning or duplicated-item influence; frozen generation unchanged."
+    }
+  ]
+}

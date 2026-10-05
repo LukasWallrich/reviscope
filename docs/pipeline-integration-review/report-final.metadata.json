@@ -1,0 +1,9 @@
+{
+  "session_id": "af98d441-fb2a-4e7e-8517-24ef57550755",
+  "is_error": false,
+  "subtype": "success",
+  "duration_ms": 145449,
+  "num_turns": 22,
+  "stop_reason": "end_turn",
+  "terminal_reason": "completed"
+}

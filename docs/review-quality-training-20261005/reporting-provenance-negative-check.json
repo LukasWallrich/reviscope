@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "in_memory_change": "raw_bytes",
+      "rejected": true,
+      "expected_guard": "Raw response changed"
+    },
+    {
+      "in_memory_change": "cache_key",
+      "rejected": true,
+      "expected_guard": "Different raw model-call identity"
+    },
+    {
+      "in_memory_change": "origin_map",
+      "rejected": true,
+      "expected_guard": "Different origin map"
+    },
+    {
+      "in_memory_change": "method_hash",
+      "rejected": true,
+      "expected_guard": "Incorrect derivation method hash"
+    }
+  ],
+  "no_model_calls": true,
+  "no_artifact_mutations": true,
+  "audit_script_sha256": "4e9fdc748f33b7396d8f0fecacb4e9041c5a095f6f177f8ffbd85cb4c6482613",
+  "test_script_sha256": "4d420428204aba0589f2d577b509b2a820f11fb58ffb8db2a184e661344bd75a",
+  "limits": "Engineering guard checks; not evidence of scientific review quality."
+}
