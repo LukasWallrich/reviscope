@@ -40,7 +40,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = {"gpt-6-luna": "codex", "gpt-6.1-sol": "codex", "claude-opus-5-5": "claude"}
 MANIFEST = "eval/corpus/known_errors.v1.json"
-EVAL_SCRIPTS = ("eval/plain_review.py", "eval/adjudicate_known_errors.py", "eval/audit_tool_use.py", "eval/experiment_discovery.py", "eval/run_development_review.py", "eval/compare_development_reviews.py", "eval/run_known_errors.py")
+EVAL_SCRIPTS = ("eval/plain_review.py", "eval/adjudicate_known_errors.py", "eval/audit_tool_use.py", "eval/experiment_discovery.py", "eval/run_development_review.py", "eval/compare_development_reviews.py", "eval/assess_criticisms.py", "eval/rederive_criticism_quotes.py", "eval/review_quality_numerical_checks.py", "eval/audit_quote_boundary_impact.py", "eval/run_known_errors.py")
 
 
 def sha256(path: Path) -> str:

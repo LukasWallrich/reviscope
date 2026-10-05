@@ -48,7 +48,7 @@ def review_text(data):
         if row["editorial_disposition"] != "publish" or row["status"] in {"candidate", "unverified", "unresolved", "contradicted"}:
             continue
         text = f"{row['severity'].upper()}: {row['claim']}\n{row['rationale']}"
-        if row.get("remedy_status") not in {"overreaching", "unresolved"}:
+        if row.get("remedy_status") == "supported":
             text += "\nSuggested response: " + row["remedy"]
         text += "\n" + "\n".join("Evidence: " + item["quote"] for item in row["evidence"])
         # External checks are audit provenance, not evidence of truth for a preference judge.
@@ -58,28 +58,51 @@ def review_text(data):
     return "\n\n".join(chunks) or "No supported findings were published."
 
 
+def archive_comparison(target):
+    history = target.parent / "history"
+    history.mkdir(exist_ok=True)
+    archived = history / (target.stem + "-" + sha(target) + ".json")
+    if not archived.exists():
+        archived.write_bytes(target.read_bytes())
+
+
 def compare(job, model, out):
     backend = ClaudeBackend(model, effort="high", tools=False) if model == "claude-opus-5-5" else CodexBackend(model, effort="high", tools=False)
     paper = {"paper_id": job["paper_id"], "manuscript": job["manuscript"],
              "candidate_review": job["left_text"], "reference_review": job["right_text"]}
     cases = build_pairwise_cases([paper], seed=42, order_swap=True)
+    import reviscope.evaluation as prompt_policy
+    instruction = comparison_parts(cases[0])[0]
+    if 'inspectable image evidence' not in instruction or 'Respect genre:' not in instruction:
+        raise ValueError('Protocol v4 requires the visual/genre prompt; check PYTHONPATH')
+    prompt_provenance = {'prompt_policy_module': str(Path(prompt_policy.__file__).resolve()),
+                         'prompt_policy_sha256': sha(Path(prompt_policy.__file__)),
+                         'instruction_sha256': hashlib.sha256(instruction.encode()).hexdigest()}
     # Artifact hashes record provenance. The complete judge prompts and its model
     # settings determine reuse; CLI-version metadata does not enter the key.
     key = hashlib.sha256(json.dumps({"input": [comparison_parts(case) for case in cases], "backend": backend.identity,
-                                   "protocol": "development-criticism-comparison-v3"}, sort_keys=True).encode()).hexdigest()
+                                   "protocol": "development-criticism-comparison-v4"}, sort_keys=True).encode()).hexdigest()
     target = out / model / job["case"] / (job["left"] + "-vs-" + job["right"] + ".json")
     if target.exists():
         prior = json.loads(target.read_text())
         if prior.get("cache_key") == key and not prior.get("invalid"):
+            archive_comparison(target)
+            checks = prior.setdefault("reuse_checks", [])
+            check = {**prompt_provenance, "original_prompt_provenance_missing": "prompt_policy_module" not in prior}
+            if check not in checks:
+                checks.append(check)
             prior.update(audit_groups=job["audit_groups"], source_hashes=job["source_hashes"])
             target.write_text(json.dumps(prior, indent=2) + "\n")
             return prior
+        # Preserve the complete prior condition, including invalid judgments,
+        # before a changed prompt/settings or a retry replaces the active file.
+        archive_comparison(target)
     result = asyncio.run(run_comparisons(cases, backend))
-    result.update(cache_key=key, model=model, backend_version=backend.version, case=job["case"],
+    result.update(**prompt_provenance, cache_key=key, model=model, backend_version=backend.version, case=job["case"],
                   paper_id=job["paper_id"], left=job["left"], right=job["right"],
                   audit_groups=job["audit_groups"], source_hashes=job["source_hashes"],
                   representation="criticism-focused, metadata stripped; no study overview, support badge or stage IDs",
-                  protocol="development-criticism-comparison-v3",
+                  protocol="development-criticism-comparison-v4",
                   reviewer_independence="Human reports are judge-only inputs; generator sessions do not receive them")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2) + "\n")
@@ -123,7 +146,7 @@ def main():
                          "audit_groups": {left: audits[left], right: audits[right]},
                          "source_hashes": {"manuscript": sha(manuscript), left: hashes[left], right: hashes[right]}})
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        results = list(pool.map(lambda job: compare(job, args.model, args.root / "comparisons"), jobs))
+        results = list(pool.map(lambda job: compare(job, args.model, args.root / "comparisons-v4"), jobs))
     return 2 if any(result["invalid"] for result in results) else 0
 
 

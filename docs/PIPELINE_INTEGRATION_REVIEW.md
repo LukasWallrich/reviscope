@@ -83,3 +83,25 @@ fixtures and no model or reference-lookup calls, although the adapter's existing
 `skipped_missing_input`, no traffic light, and the original join error. Frozen campaign
 outputs retain their earlier failure and code identity. This is failure reporting,
 not evidence of improved scientific accuracy.
+
+## Numeric anchoring and assessment-provenance follow-up
+
+The training assessment's Opus method review identified false rejection of exact quotes
+ending in numbers before sentence/list punctuation. The matcher now accepts those ends
+while preserving decimal, grouping, sign, exponent and superscript boundaries. The
+external-source, full-rationale, remedy, severity and publication gates are unchanged.
+Opus approved this fix and the visual/genre-aware comparison prompt; successive
+follow-ups checked immutable packet provenance, nested-arm deduplication, quote
+rederivation, distinct comparison directories, raw-call caches and startup guards.
+The [merge approval](pipeline-integration-review/assessment-followup3.md) required a
+no-call mode for rewrapping; `--offline` now refuses missing raw caches, with a
+negative regression. Comparison cache reuse preserves original provenance in history
+and appends reuse checks.
+
+The final suite passed **225 tests, one skipped**. The 61 focused quote/assessment
+regressions include successful punctuation anchoring, numerical truncation rejection,
+immutable packets and origins, excluded-arm handling, preserved raw judgments across
+method changes, cache history, old-policy rejection and offline no-call enforcement.
+Selected post-hoc arithmetic and anchoring-impact scripts are retained separately.
+The complete six-case scientific diagnostic remains a separate report: code review,
+fixture success and restored model labels do not establish improved review quality.

@@ -1,0 +1,40 @@
+{
+  "subtype": "success",
+  "is_error": false,
+  "session_id": "af98d441-fb2a-4e7e-8517-24ef57550755",
+  "permission_denials": [],
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1197,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001277,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "thinkingTokens": 0,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    },
+    "claude-opus-5-5": {
+      "inputTokens": 72,
+      "outputTokens": 30978,
+      "cacheReadInputTokens": 2316662,
+      "cacheCreationInputTokens": 109342,
+      "webSearchRequests": 0,
+      "costUSD": 1.9579164000000007,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 19702,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "total_cost_usd": 1.9591934000000006,
+  "duration_ms": 394213,
+  "duration_api_ms": 394072,
+  "authentication": "Claude Max subscription; API-key variables removed; usage metadata is not an API invoice"
+}
