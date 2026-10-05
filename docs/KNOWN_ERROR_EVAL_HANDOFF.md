@@ -64,15 +64,16 @@ per-call timeout is 3600 s.
   external-source rule, editorial). `--output` writes the rows as JSON. Results for papers 5
   and 9 are in `docs/KNOWN_ERROR_RESULTS.md`.
 
-The driver copies `src/reviscope` (including `vendor/metacheck`), the three eval
-scripts it calls and `eval/corpus/*.json` to `runs/known-errors-all/code/<sha256 prefix>/`
+The driver copies `src/reviscope` (including `vendor/metacheck`), the evaluation drivers and helpers listed in `EVAL_SCRIPTS` and `eval/corpus/*.json` to `runs/known-errors-all/code/<sha256 prefix>/`
 and runs every subprocess from that copy. Edits to the working tree during a run do
 not reach it. The snapshot sha256 is printed at start and stored in `run.json` and
 `tool-audit.json`.
 
 Reruns are safe. Cached pipeline stages are reused, a complete review is not
 regenerated, the audit reruns when `review.json` or the code snapshot changed, and the
-judge reruns when `review.json` changed. A partial pipeline review is judged with
+judge reruns when the review, annotation file, adjudicator script or judge identity/settings
+change. Audit reuse is bound to the complete current policy, manifest identities and
+manual overrides, as well as the exact review hash and resolved path. A partial pipeline review is judged with
 `--allow-partial` and scored in the `incomplete` group. A failed plain review is not
 judged; rerun the driver to retry it.
 
@@ -283,3 +284,15 @@ comparison, numerical and retrieval data. Human reports and raw manuscripts rema
 in the ignored cache. The candidate's code is frozen independently of evaluation
 code. The pilot's frozen judge rubric and the current uncertainty-aware rubric are
 distinct conditions; pilot judgments retain their recorded protocol.
+
+
+## Current training designation and assessment
+
+On 5 October 2026, the owner designated all Meta-Psychology data training/development.
+The curated six cases, including previously unused cases, cannot supply independent
+validation. The fresh six-case assessment uses subscription-backed CLIs and no answer
+keys or human reports in generation. Its frozen conditions and benchmark recommendations
+are described in [REVIEW_QUALITY_TRAINING_PLAN.md](REVIEW_QUALITY_TRAINING_PLAN.md).
+An independent validation corpus and qualified correctness assessment remain future work.
+This authorization does not turn the historical planted-error pilot into a repeated
+full benchmark campaign.

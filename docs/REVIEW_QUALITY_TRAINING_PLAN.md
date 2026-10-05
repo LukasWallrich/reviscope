@@ -12,7 +12,10 @@ failures; it cannot establish generalization or independent scientific validity.
 
 ## Suggestions carried forward from the latest benchmark work
 
-The latest recorded development thread is summarized in
+The latest benchmark handoff and pilot diagnosis are recorded in
+[KNOWN_ERROR_EVAL_HANDOFF.md](KNOWN_ERROR_EVAL_HANDOFF.md) and
+[KNOWN_ERROR_PILOT_ANALYSIS.md](KNOWN_ERROR_PILOT_ANALYSIS.md). The subsequent
+development thread is summarized in
 [PIPELINE_DEVELOPMENT_RESULTS.md](PIPELINE_DEVELOPMENT_RESULTS.md), with the underlying
 Opus feedback retained under `runs/pipeline-redesign-20261003/feedback/`.
 

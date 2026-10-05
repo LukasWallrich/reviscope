@@ -63,3 +63,23 @@ integration, along with the reviewed reasoning and harness repairs. The shared
 report and `work/` directory untouched. Main is checked out in a separate worktree,
 `/home/lukas/Documents/Coding/reviscope-main`. No remote push or public deployment is
 part of this integration.
+
+## Training-assessment follow-up
+
+The frozen six-case run exposed metacheck 0.1.0's empty-table join failure when
+extracted equations contain no t/F candidates. A narrow adapter repair calls the
+package first, classifies only that known failure as `skipped_missing_input`, retains
+the original error, and never emits a green light or a finding. Unknown extraction,
+other errors and an unsupported F-test format remain failed; coherent/incoherent
+t-test calculations still come from the package. A final defensive handler preserves
+the original failure if classification itself errors. No shared R package was edited.
+
+Opus approved the initial and package-first versions with no must-fixes; complete
+reviews are [retained here](pipeline-integration-review/metacheck-followup.md). The
+regression suite passed **205 tests, one skipped** before the final defensive handler;
+its focused five tests were rerun after that change. Real-package tests use local
+fixtures and no model or reference-lookup calls, although the adapter's existing
+`online()` check can probe connectivity. The retained Mackinnon parse now yields
+`skipped_missing_input`, no traffic light, and the original join error. Frozen campaign
+outputs retain their earlier failure and code identity. This is failure reporting,
+not evidence of improved scientific accuracy.

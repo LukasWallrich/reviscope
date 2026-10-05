@@ -54,6 +54,18 @@ A failed API call / module is "could not check", never "nothing found": `status 
 must never be rendered or interpreted as a clean result. Original table columns and the
 original traffic light are preserved untouched.
 
+The adapter classifies one empty-join failure observed in metacheck 0.1.0:
+`stat_effect_size` fails after equation extraction finds no t/F candidates. The
+classification matches an English dplyr error message; changed or localized messages
+remain failed rather than being mistaken for missing input. It first
+calls the package; only this join error plus the package's own extraction result can
+produce `skipped_missing_input`. The original error is retained, with no light or
+claim that no tests exist in the manuscript. Unknown extraction/results and other
+failures retain `failed`. An upstream fix returns its own output without interception.
+Zero extracted equations already produce the package's ordinary `ok`/`na` result;
+both cases lack a coherence assessment and neither is green. Numerical/package logic
+is not reimplemented. The new helper enters the existing scripts hash for caching.
+
 ## IDs
 
 - `item_id`: `t<text_id>` for rows with a text_id; `b<bib_id>` for reference rows (bib_id
