@@ -9,10 +9,31 @@ from pathlib import Path
 
 from reviscope.backend import ClaudeBackend, CodexBackend
 from reviscope.evaluation import build_pairwise_cases, comparison_parts, run_comparisons
+from audit_tool_use import DEFAULT_MANIFESTS, audit_rules_hash, load_papers
 
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def checked_audit(review_path, paper_id, manuscript_sha256, profile):
+    review = json.loads(review_path.read_text())
+    if "issues" not in review and review.get("metadata", {}).get("profile") != profile:
+        raise ValueError("Pipeline review profile differs from the curated case profile")
+    if not any(source.get("kind") == "manuscript" and source.get("sha256") == manuscript_sha256
+               for source in review.get("sources", [])):
+        raise ValueError("Review input differs from the prepared submitted manuscript")
+    rows = json.loads((review_path.parent / "tool-audit.json").read_text())
+    if len(rows) != 1:
+        raise ValueError("Expected exactly one audit of this review")
+    row = rows[0]
+    if (row.get("paper") != paper_id or row.get("review_sha256") != sha(review_path)
+            or Path(row.get("run", "")).resolve() != review_path.resolve()
+            or row.get("audit_rules_sha256") != audit_rules_hash(load_papers(DEFAULT_MANIFESTS))):
+        raise ValueError("Audit identity, review hash, path or rules differ; re-audit this review")
+    if row["verdict"] != "clean":
+        raise ValueError("Primary quality comparisons require a complete, clean audited review")
+    return row
 
 
 def review_text(data):
@@ -86,8 +107,7 @@ def main():
             path = args.root / "reviews" / arm / case / "review.json"
             texts[arm] = review_text(json.loads(path.read_text()))
             hashes[arm] = sha(path)
-            audit = json.loads((path.parent / "tool-audit.json").read_text())
-            audits[arm] = audit[0]["verdict"]
+            audits[arm] = checked_audit(path, prepared["paper_id"], prepared["manuscript_text_sha256"], prepared["profile"])["verdict"]
         pairs = [(left, right) for left, right in (("holistic", "plain"), ("audit", "holistic"), ("audit", "plain"))
                  if left in texts and right in texts]
         if not args.ai_only:

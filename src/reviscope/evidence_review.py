@@ -6,12 +6,31 @@ import shlex
 from pydantic import BaseModel, Field
 
 from .discovery import CoverageCheck, DiscoveryResponse
-from .schemas import Evidence, StudyMap, ToolCall
+from .schemas import Evidence, ExternalCitation, StudyMap, ToolCall
+from .reasoning import REASONING_ASSESSMENT
 
 
 class BroadReview(DiscoveryResponse):
     study_map: StudyMap
     checks: list[CoverageCheck] = Field(default_factory=list)
+
+
+class ReasoningTrace(BaseModel):
+    """Discovery's reconstruction, not an independently verified argument graph."""
+
+    claim: Evidence
+    premises: list[Evidence] = Field(default_factory=list)
+    inferential_step: str = Field(min_length=1)
+    defeating_context: list[Evidence] = Field(default_factory=list)
+
+
+class LiteratureRelation(BaseModel):
+    claim: Evidence
+    targets: list[str] = Field(default_factory=list)
+    relation: Literal["limitation", "comparison", "use", "extension",
+                      "conflicting_predictions", "theoretical_synthesis", "support", "unspecified"]
+    criterion: str
+    source_evidence: list[ExternalCitation] = Field(default_factory=list)
 
 
 class AuditOperation(BaseModel):
@@ -23,6 +42,18 @@ class AuditOperation(BaseModel):
     code: str | None = None
     result: str
     status: Literal["checked", "unresolved", "not_applicable"]
+    reasoning_trace: ReasoningTrace | None = None
+    literature_relation: LiteratureRelation | None = None
+
+    def manuscript_evidence(self) -> list[Evidence]:
+        """All supplied-source passages, including the optional structured records."""
+        items = list(self.evidence)
+        if self.reasoning_trace:
+            items.extend([self.reasoning_trace.claim, *self.reasoning_trace.premises,
+                          *self.reasoning_trace.defeating_context])
+        if self.literature_relation:
+            items.append(self.literature_relation.claim)
+        return list({(e.source_id, e.quote): e for e in items}.values())
 
 
 class EvidenceAudit(DiscoveryResponse):
@@ -53,7 +84,7 @@ Search the literature before asserting or denying novelty or missing relevant wo
 an inconclusive search does not establish absence. Do not prescribe post-treatment
 exclusions by default. For protocols assess proposed theory, mechanisms and inference
 without demanding results; for tutorials assess accuracy, scope and instructional value.
-"""
+""" + REASONING_ASSESSMENT
 
 
 BROAD_REVIEW = """You are an expert scientific peer reviewer with deep methodological expertise.
@@ -100,9 +131,29 @@ order, aggregation, effect metrics, variances, models and back-transformation. Q
 reported step and mark unspecified steps; never silently substitute a familiar recipe.
 categorical_agreement: compare prose, tables and supplements for sites, populations,
 eligibility, units, time periods, variable definitions, labels and planned/reported analyses.
-inferential_targets: reconstruct the decision rule for each central claim. Check whether
+inferential_targets: reconstruct the decision rule for each central claim and other
+consequential claims inspected. Check whether
 its statistical comparison, estimand and observations establish it; use a counterexample
 or computation when possible. Separate evidence for a mechanism from compatibility with it.
+For substantive argument checks populate reasoning_trace with the located claim, quoted
+premises, inferential_step and quoted defeating_context wherever available. Put required
+but unreported premises in reported_inputs with an explicit missing label, and necessary
+assumptions in assumptions. State qualifications and the outcome in result: distinguish
+justified support, missing or false premises, circular support, underdetermination and
+unresolved evidence. An empty defeating_context means none was located, not that none
+exists; state search limits. Use status=checked for a completed check whether it supports
+or defeats the manuscript inference, and unresolved when necessary evidence is unavailable.
+For consequential prior-work relations also populate literature_relation with the
+manuscript claim, targets, relation, criterion and fetched source_evidence. Empty targets
+or criterion must be explained in result; do not invent them. Source_evidence records
+discovery observations, not verifier confirmation. Use relation=support for prior work
+offered as a substantive premise, or unspecified when the relation cannot be identified;
+explain this uncertainty in result rather than forcing a relation label. Copy any sources required by a resulting
+finding into that finding's external_evidence so normal source checks still apply.
+Use the existing operations for selective material checks; name the blocked inference
+and whether supplied supplements or accessible materials resolve it. No operation requires
+a finding, and no claim or relation inventory quota is imposed. Leave optional structured
+records null for unrelated operations; retain successful checks without manufacturing issues.
 
 Each operation records its question, quoted evidence, reported_inputs, assumptions,
 method, result and status. For a calculation include its exact executed code and a short

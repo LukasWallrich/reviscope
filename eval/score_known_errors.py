@@ -33,6 +33,13 @@ GROUPS = ("clean", "external", "flagged", "incomplete", "not_audited")
 HEADLINE = {"clean", "external"}
 
 
+def require_uniform_judging(papers: list[dict]) -> None:
+    protocols = {(row["judge"], row["annotations_sha256"], row["adjudicator_sha256"])
+                 for row in papers}
+    if len(protocols) > 1:
+        raise ValueError("Mixed judge identities/settings, annotation hashes or adjudicator code; report separate conditions")
+
+
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -88,6 +95,7 @@ def load_configuration(directory: Path, judge_model: str, root: Path) -> list[di
                        "annotations_sha256": data["ground_truth"]["sha256"],
                        "adjudicator_sha256": data["adjudicator_script"]["sha256"],
                        "verdicts": {audit_id(row["error_id"]): {scope: row[scope]["verdict"] for scope in SCOPES} for row in rows}})
+    require_uniform_judging(papers)
     return sorted(papers, key=lambda row: int(row["paper"]))
 
 
@@ -144,6 +152,8 @@ def main() -> int:
 
     headline_ids = {name: set(verdicts_of([p for p in config["papers"] if p["group"] in HEADLINE])) for name, config in configurations.items()}
     compared = [name for name, ids in headline_ids.items() if ids]
+    require_uniform_judging([paper for name in compared for paper in configurations[name]["papers"]
+                            if paper["group"] in HEADLINE])
     common = set.intersection(*(headline_ids[name] for name in compared)) if compared else set()
     comparison = {name: summarise(verdicts_of(configurations[name]["papers"]), audit, common) for name in compared}
     result = {

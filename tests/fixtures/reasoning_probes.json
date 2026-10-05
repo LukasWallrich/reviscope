@@ -1,0 +1,163 @@
+[
+  {
+    "id": "support_after_claim",
+    "text": "The treatment changes the outcome.\nResults: Random assignment yielded a difference of 0.4, CI [0.2, 0.6].",
+    "claim": "The treatment changes the outcome.",
+    "premise": "Random assignment yielded a difference of 0.4, CI [0.2, 0.6].",
+    "step": "Random assignment and the estimated contrast support an effect on this measured outcome.",
+    "result": "Support follows the claim; order is not a defect.",
+    "status": "checked",
+    "finding": false
+  },
+  {
+    "id": "false_claim_after_related_prose",
+    "text": "Assignment was randomized.\nEvery participant improved.\nResults: 40 of 100 participants improved.",
+    "claim": "Every participant improved.",
+    "premise": "Assignment was randomized.",
+    "defeater": "40 of 100 participants improved.",
+    "step": "Randomization does not establish universal improvement.",
+    "result": "The universal claim does not follow from randomization and is contradicted by the reported count.",
+    "status": "checked",
+    "finding": true
+  },
+  {
+    "id": "distributed_support",
+    "text": "Introduction: Assignment may affect measured trust.\nMethods: Assignment was randomized.\nDiscussion: Assignment changed measured trust.\nResults: The trust contrast was 0.4, CI [0.2, 0.6].",
+    "claim": "Assignment changed measured trust.",
+    "step": "Use random assignment from Methods with the measured contrast from Results.",
+    "result": "Support is distributed across sections; no missing-link criticism.",
+    "status": "checked",
+    "finding": false,
+    "premises": [
+      "Assignment was randomized.",
+      "The trust contrast was 0.4, CI [0.2, 0.6]."
+    ]
+  },
+  {
+    "id": "single_citation_accurate",
+    "text": "We extend Study A to older adults; Study A sampled younger adults (A).",
+    "claim": "We extend Study A to older adults; Study A sampled younger adults (A).",
+    "step": "The population difference establishes the stated extension, not superiority.",
+    "result": "A single citation accurately supports this bounded relation.",
+    "status": "checked",
+    "finding": false,
+    "relation": {
+      "targets": [
+        "Study A"
+      ],
+      "relation": "extension",
+      "criterion": "age of sampled population",
+      "source_evidence": [
+        {
+          "url": "https://example.org/study-a",
+          "quote": "Participants were 18 to 25 years old.",
+          "shows": "Younger adult sample."
+        }
+      ]
+    }
+  },
+  {
+    "id": "multiple_citations_inaccurate",
+    "text": "Neither Study A nor Study B randomized assignment (A; B).",
+    "claim": "Neither Study A nor Study B randomized assignment (A; B).",
+    "step": "Citation multiplicity does not establish the design comparison.",
+    "result": "The fetched Study B design refutes the comparison.",
+    "status": "checked",
+    "finding": true,
+    "relation": {
+      "targets": [
+        "Study A",
+        "Study B"
+      ],
+      "relation": "limitation",
+      "criterion": "randomized assignment",
+      "source_evidence": [
+        {
+          "url": "https://example.org/study-b",
+          "quote": "Assignment was randomized.",
+          "shows": "Study B did randomize."
+        }
+      ]
+    }
+  },
+  {
+    "id": "aggregate_suffices",
+    "text": "The mean measured outcome differed by 0.4, CI [0.2, 0.6].",
+    "claim": "The mean measured outcome differed by 0.4, CI [0.2, 0.6].",
+    "step": "The aggregate estimate suffices for the stated mean difference.",
+    "result": "No individual example is required for this inference.",
+    "status": "checked",
+    "finding": false
+  },
+  {
+    "id": "coding_material_unavailable",
+    "text": "The coded responses distinguish irony from literal agreement.\nOnly aggregate category counts are provided.",
+    "claim": "The coded responses distinguish irony from literal agreement.",
+    "premise": "Only aggregate category counts are provided.",
+    "step": "Category counts alone cannot establish the coding distinction.",
+    "result": "The bounded gap prevents assessing this coding inference, without establishing that authors failed to inspect cases.",
+    "status": "unresolved",
+    "finding": true
+  },
+  {
+    "id": "supplement_resolves_gap",
+    "text": "The coded responses distinguish irony from literal agreement.\nThe coding application is in the supplement.",
+    "supplement": "Coding application: 'Great, another delay' is irony under the stated contextual rule.",
+    "claim": "The coded responses distinguish irony from literal agreement.",
+    "premise": "Coding application: 'Great, another delay' is irony under the stated contextual rule.",
+    "step": "Inspect the supplied coding application; it resolves the alleged absence of an application.",
+    "result": "Supplement defeats the material-absence concern, without proving the rule's universal validity.",
+    "status": "checked",
+    "finding": false
+  },
+  {
+    "id": "confounded_mechanism",
+    "text": "Group membership is the mechanism.\nThe manipulation changed both perceived membership and perceived norm violation.",
+    "claim": "Group membership is the mechanism.",
+    "premise": "The manipulation changed both perceived membership and perceived norm violation.",
+    "step": "A contrast compatible with both explanations does not identify membership alone.",
+    "result": "The mechanism inference is underdetermined by these observations.",
+    "status": "checked",
+    "finding": true
+  },
+  {
+    "id": "caption_without_pixels",
+    "text": "Figure 1 proves a nonlinear trend.\nCaption: Outcome by condition.",
+    "claim": "Figure 1 proves a nonlinear trend.",
+    "premise": "Caption: Outcome by condition.",
+    "step": "The caption supplies no inspectable evidence of the visual pattern.",
+    "result": "Image evidence unavailable; do not invent figure contents.",
+    "status": "unresolved",
+    "finding": false
+  },
+  {
+    "id": "missing_premise",
+    "text": "A larger trust score demonstrates greater cooperation.\nThe score contains attitude items only.",
+    "claim": "A larger trust score demonstrates greater cooperation.",
+    "premise": "The score contains attitude items only.",
+    "step": "The construct interpretation needs a justified link from attitudes to cooperative behaviour.",
+    "result": "Missing construct-to-behaviour premise; narrow the conclusion or supply relevant validity evidence.",
+    "status": "checked",
+    "finding": true
+  },
+  {
+    "id": "circular_support",
+    "text": "The scale is valid because it measures trust.\nIt measures trust because it is a valid trust scale.",
+    "claim": "The scale is valid because it measures trust.",
+    "premise": "It measures trust because it is a valid trust scale.",
+    "step": "The premise restates the validity claim rather than providing independent support.",
+    "result": "Circular support does not establish validity for this use.",
+    "status": "checked",
+    "finding": true
+  },
+  {
+    "id": "privacy_withholding",
+    "text": "The coding distinguishes irony from literal agreement.\nIdentifiable interviews cannot be shared under consent; an anonymized coding explanation can be provided.",
+    "claim": "The coding distinguishes irony from literal agreement.",
+    "premise": "Identifiable interviews cannot be shared under consent; an anonymized coding explanation can be provided.",
+    "step": "Assess the coding inference through a privacy-preserving explanation rather than demanding identifiable cases.",
+    "result": "Unavailable cases do not establish missing author inspection; a bounded explanation may settle the inference.",
+    "status": "unresolved",
+    "finding": true
+  }
+]

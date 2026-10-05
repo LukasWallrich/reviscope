@@ -108,7 +108,10 @@
       "manuscript_sha256": "61cfdbb2cd1fb62aaa4a78efe811aff3af8e2db636bbd716ac1404398e35f4cd",
       "corpus_role": "verified_fallback_not_run",
       "representative_target_population": false,
-      "status": "Verified exact-version fallback pair retained for future evaluation; no AI review or human-comparison run has been performed for this entry, and it is not part of the representative validation sample."
+      "status": "Verified exact-version fallback pair retained for future evaluation; no AI review or human-comparison run has been performed for this entry, and it is not part of the representative validation sample.",
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     }
   ],
   "next_candidates": [

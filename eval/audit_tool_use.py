@@ -31,20 +31,23 @@ recorded, so the record cannot show the run is clean), or `clean`. Exits 1 when 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from reviscope.backend import REVIEW_DOMAINS  # noqa: E402
 
-DEFAULT_MANIFESTS = [ROOT / "eval/corpus/open_peer_review.v1.json", ROOT / "eval/corpus/empirical_pilot.v1.json",
+DEFAULT_MANIFESTS = [ROOT / "eval/corpus/open_peer_review_curated.v1.json",
+                     ROOT / "eval/corpus/open_peer_review.v1.json", ROOT / "eval/corpus/empirical_pilot.v1.json",
                      ROOT / "eval/corpus/known_errors.v1.json"]
 URL_FIELDS = ("doi", "article_url", "review_url", "review_urls", "manuscript_under_review_url", "archived_manuscript_url",
-              "original_urls", "answer_key_urls")
+              "original_urls", "answer_key_urls", "editorial_archive", "other_version_urls")
 REVIEW_PATHS = re.compile(r"peer[-_ ]?reviews?|referee|review[-_]history|decision[-_]letter|reviewer[-_]comments|"
                           r"/reviews?/|author[-_]response|elifesciences\.org/reviewed-preprints/.*reviews|"
                           r"dawes-institute/ai-peer-review-benchmark", re.I)
@@ -87,12 +90,22 @@ def load_papers(manifests: list[Path]) -> list[dict[str, Any]]:
             for field in URL_FIELDS:
                 value = entry.get(field)
                 blocks.extend(value if isinstance(value, list) else [value] if value else [])
+            blocks.extend(review["url"] for review in entry.get("human_reviews", []) if review.get("url"))
+            osf_guids = {part.lower() for url in blocks
+                         if urlsplit(url).hostname in {"osf.io", "www.osf.io"}
+                         for part in urlsplit(url).path.split("/")
+                         if re.fullmatch(r"[a-zA-Z0-9]{5}|[a-fA-F0-9]{24}", part)}
+            osf_guids.update(review["osf_file_id"].lower() for review in entry.get("human_reviews", [])
+                             if review.get("osf_file_id"))
+            if entry.get("manuscript", {}).get("osf_file_id"):
+                osf_guids.add(entry["manuscript"]["osf_file_id"].lower())
             if planted and entry.get("url"):
                 blocks.append(entry["url"])
             titles = [title for title in [entry.get("title"), *entry.get("alt_titles", [])] if title]
             papers.append({"id": str(entry.get("id") or f"known-error-{entry['paper']}"), "titles": titles,
-                           "sha256": {entry.get("manuscript_sha256"), entry.get("review_input_sha256")} - {None},
-                           "blocks": blocks, "planted_errors": planted})
+                           "sha256": {entry.get("manuscript_sha256"), entry.get("manuscript_text_sha256"),
+                                      entry.get("review_input_sha256")} - {None},
+                           "blocks": blocks, "osf_guids": sorted(osf_guids), "planted_errors": planted})
     return papers
 
 
@@ -114,16 +127,21 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
     phrases = [p for title in (paper or {}).get("titles", []) for p in title_phrases(title)]
     reasons, warnings = [], []
 
-    def check_url(url: str, how: str, where: str) -> None:
+    def check_url(url: str, how: str, where: str, *, listed: bool = False) -> None:
+        messages = warnings if listed else reasons
         low = normal_url(url)
         host = low.split("/", 1)[0]
         own = any(low == b or low.startswith((b + "/", b + "?")) for b in blocks if not b.startswith("10."))
+        parsed = urlsplit("https://" + low)
+        if parsed.hostname == "osf.io" or (parsed.hostname or "").endswith(".osf.io"):
+            parts = set(re.split(r"[^a-z0-9]+", unquote(parsed.path + "?" + parsed.query)))
+            own |= bool(parts & set((paper or {}).get("osf_guids", [])))
         if own or any(d in low for d in dois):
-            reasons.append(f"{where}: {how} URL of the benchmark paper: {url}")
+            messages.append(f"{where}: {how} URL of the benchmark paper: {url}")
         elif any(host == d or host.endswith("." + d) for d in REVIEW_DOMAINS):
-            reasons.append(f"{where}: {how} review/commentary site: {url}")
+            messages.append(f"{where}: {how} review/commentary site: {url}")
         elif REVIEW_PATHS.search(low):
-            reasons.append(f"{where}: {how} peer-review page: {url}")
+            messages.append(f"{where}: {how} peer-review page: {url}")
 
     for call in calls:
         where = f"{call.get('stage') or 'stage?'}#{call.get('sequence')}"
@@ -131,6 +149,9 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
             check_url(url, "fetched", where)
         for url in URL_IN_TEXT.findall(" ".join(filter(None, [call.get("query"), call.get("command")]))):
             check_url(url, "requested", where)
+        # Listings remain non-flagging under the existing policy, but retain exposure warnings.
+        for url in dict.fromkeys(call.get("result_urls") or []):
+            check_url(url, "listed (not opened)", where, listed=True)
         # Excluded terms (-"phrase", -word) keep matching pages out; they are not a search for them.
         query = EXCLUDED_TERM.sub(" ", call.get("query") or "").strip()
         if not query:
@@ -156,15 +177,27 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
     paper = identify(run, papers, args.paper)
     if args.title or args.block:
         paper = {"id": (paper or {}).get("id", "manual"), "titles": [args.title] if args.title else (paper or {}).get("titles", []),
-                 "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
+                 "blocks": [*(paper or {}).get("blocks", []), *args.block],
+                 "osf_guids": (paper or {}).get("osf_guids", []),
+                 "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
     stages = run.get("stages", [])
     calls = [call for stage in stages for call in stage.get("tool_calls", [])]
     reasons, warnings = audit_calls(calls, paper)
     gaps = provenance_gaps(stages)
     note = f"paper {paper['id']}" if paper else "paper not identified; only generic review-site checks applied"
-    return {"run": str(review), "paper": paper and paper["id"], "note": note, "tool_calls": len(calls),
+    overrides = {key: getattr(args, key) for key in ("paper", "title", "block", "planted_errors") if getattr(args, key)}
+    return {"run": str(review.resolve()), "review_sha256": hashlib.sha256(review.read_bytes()).hexdigest(),
+            "audit_rules_sha256": audit_rules_hash(papers, overrides), "audit_overrides": overrides,
+            "paper": paper and paper["id"], "note": note, "tool_calls": len(calls),
             "verdict": "flagged" if reasons else "incomplete" if gaps else "clean", "reasons": [*reasons, *gaps],
             "warnings": warnings}
+
+
+def audit_rules_hash(papers: list[dict[str, Any]], overrides: dict | None = None) -> str:
+    identities = [{**p, "sha256": sorted(p["sha256"])} for p in papers]
+    return hashlib.sha256(Path(__file__).read_bytes() +
+                          json.dumps({"papers": identities, "review_domains": sorted(REVIEW_DOMAINS),
+                                      "overrides": overrides or {}}, sort_keys=True).encode()).hexdigest()
 
 
 MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial)$")

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
+from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
 from .schemas import Evidence, ExternalCheck, ExternalSourceTask, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageProvenance, StageRecord, StudyMap
@@ -111,7 +112,7 @@ absence everywhere. Do not demand proof of incorrect implementation to assess a 
 reporting claim, or support a broader implementation allegation from an omission. An
 inaccessible source essential to the claim leaves it unresolved. Missing information
 without a specific assessment consequence is not automatically a supported criticism.
-"""
+""" + "When assessing a criticism about a manuscript inference, apply the following criteria to the criticized connection and the criticism itself. These are assessment criteria, not requests to add output fields.\n" + REASONING_ASSESSMENT
 
 
 class ReviewPipeline:
@@ -330,12 +331,13 @@ class ReviewPipeline:
                 if module == "evidence_audit":
                     source_rows = [s.model_dump() for s in run.sources]
                     for operation in result.operations:
+                        operation_evidence = operation.manuscript_evidence()
                         anchors = sum(verify_quote(e.quote, source_rows, e.source_id).status == "supported"
-                                      for e in operation.evidence)
+                                      for e in operation_evidence)
                         recorded = calculation_recorded(operation, stage.tool_calls)
                         calculation = "code/output recorded" if recorded else "code/output not matched in trace" if operation.code else "source comparison"
-                        run.coverage.append(f"evidence operation ({operation.status}; {calculation}): {operation.question} — {operation.result} "
-                                            f"[{anchors}/{len(operation.evidence)} quotation anchors; assumptions: "
+                        run.coverage.append(f"unverified audit record ({operation.status}; {calculation}): {operation.question} — {operation.result} "
+                                            f"[{anchors}/{len(operation_evidence)} quotation anchors; assumptions: "
                                             + "; ".join(operation.assumptions) + "]")
                 for index, finding in enumerate(result.findings):
                     run.candidates.append(Finding.model_validate({**finding.model_dump(),

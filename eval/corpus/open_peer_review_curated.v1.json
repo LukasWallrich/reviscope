@@ -64,7 +64,17 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2764",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "bf652e17864470d6a4457626ace5df38853e68b4e25ca83bdc7be124b11332e8",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/2764",
+        "https://open.lnu.se/index.php/metapsychology/article/download/2764",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/2764",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/2764"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-satrevik-2628-round1",
@@ -133,7 +143,17 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2628",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "a9da9febf7fe8c0706f8c1db41f23916a4977d57f47dca8ff9358dd320171e38",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/2628",
+        "https://open.lnu.se/index.php/metapsychology/article/download/2628",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/2628",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/2628"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-ziano-2134-round1",
@@ -198,7 +218,17 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2134",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "4e9f603c25e98169f6cb95ce6e5b3304bf2968cda1a1399a85850ce9944ba5d8",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/2134",
+        "https://open.lnu.se/index.php/metapsychology/article/download/2134",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/2134",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/2134"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-heyman-2718-round1",
@@ -264,7 +294,17 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2718",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "a1caef40b10e16b454d4779968107b937d73cab6635445b2a7617b7b7d0b48f2",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/2718",
+        "https://open.lnu.se/index.php/metapsychology/article/download/2718",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/2718",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/2718"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-mackinnon-2595-round1",
@@ -326,7 +366,17 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/2595",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "7b0d535fe1f09fe9ba0e40e24b6dea6bcf9e9b1f5971f2f97425cf7f2f9b21cd",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/2595",
+        "https://open.lnu.se/index.php/metapsychology/article/download/2595",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/2595",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/2595"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-niemeyer-884-round1",
@@ -394,7 +444,20 @@
         "published_article": "CC BY 4.0",
         "evidence_url": "https://open.lnu.se/index.php/metapsychology/article/view/884",
         "archive_files": "Public journal editorial archive; separate raw-file redistribution terms not established. Downloaded manuscripts and reports remain in the ignored local cache."
-      }
+      },
+      "manuscript_text_sha256": "162a3db63f9c714fe95d32d7d065829dfe175db8e688f11a7978ed2e9addfe94",
+      "other_version_urls": [
+        "https://open.lnu.se/index.php/metapsychology/article/view/884",
+        "https://open.lnu.se/index.php/metapsychology/article/download/884",
+        "https://conferences.lnu.se/index.php/metapsychology/article/view/884",
+        "https://conferences.lnu.se/index.php/metapsychology/article/download/884"
+      ],
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     }
-  ]
+  ],
+  "dataset_role": "training_development",
+  "dataset_role_assigned_on": "2026-10-05",
+  "independent_validation": "Not selected; all Meta-Psychology cases are available for pipeline and prompt development, not independent validation."
 }

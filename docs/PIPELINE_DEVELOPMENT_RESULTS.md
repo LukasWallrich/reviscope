@@ -193,6 +193,11 @@ without independently establishing that the code or assumptions are correct.
 
 ## Validation and advancement
 
+Owner update, 5 October 2026: the full Meta-Psychology pool is now designated
+training/development data. The four remaining cases below are additional development
+comparisons, not independent validation. Historical pilot results and protocols remain
+as recorded. An independent validation corpus will be selected later.
+
 1. **Cheap retrieval check:** freeze broad-first and plain on two to four untouched
    planted-error papers, with identical inputs. Report strict and demonstrable-subset
    retrieval, source-access losses, editorial holds, extra correct criticisms and

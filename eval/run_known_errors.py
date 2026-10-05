@@ -16,7 +16,7 @@ tree during a run do not reach it.
 
 Safe to rerun: `reviscope review` reuses cached successful stages, a complete
 review is not regenerated, the audit is redone when the review or the code changed,
-and the adjudication only when the review changed. A partial pipeline review is scored with --allow-partial and
+and adjudication when the review, annotation, adjudicator or judge settings changed. A partial pipeline review is scored with --allow-partial and
 stays labelled; a failed plain review is not scored. `--backend fixture` runs the
 pipeline with the deterministic demo backend and skips the judge, to check the
 chain without model calls.
@@ -25,6 +25,7 @@ chain without model calls.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -39,7 +40,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = {"gpt-6-luna": "codex", "gpt-6.1-sol": "codex", "claude-opus-5-5": "claude"}
 MANIFEST = "eval/corpus/known_errors.v1.json"
-EVAL_SCRIPTS = ("eval/plain_review.py", "eval/adjudicate_known_errors.py", "eval/audit_tool_use.py", "eval/experiment_discovery.py", "eval/run_development_review.py", "eval/compare_development_reviews.py")
+EVAL_SCRIPTS = ("eval/plain_review.py", "eval/adjudicate_known_errors.py", "eval/audit_tool_use.py", "eval/experiment_discovery.py", "eval/run_development_review.py", "eval/compare_development_reviews.py", "eval/run_known_errors.py")
 
 
 def sha256(path: Path) -> str:
@@ -168,7 +169,7 @@ def run_paper(paper: int, args: argparse.Namespace) -> str:
             return f"{name}: plain review failed, not scored ({status})"
 
         scored = out / f"planted-error-adjudication.{args.judge_model}.json"
-        if scored.exists() and json.loads(scored.read_text(encoding="utf-8"))["review"]["sha256"] == sha256(review):
+        if scored.exists() and adjudication_matches(json.loads(scored.read_text(encoding="utf-8")), review, args):
             return f"{name}: already scored ({status})"
         command = [sys.executable, str(args.code / "eval" / "adjudicate_known_errors.py"), str(review),
                    "--annotations", str(args.root / "ground_truth" / "error_insertions.csv"),
@@ -178,6 +179,25 @@ def run_paper(paper: int, args: argparse.Namespace) -> str:
             command.append("--allow-partial")
         code = run(command, log, args)
         return f"{name}: scored exit {code} ({status})"
+
+
+def adjudication_matches(data: dict, review: Path, args: argparse.Namespace) -> bool:
+    return (data.get("review", {}).get("sha256") == sha256(review)
+            and data.get("ground_truth", {}).get("sha256") == sha256(args.root / "ground_truth" / "error_insertions.csv")
+            and data.get("adjudicator_script", {}).get("sha256") == sha256(args.code / "eval" / "adjudicate_known_errors.py")
+            and data.get("judge", {}).get("identity") == frozen_judge_identity(str(args.code), args.judge_model, args.timeout, args.judge_effort)
+            and data.get("judge", {}).get("tools") is False)
+
+
+@functools.cache
+def frozen_judge_identity(code: str, model: str, timeout: int, effort: str) -> str:
+    """Compute configuration identity from the immutable snapshot; no model call."""
+    instruction = ("import sys; from reviscope.backend import ClaudeBackend; "
+                   "print(ClaudeBackend(sys.argv[1], int(sys.argv[2]), sys.argv[3], tools=False).identity)")
+    env = {**os.environ, "PYTHONPATH": str(Path(code) / "src")}
+    result = subprocess.run([sys.executable, "-c", instruction, model, str(timeout), effort],
+                            cwd=code, env=env, capture_output=True, text=True, check=True)
+    return result.stdout.strip()
 
 
 def main() -> int:

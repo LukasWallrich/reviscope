@@ -54,7 +54,7 @@ def where_lost(judgment: dict, findings: dict[str, dict]) -> str:
         return prefix + ("unresolved by verification" if "unresolved" in outcomes else "contradicted by verification")
     if not any(f.get("editorial_disposition") == "publish" for f in verified):
         return prefix + "set aside by editorial (" + ", ".join(sorted({f.get("editorial_disposition") or "?" for f in verified})) + ")"
-    return prefix + "published"
+    return prefix + "published candidate; published match not established"
 
 
 def main() -> int:

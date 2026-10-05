@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from .schemas import CandidateFinding, Evidence, SourceDocument
 from .verification import verify_quote
+from .reasoning import ARGUMENT_ASSESSMENT, LITERATURE_ASSESSMENT, MATERIAL_ASSESSMENT
 
 
 TOPICS = {
@@ -50,6 +51,12 @@ class DiscoveryResponse(BaseModel):
 
 def discovery_instruction(module: str, base: str) -> str:
     topics = TOPICS.get(module, DEFAULT_TOPICS)
+    base += '\n' + ARGUMENT_ASSESSMENT
+    if module == 'contribution':
+        base += LITERATURE_ASSESSMENT
+    if module in {'measurement', 'interpretation', 'consistency', 'blind_spots',
+                  'social_psychology_context', 'education_context'}:
+        base += MATERIAL_ASSESSMENT
     return base + '''\nAudit the entire supplied manuscript within your assigned responsibility and return every
 distinct, justified issue you find. There is no quota and no limit on the number of findings.
 Keep each issue grounded in an exact quotation, a concrete consequence, and the strongest plausible

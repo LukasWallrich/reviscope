@@ -112,3 +112,136 @@ def test_trace_places_each_missed_error_at_the_stage_that_lost_it():
     assert where_lost(judged("detected", ids=("e",)), findings) == "verification batch failed"
     findings["d"]["verification"] = "claim=unresolved: The verifier refuted at least one cited external source."
     assert where_lost(judged("detected", ids=("d",)), findings) == "unresolved: cited external source refuted by the verifier"
+
+
+def test_development_runner_preserves_case_profile_in_both_nested_arms(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
+    manuscript = tmp_path / "tutorial.txt"
+    manuscript.write_text("Tutorial source.")
+    commands = []
+
+    def complete(command, **kwargs):
+        commands.append(command)
+        working = Path(command[command.index("--out") + 1])
+        for name in ("review.json", "review.md", "review.html", "run.log"):
+            (working / name).write_text(json.dumps({"partial": False, "metadata": {"profile": "education",
+                "evidence_audit": "--evidence-audit" in command}}) if name == "review.json" else "fixture")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(runner["subprocess"], "run", complete)
+    root = tmp_path / "assessment"
+    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root),
+                                               "--case", "tutorial", "--profile", "education"])
+    assert runner["main"]() == 0
+    assert len(commands) == 2
+    assert all(command[command.index("--profile") + 1] == "education" for command in commands)
+    assert "--evidence-audit" not in commands[0] and "--evidence-audit" in commands[1]
+    records = json.loads((root / "reviews" / "working" / "tutorial" / "arms.json").read_text())
+    assert all(record["profile"] == "education" for record in records)
+    assert (root / "reviews" / "holistic" / "tutorial" / "review.json").exists()
+    assert (root / "reviews" / "audit" / "tutorial" / "review.json").exists()
+    commands.clear()
+    assert runner["main"]() == 0
+    assert not commands
+    assert json.loads((root / "reviews" / "working" / "tutorial" / "arms.json").read_text()) == records
+    monkeypatch.setitem(runner["main"].__globals__, "code_digest", lambda _: "changed-code")
+    with pytest.raises(ValueError, match="frozen provenance"):
+        runner["main"]()
+
+
+def test_development_runner_never_archives_stale_report_on_usage_failure(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
+    manuscript = tmp_path / "paper.txt"
+    manuscript.write_text("Source.")
+    root = tmp_path / "assessment"
+    working = root / "reviews" / "working" / "case"
+    working.mkdir(parents=True)
+    (working / "review.json").write_text('{"partial": false, "metadata": {"evidence_audit": false}}')
+    monkeypatch.setattr(runner["subprocess"], "run", lambda *a, **k: SimpleNamespace(returncode=2))
+    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root), "--case", "case", "--profile", "social_psychology"])
+    assert runner["main"]() == 2
+    assert not (root / "reviews" / "holistic" / "case" / "review.json").exists()
+    assert not (working / "review.json").exists()
+
+
+def test_development_runner_rejects_mislabeled_arm_output(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
+    manuscript = tmp_path / "paper.txt"
+    manuscript.write_text("Source.")
+    root = tmp_path / "assessment"
+
+    def wrong_arm(command, **kwargs):
+        working = Path(command[command.index("--out") + 1])
+        (working / "review.json").write_text(json.dumps({"partial": False,
+            "metadata": {"profile": "social_psychology", "evidence_audit": True}}))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(runner["subprocess"], "run", wrong_arm)
+    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root), "--case", "case", "--profile", "social_psychology"])
+    with pytest.raises(ValueError, match="requested audit arm"):
+        runner["main"]()
+    assert not (root / "reviews" / "holistic" / "case" / "review.json").exists()
+
+
+def test_planted_error_scores_refuse_mixed_judging_conditions():
+    require_uniform = runpy.run_path(str(EVAL / "score_known_errors.py"))["require_uniform_judging"]
+    row = {"judge": "identity-with-effort", "annotations_sha256": "labels", "adjudicator_sha256": "code"}
+    require_uniform([row, row])
+    for key in row:
+        with pytest.raises(ValueError, match="Mixed judge"):
+            require_uniform([row, {**row, key: "different"}])
+
+
+def test_uncredited_published_candidate_is_not_reported_as_retrieved():
+    where_lost = runpy.run_path(str(EVAL / "trace_known_errors.py"))["where_lost"]
+    judgment = {"candidate": {"verdict": "detected", "matched_finding_ids": ["a"]},
+                "published": {"verdict": "not_detected"}}
+    finding = {"verifier_status": "supported", "status": "llm_supported", "editorial_disposition": "publish"}
+    assert where_lost(judgment, {"a": finding}) == "published candidate; published match not established"
+
+
+def test_adjudication_reuse_requires_current_code_labels_and_judge_settings(tmp_path):
+    from reviscope.backend import ClaudeBackend
+    driver = runpy.run_path(str(EVAL / "run_known_errors.py"))
+    review = tmp_path / "review.json"
+    review.write_text('{"partial": false}')
+    truth = tmp_path / "ground_truth" / "error_insertions.csv"
+    truth.parent.mkdir()
+    truth.write_text("labels")
+    args = type("Args", (), {"root": tmp_path, "code": EVAL.parent, "judge_model": "claude-opus-5-5",
+                             "judge_effort": "high", "timeout": 3600})()
+    data = {"review": {"sha256": driver["sha256"](review)},
+            "ground_truth": {"sha256": driver["sha256"](truth)},
+            "adjudicator_script": {"sha256": driver["sha256"](EVAL / "adjudicate_known_errors.py")},
+            "judge": {"identity": ClaudeBackend(args.judge_model, args.timeout, args.judge_effort, tools=False).identity,
+                      "tools": False}}
+    assert driver["adjudication_matches"](data, review, args)
+    for section in ("review", "ground_truth", "adjudicator_script", "judge"):
+        modified = json.loads(json.dumps(data))
+        modified[section]["identity" if section == "judge" else "sha256"] = "old"
+        assert not driver["adjudication_matches"](modified, review, args)
+    args.judge_effort = "low"
+    assert not driver["adjudication_matches"](data, review, args)
+
+
+def test_numerical_conclusions_require_computations_to_support_them():
+    pytest.importorskip("scipy")
+    validate = runpy.run_path(str(EVAL / "check_development_numerics.py"))["validate_conclusions"]
+    data = json.loads((EVAL.parent / "docs/pipeline-development-analysis/numerical-checks.json").read_text())
+    validate(data["checks"])
+    for row in data["checks"]:
+        modified = json.loads(json.dumps(row))
+        c = modified["calculated"]
+        changes = {"bonetto-thermometer": {"absolute_t": .81, "absolute_d": .10},
+                   "bonetto-blame-p": {"two_sided_p": .96},
+                   "bonetto-pooled-demographics": {"weighted_mean_age": 23.83},
+                   "ziano-correlation-stars": {"minimum_one_sided_p_with_rounding": .0001},
+                   "ziano-comparison-p": {"rounding_p_interval": [.0395, .0405]},
+                   "ziano-negative-correlations": {"negative": 8},
+                   "ziano-replication-label": {"consistent": True}}
+        c.update(changes[row["id"]])
+        with pytest.raises(ValueError, match="does not support"):
+            validate([modified])

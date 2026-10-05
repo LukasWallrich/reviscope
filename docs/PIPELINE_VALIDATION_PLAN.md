@@ -41,7 +41,15 @@ use tools; preference judges and normalization use no tools. The factual gates,
 external-source policy, contamination audit and editorial publication rules are shared
 across discovery strategies. Editorial cannot rewrite a finding or its severity.
 
-## Development pilot
+## Training corpus and development pilot
+
+The entire Meta-Psychology corpus, including the four submissions not yet used in the
+initial pilot, is designated training/development data by the owner on 5 October 2026.
+Here training means pipeline and prompt development, not model weight training.
+Use all six cases to diagnose and repair review-quality failures; any performance
+reported on them is development evidence. Human reports remain excluded from review
+generation and are comparators, not correctness labels. An independent validation
+set will be selected later; none of these cases can establish independent validation.
 
 The two first cases are a six-experiment group-membership/deviance-punishment submission
 and a two-experiment direct/indirect-harm replication submission. Their author labels
@@ -182,9 +190,11 @@ Write the decision criteria before inspecting holdout results:
 * Authors or qualified assessors must find the report usable, including proportional
   remedies and clear separation of supported findings from uncertainty.
 
-The four remaining curated submissions form the next frozen comparison set, with
-at least two runs per AI configuration. Confirm any promising result on additional
-unseen manuscripts across the intended profile family. Choose the acceptable quality
+The four remaining curated submissions extend the training/development comparison,
+with at least two runs per AI configuration when separately budgeted. Freeze and retain
+each diagnostic condition before tuning, but do not describe these submissions as an
+independent validation set. Confirm any promising result on a separately selected,
+unseen corpus across the intended profile family. Choose the acceptable quality
 margin and cost premium from pilot human ratings and task times before confirmatory
 testing; the development pilot does not supply defensible numerical thresholds.
 
@@ -192,3 +202,26 @@ Severity revision during editorial, an expanded author-visible section for suppo
 severity-held claims, pipeline-executed recomputation as a new publication route, and
 changes to external-source/audit gates are separate owner decisions. The candidate
 keeps those contracts intact.
+
+## Reasoning-assessment development probes
+
+The shared reasoning guidance and optional audit records are described in
+[the implementation record](REASONING_ASSESSMENT_IMPLEMENTATION.md). The offline
+`tests/fixtures/reasoning_probes.json` packets cover support following a claim, related
+prose preceding a false claim, distributed support, accurate single-citation and
+inaccurate multiple-citation relations, sufficient aggregate evidence, unavailable
+coding material, a supplement resolving that gap, competing mechanisms, missing
+premises, circular support, privacy withholding and captions without image pixels.
+They are handcrafted development probes with scripted backend responses, not expert
+adjudications or measurements of model accuracy. Regression tests establish artifact
+preservation, quotation anchoring, unchanged publication/source gates, guidance routing
+and cache behavior.
+
+For scientific assessment, have qualified assessors adjudicate these packets and add
+unseen positive and negative variants. Compare the frozen baseline and prompt change
+with the same model, extraction, tool access and publication gates. Assess added correct,
+material, non-redundant criticism, false absence claims, missed defeating context,
+unsupported advice, remedy burden and marginal cost by paper. A larger operation ledger
+or higher model support rate is not an improvement criterion. The optional audit stays
+optional pending those comparisons. No bulk model run, recruitment or expenditure is
+authorized by this plan itself.
