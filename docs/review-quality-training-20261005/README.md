@@ -1,6 +1,7 @@
 # Training diagnostic records
 
-See [the results](../REVIEW_QUALITY_TRAINING_RESULTS.md). These artifacts contain
+See [the readable status report](../REVIEW_QUALITY_TRAINING_RESULTS.md) and the
+[preserved technical record](../REVIEW_QUALITY_TRAINING_TECHNICAL_RECORD.md). These artifacts contain
 bounded diagnostics and content hashes, not manuscript, PDF or human-review copies.
 Model labels and native item counts are not scientific correctness estimates.
 
