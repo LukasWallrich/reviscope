@@ -68,8 +68,9 @@ def agreement(results):
                       'materiality_agreement': round(sum(a == b for a, b in materiality) / len(materiality), 3),
                       'materiality_kappa': kappa(materiality),
                       'importance_exact_agreement': round(sum(a == b for a, b in exact) / len(exact), 3)}
-    reasons = {m: collections.Counter(x['reason'] for r in results for x in r['resolutions'][m].values()) for m in JUDGES}
-    changed = {m: sum(x['changed'] for r in results for x in r['resolutions'][m].values()) for m in JUDGES}
+    reasons = {m: collections.Counter(x.get('reason', 'no_resolution_returned') for r in results
+                                      for x in r['resolutions'][m].values()) for m in JUDGES}
+    changed = {m: sum(x.get('changed', False) for r in results for x in r['resolutions'][m].values()) for m in JUDGES}
     disputed = sum(len(r['resolutions'][JUDGES[0]]) for r in results)
     return {**out, 'disputed_points': disputed, 'changed_after_seeing_other': changed,
             'reasons': {m: dict(c.most_common()) for m, c in reasons.items()}}

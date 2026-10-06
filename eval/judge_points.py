@@ -16,6 +16,7 @@ import hashlib
 import json
 from pathlib import Path
 import random
+import re
 import sys
 from typing import Literal
 
@@ -214,16 +215,23 @@ def pipeline_points(path):
             if f['editorial_disposition'] == 'publish' and f['status'] not in UNPUBLISHED]
 
 
+def in_review(excerpt, text):
+    # Extracted review text breaks hyphenated words across lines ("two-\nway").
+    joined = re.sub(r'-\s*\n\s*', '-', text)
+    return any(verify_quote(excerpt, [t]).status == 'supported' for t in (text, joined))
+
+
 def human_points(root, text):
     def check(result):
-        missing = [p.excerpt for p in result.points if verify_quote(p.excerpt, [text]).status != 'supported']
-        if missing:
-            return f'{len(missing)} excerpt(s) not found in the review'
-        revealing = [p.claim for p in result.points if 'reviewer' in p.claim.lower()]
+        missing = [p.excerpt for p in result.points if not in_review(p.excerpt, text)]
+        if len(missing) > 0.1 * len(result.points):
+            return f'{len(missing)} of {len(result.points)} excerpts not found in the review'
+        revealing = [p.claim for p in result.points if re.search(r'\b(the|this) reviewer\b', p.claim, re.I)]
         return f'{len(revealing)} claim(s) name the reviewer' if revealing else None
     parsed = call(root, PARSER, PARSE, text, ParsedReview, check)
     return [{'claim': p.claim, 'rationale': None, 'remedy': p.requested_change, 'manuscript_quotes': [],
-             '_native': {'excerpt': p.excerpt}} for p in parsed.points]
+             '_native': {'excerpt': p.excerpt, 'excerpt_in_review': in_review(p.excerpt, text)}}
+            for p in parsed.points]
 
 
 def reports(root, case, plain_root):
@@ -301,15 +309,23 @@ def resolve(root, text, data, labels, model):
             for k in sorted(items) if disputed(labels[model][k], labels[other][k])]
     if not rows:
         return {}
-    resolutions = []
+    resolutions = {}
     for batch in batches(rows):
-        expected = {r['point']['item_id'] for r in batch}
-        def check(result, expected=expected):
-            got = [r.item_id for r in result.resolutions]
-            return None if sorted(got) == sorted(expected) else 'missing, duplicated or unknown item_id'
-        evidence = json.dumps({'manuscript': text, 'disputed_points': batch}, ensure_ascii=False)
-        resolutions += call(root, model, RESOLVE + JUDGE, evidence, Resolutions, check).resolutions
-    return {r.item_id: r.model_dump() for r in resolutions}
+        # A judge that skips items is asked again for only those; any still missing keep their initial labels.
+        for _ in range(2):
+            pending = [r for r in batch if r['point']['item_id'] not in resolutions]
+            if not pending:
+                break
+            expected = {r['point']['item_id'] for r in pending}
+            def check(result, expected=expected):
+                got = [r.item_id for r in result.resolutions]
+                return None if len(got) == len(set(got)) and set(got) <= expected else 'duplicated or unknown item_id'
+            evidence = json.dumps({'manuscript': text, 'disputed_points': pending}, ensure_ascii=False)
+            for r in call(root, model, RESOLVE + JUDGE, evidence, Resolutions, check).resolutions:
+                resolutions[r.item_id] = r.model_dump()
+    for r in rows:
+        resolutions.setdefault(r['point']['item_id'], {'missing': True})
+    return resolutions
 
 
 def group(root, data):
