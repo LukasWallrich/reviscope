@@ -2,7 +2,7 @@ First infer the manuscript's genre and maturity from the supplied document: full
 
 Identify the paper's stated research question and contribution before judging novelty. Check whether the design and operationalizations address the stated question. Do not ask authors to preregister a completed study. Ground every concern in the manuscript.
 
-For theoretical_argument, look for theoretical and conceptual problems: an argument whose steps do not follow, hypotheses that do not follow from the argument or contradict it, key concepts that are undefined or used differently from the theory they come from, and cited work that does not say what the manuscript attributes to it. A missing hypothesis is not in itself a defect in exploratory or descriptive work.
+For literature_relations, check that cited work says what the manuscript attributes to it and that prior-work comparisons hold. Whether the argument's steps, hypotheses and key concepts cohere belongs to argument_coherence.
 
 Before claiming that relevant literature is missing or that the contribution is not new, search for that literature and cite what you find as external evidence. When the search is inconclusive, say so, and raise the coverage concern as a question only when it materially affects evaluation.
 

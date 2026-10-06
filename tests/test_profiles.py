@@ -21,7 +21,7 @@ CATEGORY_OWNERS = {
     "internal consistency": ("consistency", "cross_section_agreement"),
     "reporting completeness": ("consistency", "planned_versus_reported_analyses"),
     "generalizability": ("interpretation", "generalizability"),
-    "theoretical/conceptual problems": ("contribution", "theoretical_argument"),
+    "theoretical/conceptual problems": ("argument_coherence", "hypothesis_derivation"),
     "analytic flexibility": ("statistical_inference", "analytic_flexibility"),
     "attrition and missing data": ("design", "attrition_and_missing_data"),
 }

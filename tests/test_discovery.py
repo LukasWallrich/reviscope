@@ -125,3 +125,46 @@ def test_external_confirmation_cannot_borrow_a_fetch_from_another_batch(tmp_path
     blind = next(f for f in run.findings if f.module == 'blind_spots')
     assert blind.status == 'unresolved' and blind.external_evidence[0].check == 'unchecked'
     assert all(f.status == 'llm_supported' for f in run.findings if f.module == 'statistical_inference')
+
+
+class CoherenceBackend(DiscoveryBackend):
+    def generate(self, instruction, evidence, response_model):
+        if response_model.__name__ != 'ArgumentCoherenceResponse':
+            return super().generate(instruction, evidence, response_model)
+        self.calls.append((response_model.__name__, instruction, evidence))
+        source_id = re.search(r'SOURCE_ID:\s*(\S+)', evidence).group(1)
+        quote = {'source_id': source_id, 'quote': '24 of 60 people withdrew.'}
+        return response_model.model_validate({
+            'findings': [{'id': 'link', 'module': 'untrusted', 'claim': 'The conclusion ignores attrition',
+                          'rationale': 'Specific consequence', 'remedy': 'Rescope the conclusion', 'evidence': [quote]}],
+            'checks': [{'check': key, 'status': 'assessed', 'rationale': 'Traced the chain.', 'evidence': [quote]}
+                       for key in TOPICS['argument_coherence']],
+            'search_incomplete': False,
+            'argument_map': [
+                {'claim': quote, 'premises': [quote], 'inferential_step': 'Withdrawal limits the claim',
+                 'defeating_context': []},
+                {'claim': {'source_id': source_id, 'quote': 'not in the paper'}, 'inferential_step': 'Holds',
+                 'premises': [], 'defeating_context': []},
+            ],
+        })
+
+
+def test_argument_map_is_unverified_coverage_and_findings_follow_ordinary_verification(tmp_path):
+    from reviscope.profiles import load_profile
+
+    paper = tmp_path / 'paper.txt'
+    paper.write_text('24 of 60 people withdrew. ' + 'Study context. ' * 100)
+    profile = Profile(id='coherence-test', title='test', modules=['argument_coherence'],
+                      module_prompts={'argument_coherence': 'Check the argument.'})
+    backend = CoherenceBackend()
+    run = ReviewPipeline(backend, profile).run(paper, output_dir=tmp_path / 'run')
+    assert not run.partial
+    records = [c for c in run.coverage if c.startswith('unverified argument map record')]
+    assert len(records) == 2
+    assert '[2/2 quotation anchors' in records[0] and '[0/1 quotation anchors' in records[1]
+    assert [f.module for f in run.candidates] == ['argument_coherence', 'blind_spots']
+    assert all(f.status == 'llm_supported' and 'claim=llm_supported' in f.verification for f in run.findings)
+    blind = next(c for c in backend.calls if 'Perform one blind-spot audit' in c[1])
+    assert 'unverified argument map record' in blind[2]
+    for profile_id in ('quantitative_social_science', 'social_psychology', 'education'):
+        assert 'argument_coherence' in load_profile(profile_id).modules

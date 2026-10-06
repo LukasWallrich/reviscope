@@ -121,11 +121,11 @@ def test_old_calculation_contract_remains_readable():
 def test_guidance_reaches_specialist_profiles_without_new_coverage_topics():
     for profile_id in ("quantitative_social_science", "social_psychology", "education"):
         profile = load_profile(profile_id)
-        for module in ("contribution", "interpretation", "measurement"):
+        for module in ("contribution", "interpretation", "measurement", "argument_coherence"):
             instruction = discovery_instruction(module, profile.module_prompts[module])
             assert ARGUMENT_ASSESSMENT in instruction
             assert requested_checks(instruction) == TOPICS[module]
-            if module == "contribution":
+            if module in {"contribution", "argument_coherence"}:
                 assert LITERATURE_ASSESSMENT in instruction
             else:
                 assert MATERIAL_ASSESSMENT in instruction

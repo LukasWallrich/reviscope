@@ -14,12 +14,14 @@ from .reasoning import ARGUMENT_ASSESSMENT, LITERATURE_ASSESSMENT, MATERIAL_ASSE
 TOPICS = {
     'broad': [],
     'evidence_audit': ['reported_quantities', 'analysis_and_scores', 'categorical_agreement', 'inferential_targets'],
-    'contribution': ['question_and_claims', 'theoretical_argument', 'design_addresses_question'],
+    'contribution': ['question_and_claims', 'literature_relations', 'design_addresses_question'],
     'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
     'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],
     'statistical_inference': ['hypothesis_test_alignment', 'statistical_errors', 'power_and_sensitivity', 'analytic_flexibility',
                               'uncertainty_and_estimates'],
     'interpretation': ['causal_inference', 'generalizability', 'theory_and_mechanism_claims', 'claim_evidence_consistency'],
+    'argument_coherence': ['argument_chain', 'hypothesis_derivation', 'conclusion_support', 'concept_stability',
+                           'internal_contradiction'],
     'consistency': ['cross_section_agreement', 'sample_counts_through_stages', 'planned_versus_reported_analyses'],
     'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations'],
     'blind_spots': ['unexamined_claims_and_sections', 'omissions_with_consequences', 'unresolved_numerical_questions'],
@@ -52,7 +54,7 @@ class DiscoveryResponse(BaseModel):
 def discovery_instruction(module: str, base: str) -> str:
     topics = TOPICS.get(module, DEFAULT_TOPICS)
     base += '\n' + ARGUMENT_ASSESSMENT
-    if module == 'contribution':
+    if module in {'contribution', 'argument_coherence'}:
         base += LITERATURE_ASSESSMENT
     if module in {'measurement', 'interpretation', 'consistency', 'blind_spots',
                   'social_psychology_context', 'education_context'}:

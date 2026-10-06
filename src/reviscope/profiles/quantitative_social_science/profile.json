@@ -2,7 +2,7 @@
   "id": "quantitative_social_science",
   "name": "Quantitative social science",
   "status": "alpha",
-  "modules": ["contribution", "design", "measurement", "statistical_inference", "interpretation", "consistency"],
+  "modules": ["contribution", "design", "measurement", "statistical_inference", "interpretation", "argument_coherence", "consistency"],
   "terminology": {"participant": "participant or observational unit", "outcome": "outcome or dependent variable"},
   "severity_guidance": {
     "critical": "A demonstrated issue that invalidates a central result; uncertainty, acknowledged scope limits, and requests for broader validation are not critical.",

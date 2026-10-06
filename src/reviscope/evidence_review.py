@@ -60,6 +60,11 @@ class EvidenceAudit(DiscoveryResponse):
     operations: list[AuditOperation] = Field(default_factory=list)
 
 
+class ArgumentCoherenceResponse(DiscoveryResponse):
+    """Specialist response with the reconstructed argument; map entries are unverified coverage."""
+    argument_map: list[ReasoningTrace] = Field(default_factory=list)
+
+
 def calculation_recorded(operation: AuditOperation, calls: list[ToolCall]) -> bool:
     """Match nonempty code and output in the audit's own successful shell record."""
     if not operation.code or not operation.code.strip() or not operation.result.strip():

@@ -61,19 +61,27 @@ named coverage check, so the coverage ledger shows whether the owner assessed it
 
 | Module | Coverage checks | Error categories it owns |
 |---|---|---|
-| `contribution` | `question_and_claims`, `theoretical_argument`, `design_addresses_question` | theoretical and conceptual problems |
+| `contribution` | `question_and_claims`, `literature_relations`, `design_addresses_question` | literature attribution and prior-work comparison |
 | `design` | `confounds_and_controls`, `sampling_and_assignment`, `timing_and_dependence`, `attrition_and_missing_data` | methodological design; attrition and missing data |
 | `measurement` | `construct_validity`, `scoring_and_denominators`, `comparability_and_validity` | construct validity |
 | `statistical_inference` | `hypothesis_test_alignment`, `statistical_errors`, `power_and_sensitivity`, `analytic_flexibility`, `uncertainty_and_estimates` | statistical errors; analytic flexibility |
 | `interpretation` | `causal_inference`, `generalizability`, `theory_and_mechanism_claims`, `claim_evidence_consistency` | causal inference; generalizability |
+| `argument_coherence` | `argument_chain`, `hypothesis_derivation`, `conclusion_support`, `concept_stability`, `internal_contradiction` | theoretical and conceptual problems |
 | `consistency` | `cross_section_agreement`, `sample_counts_through_stages`, `planned_versus_reported_analyses` | internal consistency; reporting completeness |
 
 `consistency` checks agreement across the whole manuscript: numbers and statements
 across sections (abstract against results, text against tables and figures), sample
 counts through the stages of the analysis, planned against reported analyses
 (including analyses announced, preregistered or described in the methods that the
-results do not report), definitions, and limitations stated in one place and
-contradicted elsewhere.
+results do not report), and variable, condition and unit definitions.
+
+`argument_coherence` checks the whole chain from research question and theory through
+hypotheses, design and analysis to conclusions. Other modules check single steps in
+their own area. It also owns shifts in a construct's theoretical meaning and
+substantive contradictions between sections; numerical and categorical mismatches stay
+with `consistency`. It records the reconstructed chain in `argument_map` as ledger
+entries labelled unverified. The blind-spot pass reads the ledger, but map entries
+never become findings; a finding must pass ordinary verification.
 
 `power_and_sensitivity` asks whether a power or sensitivity analysis is reported
 completely (target effect size and its justification, alpha, power, test or model, N),

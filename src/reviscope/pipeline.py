@@ -16,6 +16,8 @@ from .render import render_all
 from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
+from .evidence_review import ArgumentCoherenceResponse
+from .verification import verify_quote
 from .schemas import Evidence, ExternalCheck, ExternalSourceTask, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageProvenance, StageRecord, StudyMap
 
 
@@ -269,16 +271,24 @@ class ReviewPipeline:
                     module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
                 severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
                 final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
-                def generate_findings(p=final_instruction, e=module_evidence, m=module):
-                    value = self.backend.generate(p, e, DiscoveryResponse)
+                schema = ArgumentCoherenceResponse if module == "argument_coherence" else DiscoveryResponse
+                def generate_findings(p=final_instruction, e=module_evidence, m=module, s=schema):
+                    value = self.backend.generate(p, e, s)
                     raw_dir = out / "raw-discovery"
                     raw_dir.mkdir(exist_ok=True)
-                    raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": DiscoveryResponse.model_json_schema()})
+                    raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": s.model_json_schema()})
                     (raw_dir / f"{m}-{raw_key}.json").write_text(value.model_dump_json(indent=2), encoding="utf-8")
                     return validate_discovery(value, m, sources)
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, DiscoveryResponse, generate_findings)
+                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, schema, generate_findings)
                 result = validate_discovery(result, module, sources)
                 run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
+                for trace in getattr(result, "argument_map", []):
+                    passages = [trace.claim, *trace.premises, *trace.defeating_context]
+                    anchors = sum(verify_quote(e.quote, [s.model_dump() for s in sources], e.source_id).status == "supported"
+                                  for e in passages)
+                    run.coverage.append(f"unverified argument map record: \"{trace.claim.quote}\" — {trace.inferential_step} "
+                                        f"[{anchors}/{len(passages)} quotation anchors; {len(trace.premises)} premise(s), "
+                                        f"{len(trace.defeating_context)} defeating passage(s)]")
                 if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
                     run.coverage.append(f"{module}: discovery reported incomplete by the model or missing coverage entries")
                 for position, finding in enumerate(result.findings):
@@ -305,7 +315,6 @@ class ReviewPipeline:
     def _evidence_discovery(self, run: ReviewRun, out: Path) -> None:
         """Two fresh source reads; the audit receives neither candidates nor the broad overview."""
         from .evidence_review import BROAD_REVIEW, EVIDENCE_AUDIT, REVIEW_RULES, BroadReview, EvidenceAudit, calculation_recorded
-        from .verification import verify_quote
 
         evidence = self._evidence(run.sources)
         guidance = "\nSeverity guidance: " + _canonical(self.profile.metadata.get("severity_guidance", {}))
