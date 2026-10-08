@@ -157,13 +157,17 @@ def touched(locator: str, calls: Sequence[ToolCall]) -> bool:
 
 def check_external(items: Sequence[ExternalEvidence], checks: Sequence[Mapping[str, Any]],
                    calls: Sequence[ToolCall]) -> list[ExternalEvidence]:
-    """Confirmed needs the verifier's `confirmed` verdict and a recorded tool call on the locator."""
+    """Confirmed needs the verifier's `confirmed` verdict and a recorded tool call on the locator.
+
+    An item citing both a URL and a DOI may be checked, and reported, under either."""
     verdicts = {_locator(str(row.get("locator", ""))): row.get("verdict") for row in checks if isinstance(row, Mapping)}
     checked = []
     for item in items:
-        verdict = verdicts.get(_locator(item.locator))
+        locators = [value for value in (item.url, item.doi) if value]
+        reported = [verdicts[_locator(value)] for value in locators if _locator(value) in verdicts]
+        verdict = "refuted" if "refuted" in reported else "confirmed" if "confirmed" in reported else None
         state = ("refuted" if verdict == "refuted" else
-                 "confirmed" if verdict == "confirmed" and touched(item.locator, calls) else "unchecked")
+                 "confirmed" if verdict == "confirmed" and any(touched(value, calls) for value in locators) else "unchecked")
         checked.append(item.model_copy(update={"check": state}))
     return checked
 
