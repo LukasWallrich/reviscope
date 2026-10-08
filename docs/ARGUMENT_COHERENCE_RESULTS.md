@@ -60,3 +60,46 @@ rationale, which may lower their perceived importance.
   Validity agreement is already reasonable.
 - Human-versus-AI comparisons need format matching, for example by giving human points
   located manuscript quotes, before they can be interpreted.
+
+## Corrected rerun with pooled issue ranking (8 October)
+
+A gate bug held back supported findings whose source the verifier had opened. The verifier
+may report a source under its DOI, but the gate looked the verdict up only under the cited
+URL. Across the 12 runs, 42 of the 48 findings blocked by this gate had a confirmed source.
+They came mainly from contribution (14), social-psychology context (10), argument_coherence (7)
+and interpretation (6). Commit cf3068a fixes the lookup. `rederive.py` reran all 12 reviews
+with the fix into `reviews-fixed/`, reusing every cached discovery and verification call.
+Editorial reran in 11 of the 12, so some changes in published counts also reflect a fresh
+editorial sample.
+
+`judging-v2/` judged these reviews, each run's filtered candidates (held back or
+contradicted, excluding merged duplicates), the plain review and format-matched human reviews.
+Human points now carry the review's reasons and located manuscript quotes. Each judge assessed
+and ranked the distinct issues pooled across all reports. Ranks agree far better than absolute
+tiers. Spearman correlation on issues both judges established is 0.85 to 0.92, and their top 10s
+share 6 to 9 issues. On Sætrevik, Opus rates 6 issues major or critical and Sol 29.
+
+Of each paper's consensus top 10 issues, the number each report raised with a point both
+judges rate valid:
+
+| Case | Baseline runs | Coherence runs | Plain | Human (two reviews) |
+|---|---|---|--:|---|
+| Sætrevik | 9, 7 | 8, 7 | 8 | 0, 1 |
+| Ziano | 9, 4 | 6, 6 | 9 | 0, 0 |
+| Heyman | 7, 6 | 7, 7 | 10 | 0, 0 |
+
+- The module shows no difference on this metric. One case favours it: Ziano's top-ranked
+  issue compares single-scenario effects with the original eight-scenario aggregate. Every
+  run found it, with 18 points from six modules in total. Verification held most copies back
+  because the issue depends on the original study. The module published it in both coherence
+  runs, and the baseline in one of two. It counts for no report above, because Sol rated every
+  point on it cannot_tell.
+- One plain Sol call raised as many top issues as any pipeline run. The pipeline's extra
+  stages do not find more of the most important issues on these papers.
+- The filter loses little. Valid issues present only among a run's filtered candidates
+  numbered 0 to 4 per run, including 0 to 2 top 10 issues.
+- The human reviews rarely raise the issues that judges rank highest. Most issues raised
+  only by humans were not established by both judges: 43 of 58. Many concern OSF materials
+  and preregistrations the judges cannot see. AI judges may also favour AI-style issues, such
+  as numerical consistency. An expert ranking of one paper's pooled issues is needed before
+  this comparison means anything.
