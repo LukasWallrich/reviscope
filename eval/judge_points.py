@@ -6,7 +6,9 @@ against the review. Points from all reports on a paper are shuffled and blinded.
 each label every point for accuracy, importance, remedy burden and category against the
 manuscript. Where they disagree on validity or materiality, each sees the other's anonymised
 assessment, gives a final label and classifies why they disagreed. One grouping call per paper
-clusters points that raise the same underlying issue, so unique issues can be counted.
+clusters points that raise the same underlying issue. Each judge then assesses and ranks
+these pooled issues for the paper, so reports can be compared on how many of the paper's most
+important issues they raise, not only on how their own points are labelled.
 
 Model labels on training data are development diagnostics, not expert correctness.
 """
@@ -32,11 +34,15 @@ JUDGES = ('claude-opus-5-5', 'gpt-6.1-sol')
 PARSER = 'claude-opus-5-5'
 GROUPER = 'claude-opus-5-5'
 BATCH = 30
+JUDGING = 'judging'
+REVIEWS = 'reviews'
 UNPUBLISHED = {'candidate', 'unverified', 'unresolved', 'contradicted'}
 
 
 class Point(BaseModel):
     claim: str
+    reasons: str | None = None
+    manuscript_quotes: list[str] = Field(default_factory=list)
     excerpt: str
     requested_change: str | None = None
 
@@ -84,16 +90,32 @@ class Grouping(BaseModel):
     groups: list[Group]
 
 
+class IssueAssessment(BaseModel):
+    issue_id: str
+    status: Literal['established', 'not_established', 'cannot_tell']
+    tier: Literal['critical', 'major', 'minor', 'negligible']
+    justification: str
+
+
+class IssueRanking(BaseModel):
+    assessments: list[IssueAssessment]
+    ranking: list[str]
+
+
 PARSE = '''Split this peer review of a scientific manuscript into its individual points. A point is
 one distinct criticism, question or request about the manuscript. Split bundled paragraphs
 into separate points when they raise different issues; keep one point per issue. Omit praise,
 summaries of the manuscript, greetings and recommendations to the editor. For each point give
-claim: a self-contained statement of the concern in neutral wording that keeps its full
-substance, including its reasons, without adding anything. State the concern directly as an
-assertion or question about the manuscript; never refer to the reviewer, the review or its
-author ("The power analysis is not justified", not "The reviewer questions..."); excerpt: a short
-verbatim span copied exactly from the review that the point comes from; requested_change: the
-change the reviewer asks for, or null if none. Do not judge whether points are right.'''
+claim: a self-contained one- or two-sentence statement of the concern in neutral wording;
+reasons: the review's own reasons and argument for the concern, restated without adding
+anything, or null if it gives none; manuscript_quotes: short verbatim spans copied exactly
+from the supplied manuscript that the concern refers to, located by you, or an empty list if
+the concern is about something absent or cannot be located; excerpt: a short verbatim span
+copied exactly from the review that the point comes from; requested_change: the change the
+review asks for, or null if none. State the concern directly as an assertion or question
+about the manuscript; never refer to the reviewer, the review or its author ("The power
+analysis is not justified", not "The reviewer questions..."). Do not judge whether points are
+right, and do not add reasons or evidence the review does not give.'''
 
 JUDGE = '''You assess individual points from peer reviews of the supplied manuscript. Points come
 from several reviews, human and AI, shuffled and stripped of origin. Assess each point
@@ -153,6 +175,23 @@ Explain in one or two sentences, naming the decisive passage. Return one resolut
 RUBRIC
 '''
 
+RANK = '''These are the distinct issues raised about the supplied manuscript by several peer
+reviews, human and AI, pooled and stripped of origin. Each issue lists the points that raise
+it. Using the complete manuscript, assess each issue as the handling editor would.
+
+status: established if the issue is a real problem with this manuscript as at least one of
+its points states it; not_established if it is false or does not apply; cannot_tell if it
+needs information you do not have, such as an external source or figure images.
+
+tier: critical if a main conclusion does not hold as stated; major if the editor should
+require the authors to address it before publication; minor if worth fixing but optional;
+negligible if addressing it would not meaningfully improve the manuscript.
+
+ranking: the issue_ids of all established issues, most important first. Rank by consequence
+for the manuscript's conclusions and usefulness, not by how many points raise an issue or how
+well they are written. Return one assessment for every issue_id. Respect genre: tutorials and
+proposals need not report empirical results.'''
+
 GROUP = '''Group these points from several peer reviews of one manuscript by the underlying issue
 they raise. Points belong together when addressing one would address the other; points about
 the same section but different problems are separate. Every item_id must appear in exactly one
@@ -181,7 +220,7 @@ def call(root, model, instruction, evidence, schema, check=None):
     engine = backend(model)
     key = sha({'instruction': instruction, 'evidence': evidence, 'backend': engine.identity,
                'schema': schema.model_json_schema()})
-    path = root / 'judging' / 'raw' / f'{key}.json'
+    path = root / JUDGING / 'raw' / f'{key}.json'
     if path.exists():
         return schema.model_validate(json.loads(path.read_text())['result'])
     for attempt in (1, 2):
@@ -203,16 +242,21 @@ def manuscript(case, launch):
     return text
 
 
-def pipeline_points(path):
+def pipeline_points(path, filtered=False):
+    """Published findings, or with filtered=True the candidates verification held back or
+    contradicted. Merged candidates are duplicates of published findings and are left out."""
     data = json.loads(path.read_text())
     if data.get('partial'):
         return None
+    def kept(f):
+        published = f['editorial_disposition'] == 'publish' and f['status'] not in UNPUBLISHED
+        held = f['editorial_disposition'] != 'merged' and f['status'] in {'unresolved', 'contradicted'}
+        return held if filtered else published
     return [{'claim': f['claim'], 'rationale': f['rationale'],
              'remedy': f['remedy'] if f.get('remedy_status') == 'supported' else None,
              'manuscript_quotes': [e['quote'] for e in f['evidence']],
-             '_native': {'id': f['id'], 'module': f.get('module'), 'severity': f.get('severity')}}
-            for f in data['findings']
-            if f['editorial_disposition'] == 'publish' and f['status'] not in UNPUBLISHED]
+             '_native': {'id': f['id'], 'module': f.get('module'), 'severity': f.get('severity'), 'status': f['status']}}
+            for f in data['findings'] if kept(f)]
 
 
 def in_review(excerpt, text):
@@ -221,26 +265,32 @@ def in_review(excerpt, text):
     return any(verify_quote(excerpt, [t]).status == 'supported' for t in (text, joined))
 
 
-def human_points(root, text):
+def human_points(root, text, manuscript_text):
     def check(result):
         missing = [p.excerpt for p in result.points if not in_review(p.excerpt, text)]
         if len(missing) > 0.1 * len(result.points):
             return f'{len(missing)} of {len(result.points)} excerpts not found in the review'
         revealing = [p.claim for p in result.points if re.search(r'\b(the|this) reviewer\b', p.claim, re.I)]
         return f'{len(revealing)} claim(s) name the reviewer' if revealing else None
-    parsed = call(root, PARSER, PARSE, text, ParsedReview, check)
-    return [{'claim': p.claim, 'rationale': None, 'remedy': p.requested_change, 'manuscript_quotes': [],
-             '_native': {'excerpt': p.excerpt, 'excerpt_in_review': in_review(p.excerpt, text)}}
+    evidence = json.dumps({'review': text, 'manuscript': manuscript_text}, ensure_ascii=False)
+    parsed = call(root, PARSER, PARSE, evidence, ParsedReview, check)
+    located = lambda q: verify_quote(q, [manuscript_text]).status == 'supported'
+    # Unlocatable manuscript quotes are dropped, as the pipeline drops unanchored evidence.
+    return [{'claim': p.claim, 'rationale': p.reasons, 'remedy': p.requested_change,
+             'manuscript_quotes': [q for q in p.manuscript_quotes if located(q)],
+             '_native': {'excerpt': p.excerpt, 'excerpt_in_review': in_review(p.excerpt, text),
+                         'dropped_quotes': [q for q in p.manuscript_quotes if not located(q)]}}
             for p in parsed.points]
 
 
-def reports(root, case, plain_root):
+def reports(root, case, plain_root, manuscript_text):
     """All complete reports for a case, keyed by a report id that judges never see."""
     found = {}
-    for path in sorted((root / 'reviews').glob(f'*/{case}/rep*/review.json')):
+    for path in sorted((root / REVIEWS).glob(f'*/{case}/rep*/review.json')):
         points = pipeline_points(path)
         if points is not None:
             found[f'{path.parts[-4]}/{path.parts[-2]}'] = points
+            found[f'{path.parts[-4]}-filtered/{path.parts[-2]}'] = pipeline_points(path, filtered=True)
     plain = plain_root / 'reviews/plain' / case / 'review.json'
     if plain.exists() and not json.loads(plain.read_text()).get('partial'):
         found['plain/rep1'] = [{'claim': i['description'], 'rationale': None, 'remedy': None,
@@ -248,15 +298,16 @@ def reports(root, case, plain_root):
                                for n, i in enumerate(json.loads(plain.read_text())['issues'])]
     prepared = json.loads((CORPUS / case / 'prepared.json').read_text())
     for review in prepared['human_reviews']:
-        found[f"human/{review['id']}"] = human_points(root, Path(review['path']).read_text())
+        found[f"human/{review['id']}"] = human_points(root, Path(review['path']).read_text(), manuscript_text)
     return found
 
 
-def packet(root, case, plain_root):
-    path = root / 'judging' / 'packets' / f'{case}.json'
+def packet(root, case, plain_root, manuscript_text):
+    path = root / JUDGING / 'packets' / f'{case}.json'
     if path.exists():
         return json.loads(path.read_text())
-    rows = [{**point, '_report': report} for report, points in reports(root, case, plain_root).items() for point in points]
+    rows = [{**point, '_report': report} for report, points in reports(root, case, plain_root, manuscript_text).items()
+            for point in points]
     random.Random('points:' + case).shuffle(rows)
     items, origins = [], {}
     for n, row in enumerate(rows, 1):
@@ -337,30 +388,54 @@ def group(root, data):
     return [g.model_dump() for g in call(root, GROUPER, GROUP, evidence, Grouping, check).groups]
 
 
+def rank(root, text, data, groups, model):
+    items = {i['item_id']: i for i in data['items']}
+    issues = [{'issue_id': f'i{n:03d}', 'issue': g['issue'],
+               'points': [{k: items[i][k] for k in ('claim', 'rationale')} for i in g['item_ids']]}
+              for n, g in enumerate(groups, 1)]
+    expected = {i['issue_id'] for i in issues}
+    def check(result):
+        assessed = [a.issue_id for a in result.assessments]
+        established = {a.issue_id for a in result.assessments if a.status == 'established'}
+        if sorted(assessed) != sorted(expected):
+            return 'missing, duplicated or unknown issue_id'
+        if sorted(result.ranking) != sorted(established):
+            return 'ranking must list every established issue exactly once'
+        return None
+    evidence = json.dumps({'manuscript': text, 'issues': issues}, ensure_ascii=False)
+    result = call(root, model, RANK, evidence, IssueRanking, check)
+    return {'assessments': {a.issue_id: a.model_dump() for a in result.assessments}, 'ranking': result.ranking}
+
+
 def assess(root, case, plain_root, launch):
     text = manuscript(case, launch)
-    data = packet(root, case, plain_root)
+    data = packet(root, case, plain_root, text)
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
         labelling = {m: pool.submit(label, root, case, text, data, m) for m in JUDGES}
-        grouping = pool.submit(group, root, data)
+        groups = group(root, data)
+        ranking = {m: pool.submit(rank, root, text, data, groups, m) for m in JUDGES}
         labels = {m: f.result() for m, f in labelling.items()}
         resolving = {m: pool.submit(resolve, root, text, data, labels, m) for m in JUDGES}
         resolutions = {m: f.result() for m, f in resolving.items()}
-        groups = grouping.result()
-    save(root / 'judging' / 'results' / f'{case}.json', {
+        rankings = {m: f.result() for m, f in ranking.items()}
+    save(root / JUDGING / 'results' / f'{case}.json', {
         'case': case, 'judges': JUDGES, 'parser': PARSER, 'grouper': GROUPER, 'origins': data['origins'],
-        'labels': labels, 'resolutions': resolutions, 'groups': groups,
+        'labels': labels, 'resolutions': resolutions, 'groups': groups, 'rankings': rankings,
         'method': 'Blinded point-level LLM labels with disagreement resolution; development diagnostic, not expert correctness',
         'driver_sha256': sha(Path(__file__).read_bytes())})
     print(f'{case}: {len(data["items"])} points, {len(resolutions[JUDGES[0]])} disputed', flush=True)
 
 
 def main():
+    global REVIEWS, JUDGING
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--plain-root', type=Path, help='earlier run holding reviews/plain/<case>/review.json')
     parser.add_argument('--cases', nargs='+')
+    parser.add_argument('--reviews-dir', default=REVIEWS, help='directory under root holding <arm>/<case>/rep*/review.json')
+    parser.add_argument('--judging-dir', default=JUDGING, help='output directory under root')
     args = parser.parse_args()
+    REVIEWS, JUDGING = args.reviews_dir, args.judging_dir
     root = args.root.resolve()
     launch = json.loads((root / 'launch.json').read_text())
     cases = args.cases or launch['cases']
@@ -371,7 +446,7 @@ def main():
         except Exception as exc:
             errors.append({'case': case, 'error': str(exc)})
             print(json.dumps(errors[-1]), flush=True)
-    save(root / 'judging' / 'status.json', {'cases': cases, 'errors': errors})
+    save(root / JUDGING / 'status.json', {'cases': cases, 'errors': errors})
     return 2 if errors else 0
 
 
