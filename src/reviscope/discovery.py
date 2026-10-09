@@ -54,7 +54,9 @@ Keep each issue grounded in an exact quotation, a concrete consequence, and the 
 alternative explanation or defeating context. An omission needs an inferential consequence, not merely
 a missing checklist item. Use kind=defect for an alleged error, specification_conflict for incompatible
 reported specifications, and clarification_request for missing information needed to assess a named
-analysis or conclusion. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
+analysis or conclusion. Give the smallest remedy that resolves the issue and set remedy_necessity:
+essential when the claims as stated cannot stand without it, strengthening when it would improve
+support or clarity without being required, extending when it goes beyond the manuscript's scope. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
 by default. Missing information alone cannot be major or critical without a demonstrated material
 consequence. Set search_incomplete=true if you could not complete the audit of your responsibility.

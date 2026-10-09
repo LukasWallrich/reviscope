@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import re
 from pathlib import Path
 
 from .metacheck import describe
@@ -31,25 +32,26 @@ def _evidence_lines(finding: Finding) -> list[str]:
 def to_markdown(run: ReviewRun) -> str:
     state = "PARTIAL REVIEW" if run.partial else "COMPLETE REVIEW"
     title = "DEMONSTRATION — NOT AN AI REVIEW" if run.metadata.backend == "fixture" else f"Peer review ({state})"
+    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
     editorial_complete = any(stage.name == "editorial" and stage.status in {"completed", "cached"} for stage in run.stages)
     overview_label = "Study overview" if editorial_complete else "Preliminary manuscript account (not reconciled)"
-    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", f"## {overview_label}", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
+    lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", *_summary(kept, unconfirmed_concerns(run)), "", f"## {overview_label}", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
     lines.extend(f"- {strength}" for strength in run.study_map.strengths)
     if not run.study_map.strengths:
         lines.append("No specific strengths summary was available.")
     lines.extend(["", "## Findings", ""])
-    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
     if not kept:
         lines.append("No supported substantive findings were produced.")
-    for finding in kept:
+    for number, finding in enumerate(kept, 1):
         kind = {"defect": "Claimed defect", "specification_conflict": "Conflicting specifications",
                 "clarification_request": "Reporting clarification"}[finding.kind]
         support = "Claim and rationale supported in a separate model check against anchored manuscript evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
-        lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", f"**{kind}.** {support}", "", finding.rationale, ""])
+        lines.extend([f"### {number}. {finding.severity.value.title()}: {finding.claim}", "", f"**{kind}.** {support}", "", finding.rationale, ""])
         if finding.remedy_status in {"overreaching", "unresolved"}:
             lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])
         else:
-            lines.extend([f"**Suggested response:** {finding.remedy}", ""])
+            label = f" ({NECESSITY[finding.remedy_necessity]})" if finding.remedy_necessity else ""
+            lines.extend([f"**Suggested response{label}:** {finding.remedy}", ""])
         lines.extend([*_evidence_lines(finding), ""])
     unconfirmed = unconfirmed_concerns(run)
     if unconfirmed:
@@ -83,6 +85,26 @@ def to_markdown(run: ReviewRun) -> str:
         for finding in set_aside:
             lines.append(f"- `{finding.id}` — epistemic `{finding.status}`, editorial `{finding.editorial_disposition}`: {finding.editorial_reason or finding.verification or 'No reason recorded.'}")
     return "\n".join(lines) + "\n"
+
+
+NECESSITY = {"essential": "essential to support the claims", "strengthening": "would strengthen the paper",
+             "extending": "optional extension beyond the current scope"}
+
+
+def _summary(kept: list[Finding], unconfirmed: list[Finding]) -> list[str]:
+    """Main concerns first, so a reader sees what matters before the full list."""
+    counts = ", ".join(f"{n} {level}" for level in ("critical", "major", "minor")
+                       if (n := sum(f.severity.value == level for f in kept)))
+    lines = ["## Summary of main concerns", "",
+             f"{len(kept)} supported finding(s){f' ({counts})' if counts else ''}; "
+             f"{len(unconfirmed)} concern(s) the verifier could not confirm, listed separately.", ""]
+    main = [(n, f) for n, f in enumerate(kept, 1) if f.severity.value in {"critical", "major"}]
+    if not main:
+        lines.append("No supported finding is rated major or critical.")
+    for number, finding in main:
+        essential = " Remedy essential to support the claims." if finding.remedy_necessity == "essential" else ""
+        lines.append(f"- **{number}. {finding.severity.value.title()}:** {finding.claim}{essential}")
+    return lines
 
 
 def _metacheck(run: ReviewRun) -> list[str]:
@@ -129,9 +151,69 @@ def _tool_use(run: ReviewRun) -> list[str]:
     return lines
 
 
+def _inline(text: str) -> str:
+    text = html.escape(text, quote=False)
+    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
+
+
 def to_html(markdown: str) -> str:
-    body = f"<pre style='white-space:pre-wrap'>{html.escape(markdown)}</pre>"
-    return f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Peer review</title><style>body{{max-width:850px;margin:3rem auto;padding:0 1.2rem;font:17px/1.55 system-ui;color:#202124}}blockquote{{border-left:3px solid #777;padding-left:1rem;color:#444}}code{{background:#eee;padding:.1rem .25rem}}h1,h2,h3{{line-height:1.2}}</style></head><body>{body}</body></html>"
+    """HTML for the subset of Markdown that to_markdown writes: headings, paragraphs, lists,
+    quotations, bold and code. Numbered findings get anchors that the summary links to."""
+    out: list[str] = []
+    paragraph: list[str] = []
+    block: str | None = None
+
+    def flush() -> None:
+        nonlocal block
+        if paragraph:
+            out.append(f"<p>{' '.join(paragraph)}</p>")
+            paragraph.clear()
+        if block:
+            out.append(f"</{block}>")
+            block = None
+
+    def open_block(tag: str) -> None:
+        nonlocal block
+        if block != tag:
+            flush()
+            out.append(f"<{tag}>")
+            block = tag
+
+    for line in markdown.splitlines():
+        heading = re.match(r"(#{1,3}) (.*)", line)
+        if heading:
+            flush()
+            level, text = len(heading.group(1)), heading.group(2)
+            number = re.match(r"(\d+)\. ", text)
+            anchor = f"finding-{number.group(1)}" if level == 3 and number else _slug(text)
+            out.append(f"<h{level} id='{anchor}'>{_inline(text)}</h{level}>")
+        elif line.startswith("- "):
+            open_block("ul")
+            item = _inline(line[2:])
+            item = re.sub(r"^<strong>(\d+)\. ", lambda m: f"<strong><a href='#finding-{m.group(1)}'>{m.group(1)}</a>. ", item)
+            out.append(f"<li>{item}</li>")
+        elif line.startswith("> "):
+            open_block("blockquote")
+            out.append(f"<p>{_inline(line[2:])}</p>")
+        elif not line.strip():
+            flush()
+        else:
+            if block:
+                flush()
+            paragraph.append(_inline(line.rstrip()) + ("<br>" if line.endswith("  ") else ""))
+    flush()
+    style = ("body{max-width:52rem;margin:3rem auto;padding:0 1.2rem;font:17px/1.6 Charter,Georgia,serif;color:#1d1d1b;background:#fbfaf7;overflow-wrap:anywhere}"
+             "h1,h2,h3{font-family:system-ui,sans-serif;line-height:1.25}h2{margin-top:2.6rem;border-top:1px solid #ddd;padding-top:.8rem}"
+             "h3{margin-top:2rem;font-size:1.05rem}blockquote{border-left:3px solid #b9b2a5;margin:.6rem 0;padding:.1rem 1rem;color:#4a4740;font-size:.92rem}"
+             "blockquote p{margin:.35rem 0}code{background:#eee9df;padding:.05rem .25rem;font-size:.85em}li{margin:.3rem 0}"
+             "@media (prefers-color-scheme:dark){body{background:#161614;color:#e8e6e1}blockquote{color:#b9b5ac}code{background:#2a2824}}")
+    return (f"<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
+            f"<title>Peer review</title><style>{style}</style></head><body>{''.join(out)}</body></html>")
 
 
 def render_all(run: ReviewRun, output_dir: Path) -> None:

@@ -108,6 +108,8 @@ class CandidateFinding(BaseModel):
     claim: str
     rationale: str
     remedy: str
+    # COPE: say whether a request is essential to support the claims or would strengthen or extend the work.
+    remedy_necessity: Literal["essential", "strengthening", "extending"] | None = None
     severity: Severity = Severity.major
     kind: Literal["defect", "specification_conflict", "clarification_request"] = "defect"
     evidence: list[Evidence] = Field(default_factory=list)

@@ -125,7 +125,7 @@ def test_verifier_exception_yields_rendered_partial_audit(tmp_path):
     assert next(stage for stage in run.stages if stage.name.startswith("verification-")).status == "failed"
     assert run.metadata.verification_relationship == "not_run"
     assert all(item.editorial_disposition == "needs_review" for item in run.findings)
-    assert "### Major:" not in (tmp_path / "out" / "review.md").read_text()
+    assert not re.search(r"^### (\d+\. )?Major:", (tmp_path / "out" / "review.md").read_text(), re.M)
 
 
 def test_editorial_exception_never_publishes_uncapped_unfiltered_findings(tmp_path):
@@ -135,7 +135,7 @@ def test_editorial_exception_never_publishes_uncapped_unfiltered_findings(tmp_pa
     run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     assert run.partial
     assert all(item.editorial_disposition == "needs_review" for item in run.findings)
-    assert "### Major:" not in (tmp_path / "out" / "review.md").read_text()
+    assert not re.search(r"^### (\d+\. )?Major:", (tmp_path / "out" / "review.md").read_text(), re.M)
 
 
 def test_profile_severity_guidance_reaches_generation(tmp_path):
@@ -175,7 +175,7 @@ def test_every_supported_finding_is_published_in_severity_order(tmp_path):
     order = [item.severity.value for item in published]
     assert order == sorted(order, key=["critical", "major", "minor"].index)
     headings = [line for line in (tmp_path / "out" / "review.md").read_text().splitlines() if line.startswith("### ")]
-    assert [line.split(":")[0] for line in headings[:3]] == ["### Critical"] * 3
+    assert [line.split(":")[0] for line in headings[:3]] == ["### 1. Critical", "### 2. Critical", "### 3. Critical"]
 
 
 def test_editorial_reconciles_overview_while_preserving_preliminary_map(tmp_path):
@@ -232,7 +232,7 @@ def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
     markdown = (tmp_path / "out" / "review.md").read_text()
     findings, rest = markdown.split("## Concerns the verifier could not confirm", 1)
     section, audit = rest.split("## Coverage and audit", 1)
-    assert "### Minor: Claim confirmed" in findings and "Claim open" not in findings
+    assert re.search(r"^### \d+\. Minor: Claim confirmed", findings, re.M) and "Claim open" not in findings
     assert "### Major: Claim open" in section and reasons["open"] in section and "“Evidence B.”" in section
     assert "Claim false" not in section and "Claim ghost" not in section
     assert "`" + by_name["false"].id + "`" in audit and "`" + by_name["ghost"].id + "`" in audit
@@ -242,3 +242,26 @@ def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
     assert "Claim and rationale supported in a separate model check" in markdown
     assert "Claim and rationale supported in a separate model check" not in blinded
     assert "Claimed defect." not in blinded
+
+
+def test_report_leads_with_main_concerns_and_labels_remedy_necessity():
+    from reviscope.render import to_html, to_markdown
+    from reviscope.schemas import Finding, ReviewRun, RunMetadata, SourceDocument, StudyMap
+
+    source = SourceDocument(id="manuscript-x", kind="manuscript", path="p.md", sha256="0", text="Evidence A.")
+    def finding(identifier, severity, necessity):
+        return Finding(id=identifier, module="m", claim=f"Claim {identifier}", rationale="r", remedy="Do it.",
+                       remedy_necessity=necessity, severity=severity, status="llm_supported", editorial_disposition="publish",
+                       evidence=[{"source_id": "manuscript-x", "quote": "Evidence A.", "location": "source characters 0:11"}])
+    run = ReviewRun(metadata=RunMetadata(run_id="r", backend="codex", model="m", profile="p", profile_hash="h", input_hash="i",
+                                         output_dir="o"),
+                    sources=[source], study_map=StudyMap(studies=[], research_question="q", design_summary="d", contribution_summary="c", strengths=[]),
+                    findings=[finding("a", "major", "essential"), finding("b", "minor", "extending")])
+    markdown = to_markdown(run)
+    summary = markdown.split("## Summary of main concerns")[1].split("## Findings")[0]
+    assert "2 supported finding(s) (1 major, 1 minor)" in summary
+    assert "**1. Major:** Claim a Remedy essential" in summary and "Claim b" not in summary
+    assert "**Suggested response (optional extension beyond the current scope):** Do it." in markdown
+    page = to_html(markdown)
+    assert "<pre" not in page and "<h3 id='finding-1'>" in page and "href='#finding-1'" in page
+    assert "<blockquote><p>“Evidence A.”" in page
