@@ -70,7 +70,10 @@ Keep each issue grounded in an exact quotation, a concrete consequence, and the 
 alternative explanation or defeating context. An omission needs an inferential consequence, not merely
 a missing checklist item. Use kind=defect for an alleged error, specification_conflict for incompatible
 reported specifications, and clarification_request for missing information needed to assess a named
-analysis or conclusion. Give the smallest remedy that resolves the issue and set remedy_necessity:
+analysis or conclusion. State each claim at the level of the underlying problem and its consequence for the paper's
+conclusions, not as the edit that would fix it: write that the design cannot separate the claimed
+cause from a named alternative, rather than that a sentence in the discussion is unclear. Give the
+smallest remedy that resolves the issue, which may well be a wording change, and set remedy_necessity:
 essential when the claims as stated cannot stand without it, strengthening when it would improve
 support or clarity without being required, extending when it goes beyond the manuscript's scope. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
