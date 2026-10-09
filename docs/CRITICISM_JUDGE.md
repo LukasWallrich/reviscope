@@ -48,8 +48,12 @@ arm, run, module, display status, severity and the anchoring of its own quotatio
 stored separately and never reach a model.
 
 **Clustering.** One tool-free call groups the pooled variants of all arms and runs,
-shuffled with a fixed seed. Variants belong together only when they raise the same
-underlying defect and the same consequence. The clusterer sees claims, rationales and
+shuffled with a fixed seed. Variants belong together when they find the same quantity,
+passage, construct, design decision, analysis or claim wanting in the same respect, even
+when their stated consequences or remedies differ; those differences are judged per
+variant. (Protocol v1 also required the same consequence, which split equivalent
+criticisms: on one development paper two arms' reports of the same inconsistent
+statistic landed in separate clusters.) The clusterer sees claims, rationales and
 quoted passages, not the manuscript. Every variant must be assigned exactly once: a
 violation gets one retry that names it; a second violation is repaired deterministically
 (singletons for missing ids) and marks the result partial. Pools above
