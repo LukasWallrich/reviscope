@@ -18,7 +18,8 @@ TOPICS = {
                               'uncertainty_and_estimates'],
     'interpretation': ['causal_inference', 'generalizability', 'theory_and_mechanism_claims', 'claim_evidence_consistency'],
     'consistency': ['cross_section_agreement', 'sample_counts_through_stages', 'planned_versus_reported_analyses'],
-    'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations'],
+    'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations',
+                                  'replication_and_original_comparison'],
     'blind_spots': ['unexamined_claims_and_sections', 'omissions_with_consequences', 'unresolved_numerical_questions'],
 }
 DEFAULT_TOPICS = ['module_inferences', 'source_consistency', 'information_limits']
