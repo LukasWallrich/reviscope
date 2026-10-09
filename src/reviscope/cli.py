@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .backend import ClaudeBackend, CodexBackend, FixtureBackend
 from .pipeline import ReviewPipeline
+from .criticism_judge import register as register_criticism_judge
 from .evaluation import register as register_evaluation
 from .normalization import register as register_normalization
 from .ranking import register as register_ranking
@@ -42,6 +43,7 @@ def parser() -> argparse.ArgumentParser:
     register_evaluation(sub)
     register_normalization(sub)
     register_ranking(sub)
+    register_criticism_judge(sub)
     return p
 
 

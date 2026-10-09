@@ -158,6 +158,8 @@ Presentations and judges are repeated measurements of one paper, not additional 
 
 LLM judging, known-error detection, and sampled human auditing answer different questions.
 
+`judge-criticisms` clusters and judges every criticism variant of one paper's review arms, origin-blind, with two tool-enabled judge families; `judge-calibrate` scores the judge on labelled probes. It is a development instrument; see [the criticism judge](docs/CRITICISM_JUDGE.md).
+
 The project is named **ReviScope**: evidence-grounded manuscript review for authors and peer reviewers, across disciplines. [Naming exploration](docs/naming/SHORTLIST.md) lists the candidate names that were considered. The name records a product decision, not trademark or package-name clearance.
 
 ## Development and checks

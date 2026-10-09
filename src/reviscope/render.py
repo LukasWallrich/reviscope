@@ -18,6 +18,11 @@ def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
             and any(ev.source_id in manuscripts and ev.location for ev in f.evidence)]
 
 
+def published_findings(run: ReviewRun) -> list[Finding]:
+    """Findings shown in the report's Findings section."""
+    return [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
+
+
 def _evidence_lines(finding: Finding) -> list[str]:
     lines = []
     for ev in finding.evidence:
@@ -38,7 +43,7 @@ def to_markdown(run: ReviewRun) -> str:
     if not run.study_map.strengths:
         lines.append("No specific strengths summary was available.")
     lines.extend(["", "## Findings", ""])
-    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
+    kept = published_findings(run)
     if not kept:
         lines.append("No supported substantive findings were produced.")
     for finding in kept:
