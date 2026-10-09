@@ -15,7 +15,7 @@ TOPICS = {
     'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
     'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],
     'statistical_inference': ['hypothesis_test_alignment', 'statistical_errors', 'power_and_sensitivity', 'analytic_flexibility',
-                              'uncertainty_and_estimates'],
+                              'robustness_of_central_conclusions', 'uncertainty_and_estimates'],
     'interpretation': ['causal_inference', 'generalizability', 'theory_and_mechanism_claims', 'claim_evidence_consistency'],
     'consistency': ['cross_section_agreement', 'sample_counts_through_stages', 'planned_versus_reported_analyses'],
     'social_psychology_context': ['demand_expectancy_and_social_mechanisms', 'people_and_stimuli', 'manipulation_and_alternative_explanations',
@@ -51,6 +51,14 @@ def discovery_instruction(module: str, base: str) -> str:
     topics = TOPICS.get(module, DEFAULT_TOPICS)
     return base + '''\nAudit the entire supplied manuscript within your assigned responsibility and return every
 distinct, justified issue you find. There is no quota and no limit on the number of findings.
+Review as a critical expert in your remit, not only as an error checker. Besides errors, raise what
+such a reviewer would expect the authors to address: a central conclusion that depends on a modelling
+or design choice when a reasonable alternative gives a materially different answer; a competing
+explanation the evidence does not distinguish; directly relevant prior or newer evidence, including
+counterevidence, that changes how a claim should be read; and a headline claim stated more strongly
+than the evidence allows. A limitation acknowledged in one passage does not settle a claim that the
+abstract, results or conclusions still state without that qualification, or a limitation that
+undermines the main result itself.
 Keep each issue grounded in an exact quotation, a concrete consequence, and the strongest plausible
 alternative explanation or defeating context. An omission needs an inferential consequence, not merely
 a missing checklist item. Use kind=defect for an alleged error, specification_conflict for incompatible
