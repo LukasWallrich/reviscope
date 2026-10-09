@@ -19,6 +19,11 @@ def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
             and any(ev.source_id in manuscripts and ev.location for ev in f.evidence)]
 
 
+def published_findings(run: ReviewRun) -> list[Finding]:
+    """Findings shown in the report's Findings section."""
+    return [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
+
+
 def _evidence_lines(finding: Finding) -> list[str]:
     lines = []
     for ev in finding.evidence:
@@ -32,7 +37,7 @@ def _evidence_lines(finding: Finding) -> list[str]:
 def to_markdown(run: ReviewRun) -> str:
     state = "PARTIAL REVIEW" if run.partial else "COMPLETE REVIEW"
     title = "DEMONSTRATION — NOT AN AI REVIEW" if run.metadata.backend == "fixture" else f"Peer review ({state})"
-    kept = [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
+    kept = published_findings(run)
     editorial_complete = any(stage.name == "editorial" and stage.status in {"completed", "cached"} for stage in run.stages)
     overview_label = "Study overview" if editorial_complete else "Preliminary manuscript account (not reconciled)"
     lines = [f"# {title}", "", f"Run status: **{state}**", "", f"Profile: `{run.metadata.profile}`  ", f"Backend: `{run.metadata.backend}` / `{run.metadata.model or 'default'}` / effort `{run.metadata.effort or 'default'}`  ", f"Verifier: `{run.metadata.verifier_backend}` / `{run.metadata.verifier_model or 'default'}` / effort `{run.metadata.verifier_effort or 'default'}`  ", f"Verification relationship: `{run.metadata.verification_relationship}`", "", *_summary(kept, unconfirmed_concerns(run)), "", f"## {overview_label}", "", run.study_map.design_summary or "No study overview was available.", "", "## Claimed contribution", "", run.study_map.contribution_summary or "No contribution summary was available.", "", "## Strengths", ""]
