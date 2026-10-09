@@ -112,3 +112,28 @@ def test_trace_places_each_missed_error_at_the_stage_that_lost_it():
     assert where_lost(judged("detected", ids=("e",)), findings) == "verification batch failed"
     findings["d"]["verification"] = "claim=unresolved: The verifier refuted at least one cited external source."
     assert where_lost(judged("detected", ids=("d",)), findings) == "unresolved: cited external source refuted by the verifier"
+
+
+def test_general_baseline_reads_supplements_and_asks_for_remedy_necessity(tmp_path):
+    plain = runpy.run_path(str(EVAL / "plain_review.py"))
+
+    class GeneralBackend:
+        name, model, effort, identity, version = "stub", "m", "high", "stub:m:high", None
+
+        def generate(self, instruction, evidence, response_model):
+            assert response_model.__name__ == "GeneralIssues" and "remedy_necessity" in instruction
+            assert "SOURCE_ID: " in evidence and "Appendix detail." in evidence
+            return response_model.model_validate({"issues": [{"category": "measurement", "description": "d",
+                "remedy": "r", "remedy_necessity": "essential", "quote": "Main text.", "location": "Methods",
+                "severity": "minor"}]})
+
+        def take_tool_calls(self):
+            return []
+
+    manuscript, supplement = tmp_path / "paper.md", tmp_path / "appendix.md"
+    manuscript.write_text("Main text. " * 50, encoding="utf-8")
+    supplement.write_text("Appendix detail. " * 50, encoding="utf-8")
+    payload = plain["review"](manuscript, GeneralBackend(), plain["GENERAL_PROMPT"], [supplement])
+    assert not payload["partial"] and payload["issues"][0]["remedy_necessity"] == "essential"
+    assert [source["kind"] for source in payload["sources"]] == ["manuscript", "supplement"]
+    assert payload["prompt"].startswith("General one-call review")
