@@ -151,13 +151,15 @@ def audit_calls(calls: list[dict[str, Any]], paper: dict[str, Any] | None) -> tu
 
 
 def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace) -> dict[str, Any]:
-    review = path / "review.json" if path.is_dir() else path
+    review = path / "review.json" if path.is_dir() and (path / "review.json").is_file() else path / "result.json" if path.is_dir() else path
     run = json.loads(review.read_text(encoding="utf-8"))
     paper = identify(run, papers, args.paper)
     if args.title or args.block:
         paper = {"id": (paper or {}).get("id", "manual"), "titles": [args.title] if args.title else (paper or {}).get("titles", []),
                  "blocks": [*(paper or {}).get("blocks", []), *args.block], "planted_errors": args.planted_errors or bool(paper and paper["planted_errors"])}
     stages = run.get("stages", [])
+    if isinstance(stages, dict):  # criticism-judge result.json: stages grouped by judge family or step
+        stages = [stage for group in stages.values() for stage in group]
     calls = [call for stage in stages for call in stage.get("tool_calls", [])]
     reasons, warnings = audit_calls(calls, paper)
     gaps = provenance_gaps(stages)
@@ -167,7 +169,7 @@ def audit_run(path: Path, papers: list[dict[str, Any]], args: argparse.Namespace
             "warnings": warnings}
 
 
-MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial)$")
+MODEL_STAGES = re.compile(r"^(study_map|review-.+|verification(?:-.+)?|editorial|judge|cluster|cluster-merge|normalize.*)$")
 
 
 def opened_nothing(output: Any) -> bool:
