@@ -106,6 +106,52 @@ or materiality differing by two or more).
 `judge-summary` averages runs within a paper and then papers, so the paper is the unit,
 and lists every paper's row. It reports no significance tests.
 
+## Owner validation packet
+
+The author of a judged manuscript can label its criticisms blind; his labels calibrate the
+judges and give a first human estimate per arm.
+
+```bash
+uv run python eval/owner_packet.py build runs/criticism-judge/p/result.json --out packet.html \
+  [--seed N] [--max-variants 80]
+uv run python eval/owner_packet.py score runs/criticism-judge/p/result.json owner-labels-ID.json \
+  --out runs/criticism-judge/p/owner-report.json
+```
+
+`build` writes one self-contained HTML file: no network requests, autosave in the browser's
+local storage, export and import of labels as JSON. Issues (clusters) and the criticisms within
+them appear in seeded random order as "Issue 7, criticism B", with claim, reasoning, remedy,
+quoted passages and cited outside sources. The packet contains no origin (arm, run, module,
+status, severity, verification), no judge output and no cluster label; the build refuses to
+write a file in which any of these strings occurs outside the criticism text itself and the
+fixed template. Style still differs between formats (plain issues have no separate reasoning,
+pipeline findings may cite outside sources), so blinding is to labels, not to style. The packet
+embeds the SHA-256 of `result.json`, the variant ids and, when sampled, each cluster's inclusion
+probability. With `--max-variants`, a larger pool is sampled by whole clusters: strata are the
+sets of arms present in a cluster, each stratum keeps at least one cluster, and one sampling
+fraction is chosen so that the expected number of criticisms stays within the target (cluster
+sizes vary, so the realized number can exceed it).
+
+Per criticism the owner records correctness (correct; partly correct, a substantive part is
+wrong; incorrect; cannot tell), materiality if true (0 cosmetic to 3 undermines a primary claim,
+the judge's scale), the requested action (essential, would strengthen, extension beyond scope,
+wrong or harmful, none given), whether he would act on it (yes, no, already addressed) and an
+optional note; per multi-criticism issue, whether the criticisms raise the same issue.
+
+`score` checks that the labels belong to this `result.json` and to a rebuild of the same packet,
+then maps the owner's correctness onto the judge's scale. Strict (the complete-criticism rule):
+correct is supported, partly correct and incorrect are contradicted, cannot tell is unresolved.
+Lenient counts partly correct as supported. Per judge family and the combined view it reports a
+judge-by-owner confusion matrix, raw agreement and Cohen's kappa (strict and lenient), agreement
+and linear-weighted kappa on materiality, and every disagreement with its text and the owner's
+note. Per arm and run it reports the owner-labelled supported rate (strict and lenient),
+contradicted, partly correct and cannot-tell counts, supported material criticisms (materiality
+≥ 2), would-act and already-addressed counts and wrong-or-harmful remedies. Sampled packets are
+weighted by inverse inclusion probability, so counts estimate pool totals; only fully labelled
+criticisms count. The cluster check gives the share of multi-criticism clusters the owner would
+split. One rater on his own manuscript is a first estimate with an interested rater, not a
+validated accuracy; agreement is computed on the packet's criticisms without weights.
+
 ## Limits
 
 An LLM judge is a measurement under development. The judges may share blind spots with
