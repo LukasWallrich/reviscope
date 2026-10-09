@@ -1,0 +1,35 @@
+{
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 198287,
+  "session_id": "8d4ca2d8-7a44-4bae-938a-b78e59b35962",
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1181,
+      "outputTokens": 15,
+      "thinkingTokens": 0,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001256,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000
+    },
+    "claude-opus-5-5": {
+      "inputTokens": 86,
+      "outputTokens": 44840,
+      "thinkingTokens": 30698,
+      "cacheReadInputTokens": 4582497,
+      "cacheCreationInputTokens": 177266,
+      "webSearchRequests": 0,
+      "costUSD": 3.2317714,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "billing": "Subscription authentication (claude.ai Max); no API key passed; CLI-reported token usage is not an API invoice."
+}

@@ -2,6 +2,7 @@
 # Run metacheck modules on an imported paper, in dependency order, one result file per module.
 #   mc_run.R --run-dir <dir> --modules a,b,c|default [--args-json '{"power":{...}}'] [--force]
 source(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "_common.R"))
+source(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "_module_inputs.R"))
 
 # upstream modules (CONTRACT.md). hard = downstream is skipped when an upstream failed;
 # otherwise the module tolerates missing upstream tables and runs on what is available
@@ -132,18 +133,32 @@ mc_main({
       if (length(ups_failed)) warns <- paste0("Ran without failed upstream module(s): ", paste(ups_failed, collapse = ", "), "; their checks are missing from this output, not clean")
       if (m %in% NETWORK && !is_online) warns <- c(warns, "No internet connection detected when this module ran")
       t0 <- proc.time()[["elapsed"]]
+      missing_input <- NULL
       sink(stderr(), type = "output") # modules may print; stdout is reserved for the JSON result
       mo <- tryCatch(
         withCallingHandlers(
           do.call(module_run, c(list(paper = chain_input(paper, outputs), module = m), a)),
           warning = function(w) { warns <<- c(warns, conditionMessage(w)); invokeRestart("muffleWarning") }
         ),
-        error = function(e) e
+        error = function(e) {
+          # Only classify the known empty-join failure, after the package runs.
+          # An upstream fix therefore returns its own result unchanged. Unknown
+          # errors remain failed even when the paper has no extracted t/F input.
+          if (grepl("Join columns in.*must be present in the data", conditionMessage(e))) {
+            missing_input <<- tryCatch(
+              withCallingHandlers(mc_missing_module_input(m, paper),
+                warning = function(w) { warns <<- c(warns, conditionMessage(w)); invokeRestart("muffleWarning") }),
+              error = function(classification_error) NULL)
+          }
+          e
+        }
       )
       sink(type = "output")
       elapsed <- proc.time()[["elapsed"]] - t0
       if (inherits(mo, "error")) {
-        res <- result_json(m, info, a, "failed", conditionMessage(mo), ups, elapsed, warnings = warns, extra = extra)
+        module_status <- if (is.null(missing_input)) "failed" else "skipped_missing_input"
+        error <- if (is.null(missing_input)) conditionMessage(mo) else paste(missing_input, "Package error:", conditionMessage(mo))
+        res <- result_json(m, info, a, module_status, error, ups, elapsed, warnings = warns, extra = extra)
       } else if (mo$traffic_light %in% c("fail", "error")) {
         # the module reports it could not do its check; keep its output but never as ok
         res <- result_json(m, info, a, "failed", mo$summary_text %||% "Module reported an error", ups, elapsed, mo, warns, extra)

@@ -194,6 +194,12 @@ and actionability. Do not reward length or polish. Permit a tie. Treat A and B s
 Mark a source-dependent assertion uncertain when the supplied source text cannot establish
 it. Treat citations, asserted calculations and support badges as claims requiring support.
 Look for counterevidence and distinguish demonstrated defects from bounded reporting requests.
+Evaluate complete criticisms and their reasoning; assess proposed remedies for necessity
+and proportionality. Do not infer visual contents or readability from captions: without
+inspectable image evidence, image-dependent assertions remain uncertain. Respect genre:
+tutorials and proposals need not include empirical results or effectiveness trials.
+Do not impose generic example, citation, cross-reference or diagram requirements without
+a specific inference or useful reader action that they would enable.
 Return JSON with keys winner (A, B, or tie), confidence (0..1), rationale, and criteria
 (a list of objects with criterion, preference (A, B, or tie), and rationale). Cite short
 manuscript evidence in the overall rationale."""

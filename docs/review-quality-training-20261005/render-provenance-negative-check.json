@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "in_memory_change": "comparison_bytes",
+      "rejected": true,
+      "expected_guard": "Comparison changed since final provenance audit"
+    },
+    {
+      "in_memory_change": "native_raw_digest",
+      "rejected": true,
+      "expected_guard": "Native assessment changed since final provenance audit"
+    }
+  ],
+  "no_model_calls": true,
+  "existing_campaign_artifacts_unchanged": true,
+  "render_script_sha256": "505e4517c9f2845356b666ecc4128acbf00caee8723a1bf588c90e3c96bb55ca",
+  "test_script_sha256": "431823e304c35c503b4928db167cb7b20b333fb7f22ca4bab37f20d3f3ed7798",
+  "limits": "Engineering provenance guards only; not evidence of scientific quality."
+}

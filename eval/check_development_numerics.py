@@ -86,7 +86,7 @@ def check(corpus):
     checks.append({"id": "ziano-negative-correlations", "case": "ziano", "location": "Reasons paragraph and Table 5, Not a Reason rows",
                    "reported": {"description": "half were negative", "coefficients": coefficients},
                    "calculated": {"negative": sum(r < 0 for r in coefficients), "total": len(coefficients)},
-                   "conclusion": "Four of sixteen correlations are negative. Half applies only to the Hong Kong subset, not the complete set described."})
+                   "conclusion": "Four of sixteen correlations are negative: one quarter of the complete set described."})
     assert "MTurk zoo .26 .73 t(313) = 6.31 < .001 0.36 0.24 0.47 Signal; consistent" in ziano
     checks.append({"id": "ziano-replication-label", "case": "ziano", "location": "Table 4, MTurk zoo",
                    "reported": {"original_d": .70, "replication_ci": [.24, .47], "label": "Signal; consistent"},
@@ -94,8 +94,27 @@ def check(corpus):
                    "criterion": "Signal requires the replication CI to exclude zero; consistency requires it to include the original effect point estimate.",
                    "calculated": {"signal": not (.24 <= 0 <= .47), "consistent": .24 <= .70 <= .47},
                    "conclusion": "The reported CI implies signal with an inconsistent, smaller estimate under the manuscript's named LeBel criterion. This classification does not itself establish a failed substantive replication."})
+    validate_conclusions(checks)
     return {"scope": "Selected post-review development checks; conditional on reported inputs, not raw-data validation",
             "sources": sources, "scipy_version": scipy.__version__, "checks": checks}
+
+
+
+def validate_conclusions(checks):
+    """Fail rather than emit a canned inconsistency claim the computation does not support."""
+    for row in checks:
+        c, r = row["calculated"], row["reported"]
+        rules = {
+            "bonetto-thermometer": lambda: abs(c["absolute_t"] - abs(r["t"])) > .05 and abs(c["absolute_d"] - abs(r["d"])) > .02,
+            "bonetto-blame-p": lambda: abs(c["two_sided_p"] - r["p"]) > .01,
+            "bonetto-pooled-demographics": lambda: abs(c["unweighted_mean_age"] - r["pooled_mean_age"]) < .01 and abs(c["unweighted_male_percent"] - r["pooled_male_percent"]) < .01 and abs(c["weighted_mean_age"] - r["pooled_mean_age"]) > .1 and abs(c["weighted_male_percent"] - r["pooled_male_percent"]) > .1,
+            "ziano-correlation-stars": lambda: c["minimum_one_sided_p_with_rounding"] > r["stars_threshold"],
+            "ziano-comparison-p": lambda: c["rounding_p_interval"][0] > r["p"] + .0005 or c["rounding_p_interval"][1] < r["p"] - .0005,
+            "ziano-negative-correlations": lambda: c["negative"] == 4 and c["total"] == 16,
+            "ziano-replication-label": lambda: c["signal"] and not c["consistent"],
+        }
+        if row["id"] not in rules or not rules[row["id"]]():
+            raise ValueError(f"Computation does not support the recorded conclusion: {row['id']}")
 
 
 def main():

@@ -9,7 +9,7 @@ PAPERS = AUDIT["load_papers"]([Path(__file__).parent / "fixtures/audit_papers.js
 def run_file(tmp_path, calls, sha="aaa"):
     path = tmp_path / "review.json"
     stage = {"name": "review-contribution", "status": "completed", "tool_calls": calls}
-    path.write_text(json.dumps({"sources": [{"sha256": sha}], "stages": [stage]}))
+    path.write_text(json.dumps({"sources": [{"sha256": sha, "kind": "manuscript"}], "stages": [stage]}))
     return path
 
 
@@ -100,3 +100,85 @@ def test_criticism_judge_results_are_audited_through_their_grouped_stages(tmp_pa
     verdict = audit["audit_run"](tmp_path, [], args)
     assert verdict["tool_calls"] == 1 and verdict["run"].endswith("result.json")
     assert verdict["verdict"] == "flagged" and "search for reviews of this paper" in verdict["reasons"][0]
+
+
+def test_curated_training_papers_are_identified_and_all_review_routes_flagged(tmp_path):
+    papers = AUDIT["load_papers"](AUDIT["DEFAULT_MANIFESTS"])
+    manifest = json.loads((Path(__file__).parents[1] / "eval/corpus/open_peer_review_curated.v1.json").read_text())
+    assert manifest["dataset_role"] == "training_development"
+    for entry in manifest["entries"]:
+        args = type("Args", (), {"paper": None, "title": None, "block": [], "planted_errors": False})()
+        urls = [entry["editorial_archive"], *entry["other_version_urls"],
+                *(r["url"] for r in entry["human_reviews"])]
+        for url in urls:
+            path = run_file(tmp_path, [call(0, "fetch", url=url)], sha=entry["manuscript_text_sha256"])
+            result = AUDIT["audit_run"](path, papers, args)
+            assert result["paper"] == entry["id"] and result["verdict"] == "flagged"
+        listed = run_file(tmp_path, [call(0, "search", query="ordinary literature query", result_urls=urls)],
+                          sha=entry["manuscript_text_sha256"])
+        result = AUDIT["audit_run"](listed, papers, args)
+        assert result["verdict"] == "clean" and len(result["warnings"]) == len(set(urls))
+        assert result["review_sha256"] and result["audit_rules_sha256"]
+
+
+def test_comparison_rejects_unidentified_stale_or_unclean_audits(tmp_path, monkeypatch):
+    import hashlib
+    import pytest
+    monkeypatch.syspath_prepend(str(Path(__file__).parents[1] / "eval"))
+    compare = runpy.run_path(str(Path(__file__).parents[1] / "eval/compare_development_reviews.py"))
+    review = run_file(tmp_path, [])
+    data = json.loads(review.read_text())
+    data["metadata"] = {"profile": "education"}
+    review.write_text(json.dumps(data))
+    row = {"paper": "paper-id", "run": str(review), "verdict": "clean",
+           "review_sha256": hashlib.sha256(review.read_bytes()).hexdigest(),
+           "audit_rules_sha256": compare["audit_rules_hash"](compare["load_papers"](compare["DEFAULT_MANIFESTS"]))}
+    target = tmp_path / "tool-audit.json"
+    target.write_text(json.dumps([row]))
+    assert compare["checked_audit"](review, "paper-id", "aaa", "education")["verdict"] == "clean"
+    for patch in ({"paper": None}, {"paper": "other-paper"}, {"review_sha256": "old"},
+                  {"run": str(tmp_path / "other.json")}, {"audit_rules_sha256": "old"},
+                  {"verdict": "flagged"}, {"verdict": "incomplete"}):
+        target.write_text(json.dumps([{**row, **patch}]))
+        with pytest.raises(ValueError):
+            compare["checked_audit"](review, "paper-id", "aaa", "education")
+
+    target.write_text(json.dumps([row]))
+    with pytest.raises(ValueError, match="input differs"):
+        compare["checked_audit"](review, "paper-id", "other-input", "education")
+
+
+def test_osf_aliases_and_lnu_mirrors_do_not_escape_curated_identity(tmp_path):
+    papers = AUDIT["load_papers"](AUDIT["DEFAULT_MANIFESTS"])
+    entry = next(p for p in papers if p["id"] == "metapsych-bonetto-2764-round1")
+    args = type("Args", (), {"paper": None, "title": None, "block": [], "planted_errors": False})()
+    for url in ("https://osf.io/unjf5/", "https://osf.io/unjf5/download", "https://osf.io/download/unjf5",
+                "https://files.osf.io/v1/resources/vxqj5/providers/osfstorage/placeholder",
+                "https://files.osf.io/v1/resources/other/providers/osfstorage/" + next(g for g in entry["osf_guids"] if len(g) == 24),
+                "https://conferences.lnu.se/index.php/metapsychology/article/download/2764/3250",
+                "https://mfr.osf.io/render?url=https%3A%2F%2Fosf.io%2Funjf5%2Fdownload"):
+        path = run_file(tmp_path, [call(0, "fetch", url=url)], sha=next(iter(entry["sha256"])))
+        assert AUDIT["audit_run"](path, papers, args)["verdict"] == "flagged"
+    # A different OSF study and a hostname merely containing 'osf.io' remain legitimate sources.
+    for url in ("https://osf.io/abcde/", "https://not-osf.io/unjf5/"):
+        path = run_file(tmp_path, [call(0, "fetch", url=url)], sha=next(iter(entry["sha256"])))
+        assert AUDIT["audit_run"](path, papers, args)["verdict"] == "clean"
+
+
+def test_audit_rule_identity_includes_manual_overrides_and_review_domains(monkeypatch):
+    baseline = AUDIT["audit_rules_hash"](PAPERS)
+    assert baseline != AUDIT["audit_rules_hash"](PAPERS, {"title": "Different title"})
+    globals_ = AUDIT["audit_rules_hash"].__globals__
+    monkeypatch.setitem(globals_, "REVIEW_DOMAINS", (*globals_["REVIEW_DOMAINS"], "additional-review.org"))
+    assert baseline != AUDIT["audit_rules_hash"](PAPERS)
+
+
+def test_comparison_requires_the_curated_profile(tmp_path, monkeypatch):
+    import pytest
+    monkeypatch.syspath_prepend(str(Path(__file__).parents[1] / "eval"))
+    compare = runpy.run_path(str(Path(__file__).parents[1] / "eval/compare_development_reviews.py"))
+    review = run_file(tmp_path, [])
+    data = json.loads(review.read_text());data["metadata"] = {"profile": "social_psychology"}
+    review.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="curated case profile"):
+        compare["checked_audit"](review, "paper-id", "aaa", "education")

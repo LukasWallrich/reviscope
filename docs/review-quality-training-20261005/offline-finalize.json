@@ -1,0 +1,35 @@
+{
+  "reused_prior_offline_work": "First-five --offline rewrap, completed-corpus v1 rederivation and candidate-only impact scan already done; final provenance audit rechecks 11 valid native outputs, the explicitly excluded partial, and 12 historical records rather than repeating calculations.",
+  "reporting_script_sha256": {
+    "provenance_audit.py": "4e9fdc748f33b7396d8f0fecacb4e9041c5a095f6f177f8ffbd85cb4c6482613",
+    "offline_finalize.py": "73273d599bb19f3a7c9c8f7912dc738d0373eba219bfe0746d28464e74ba6e00",
+    "summarize.py": "505e4517c9f2845356b666ecc4128acbf00caee8723a1bf588c90e3c96bb55ca"
+  },
+  "method": {
+    "code": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/assessment-rewrap/code/7eaf8e3ad824fef3",
+    "code_sha256": "7eaf8e3ad824fef3fc016d9f0cdbb3f96dcae34c84114fc0bfc026a2a192d295",
+    "commit": "48edf35c61c4482222f0439d5cd32440e452dad9",
+    "scope": "Final guard/quote-failure/provenance metadata. Use --offline; raw-call key and judge inputs remain unchanged. No new sampling."
+  },
+  "results": [
+    {
+      "command": [
+        "/home/lukas/Documents/Coding/coarse-socpsy/.venv/bin/python",
+        "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/rewrap_niemeyer_opus.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/home/lukas/Documents/Coding/coarse-socpsy/.venv/bin/python",
+        "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/provenance_audit.py"
+      ],
+      "returncode": 0
+    }
+  ],
+  "raw_call_artifacts_unchanged": true,
+  "raw_artifact_count": 13,
+  "no_model_calls": true,
+  "status": "complete",
+  "render_returncode": 0
+}

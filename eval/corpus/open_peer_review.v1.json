@@ -15,7 +15,10 @@
       "version_evidence": "The journal's public OSF peer-review archive node v2kw5 stores 2720-Manuscript in PDF-7201-1-4-20201214.pdf in the submission/cover-letter folder and 2720-Review-van Zwet.pdf in the peer-reviews folder; later files are explicitly named manuscript revision 2 and zcurve2revised.",
       "manuscript_sha256": "0f7d081d3d7d572a4b9669ddd4b00a53e923e9476b5a132db2befbfd96de7392",
       "review_sha256": "2f36403c718aad528c4fdfd18296a5ab22c8aeaee11e6caa0e36992ed50d86bc",
-      "verified_note": "Round-1 pair usable for method-review comparison. Hashes were calculated from OSF downloads on 2026-09-07."
+      "verified_note": "Round-1 pair usable for method-review comparison. Hashes were calculated from OSF downloads on 2026-09-07.",
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "metapsych-brunner-schimmack-2020-round1-williams",
@@ -29,7 +32,10 @@
       "version_evidence": "Meta-Psychology's public OSF node peumw separates files into 1. Submission and 2. Review Round 1. The URLs identify 874-Manuscript in PDF-2177-1-2-20180425.pdf and Donald Williams' round-1 review respectively. The review quotes phrases present in that submitted manuscript, including 'two populations of power'.",
       "manuscript_sha256": "9f48edb62117e69594b378bbc018a635e65815ad831984fa9237225afd1843a8",
       "review_sha256": "fa9c159b13dac5f86dd83d3ed0731d062c4e97fee4a42c75abd348f6720bd369",
-      "verified_note": "The review is DOCX and the manuscript is PDF. Hashes were calculated from OSF downloads on 2026-09-07. This methods-heavy pair is a technical smoke case, not representative validation of empirical psychology reviewing."
+      "verified_note": "The review is DOCX and the manuscript is PDF. Hashes were calculated from OSF downloads on 2026-09-07. This methods-heavy pair is a technical smoke case, not representative validation of empirical psychology reviewing.",
+      "dataset_role": "training_development",
+      "dataset_role_assigned_on": "2026-10-05",
+      "independent_validation_eligible": false
     },
     {
       "id": "commspsych-kewenig-2025",

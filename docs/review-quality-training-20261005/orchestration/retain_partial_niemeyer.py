@@ -1,0 +1,13 @@
+"""Retain a group-incomplete response outside the primary protocol; never invent groups."""
+from pathlib import Path
+import json,hashlib,sys
+r=Path(__file__).resolve().parent;m=json.loads((r/'assessment-method-v2.json').read_text());code=Path(m['offline_rewrap']['code']);sys.path[:0]=[str(code/'src'),str(code/'eval')]
+import assess_criticisms as ac
+raw_path=r/'criticism-assessments-v2/gpt-6.1-sol/niemeyer.invalid.json';raw=json.loads(raw_path.read_text());ac.QualityAssessment.model_validate(raw)
+op=json.loads((r/'criticism-assessments-v2/claude-opus-5-5/niemeyer.json').read_text());packet=json.loads(Path(op['packet_snapshot']).read_text());expected=set(op['origins']);ids=[x['item_id'] for x in raw['assessments']];members=[i for g in raw['groups'] for i in g['member_ids']]
+assert len(ids)==len(expected) and set(ids)==expected
+assert set(members)<=expected and len(members)==len(set(members))
+missing=sorted(expected-set(members));assert missing
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+record={'case':'niemeyer','model':'gpt-6.1-sol','condition':'posthoc partial diagnostic; excluded from primary complete-grouping protocol','raw_response_artifact':str(raw_path),'raw_response_sha256':sha(raw_path),'packet_snapshot':op['packet_snapshot'],'packet_sha256':op['packet_sha256'],'source_hashes':op['source_hashes'],'origins':op['origins'],'input_association':'Reconstructed from logged unchanged frozen call and retained source/packet, not a cache-key record captured with the rejected response','call_log':str(r/'assessment-v2-niemeyer-additional-recovery.log'),'call_log_sha256':sha(r/'assessment-v2-niemeyer-additional-recovery.log'),'raw_record_sha256':sha(r/'assessment-v2-niemeyer-additional-recovery.json'),'ungrouped_ids':missing,'complete_assessment_inventory':True,'group_inventory_complete':False,'assessments':[ac.checked_labels(x,packet['manuscript']) for x in raw['assessments']],'groups':raw['groups'],'missed_material_questions':raw['missed_material_questions'],'overall_qualified_assessment':raw['overall_qualified_assessment'],'matcher_module':str(code/'src/reviscope/verification.py'),'method_sha256':ac.method_hash(),'script_sha256':sha(Path(__file__)),'limits':'No groups invented and no raw scientific labels changed. Partial model opinions; not primary protocol results, correctness or independent validation. Quote checks affect claim labels only.'}
+out=r/'partial-criticism-assessments-v2/gpt-6.1-sol/niemeyer.json';out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(record,indent=2)+'\n');print('Partial diagnostic retained:',len(ids),'complete assessments;',missing,'ungrouped')

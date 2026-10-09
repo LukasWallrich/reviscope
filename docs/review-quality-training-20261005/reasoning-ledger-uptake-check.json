@@ -1,0 +1,84 @@
+{
+  "selection": "All six completed audit-stage artifacts; descriptive schema uptake, not quality scoring or a quota",
+  "rows": [
+    {
+      "case": "bonetto",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/bonetto/stages/review-evidence_audit-d9acf9282887881f6289ea6cb77fe7d404254d7756f8cdf95929023a41ddb2db.json",
+      "operations": 21,
+      "reasoning_traces": 10,
+      "literature_relations": 8,
+      "status_counts": {
+        "checked": 14,
+        "unresolved": 7,
+        "not_applicable": 0
+      },
+      "artifact_sha256": "0e396c9ccb7d5105af7fb79d17a56108804199b7013c8a1fc284eae113a968b1"
+    },
+    {
+      "case": "satrevik",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/satrevik/stages/review-evidence_audit-630b02c9c79045c54a66a95952909da2e1b2555c100c6bb9cf14b0a91d42c1aa.json",
+      "operations": 28,
+      "reasoning_traces": 13,
+      "literature_relations": 10,
+      "status_counts": {
+        "checked": 21,
+        "unresolved": 7,
+        "not_applicable": 0
+      },
+      "artifact_sha256": "bb9c7a1f1a71fd65c415106a8911184ea61b1b282e9b70916d6caf61f63493ee"
+    },
+    {
+      "case": "ziano",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/ziano/stages/review-evidence_audit-1a54871f10437e0909e5d54e9117426806baa39ae202bfe69b416f34a4a4b437.json",
+      "operations": 28,
+      "reasoning_traces": 13,
+      "literature_relations": 11,
+      "status_counts": {
+        "checked": 22,
+        "unresolved": 6,
+        "not_applicable": 0
+      },
+      "artifact_sha256": "558c066588e371e63b98815fd013795c0ba6c1eb387ee0ab357536ebcfa6cec0"
+    },
+    {
+      "case": "heyman",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/heyman/stages/review-evidence_audit-ffd73efd674680b0f9655d6b76f571a915a369585e4a2435a55d736f8a310ebb.json",
+      "operations": 28,
+      "reasoning_traces": 9,
+      "literature_relations": 15,
+      "status_counts": {
+        "checked": 20,
+        "unresolved": 7,
+        "not_applicable": 1
+      },
+      "artifact_sha256": "30b689c5440ed0905b8cf3bdf424ee931c742ad9aaebd2f7fdf28f715b2add4a"
+    },
+    {
+      "case": "mackinnon",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/mackinnon/stages/review-evidence_audit-ee801efe1a4323e22d767d9332641d15c361142ee38660934d050fc0920f9144.json",
+      "operations": 22,
+      "reasoning_traces": 9,
+      "literature_relations": 10,
+      "status_counts": {
+        "checked": 17,
+        "unresolved": 4,
+        "not_applicable": 1
+      },
+      "artifact_sha256": "f2bf25f941c4da1a4b571929e9c499a7fda222fad3a7074c71e20e7c9e821c45"
+    },
+    {
+      "case": "niemeyer",
+      "artifact": "/home/lukas/Documents/Coding/reviscope-reasoning-assessment/runs/reasoning-quality-20261005/reviews/working/niemeyer/stages/review-evidence_audit-7c0eabeec83cc6706f3d67806c8296f66763d3c7a44dc94a712c4a933161e2e1.json",
+      "operations": 25,
+      "reasoning_traces": 11,
+      "literature_relations": 9,
+      "status_counts": {
+        "checked": 20,
+        "unresolved": 5,
+        "not_applicable": 0
+      },
+      "artifact_sha256": "ab80538d199820057148ba3ad589d0c7416e13f83680385b48e734c1e9dd93ee"
+    }
+  ],
+  "limits": "Operation counts and checked status do not establish reasoning validity, independence, completeness or added review value."
+}

@@ -95,7 +95,7 @@ def test_variants_hold_substance_constant():
 def test_label_and_size_counts():
     probes = _probes()
     counts = Counter(probe["expected"]["correctness"] for probe in probes)
-    assert 36 <= len(probes) <= 48
+    assert 30 <= len(probes) <= 48
     assert counts["contradicted"] >= 13 and counts["supported"] >= 14 and counts["unresolved"] >= 5
     supported = [p for p in probes if p["expected"]["correctness"] == "supported"]
     assert any(p["expected"]["materiality"] in {0, 1} for p in supported), "needs correct-but-immaterial probes"

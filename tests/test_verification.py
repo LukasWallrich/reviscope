@@ -51,6 +51,29 @@ def test_numeric_boundary_logic_does_not_reject_ordinary_prose():
     assert verify_quote("values were positive", [source("The values were positive.").model_dump()], "main").status == "supported"
 
 
+@pytest.mark.parametrize("quote,text", [
+    ("p = .88", "p = .88. Effect sizes follow."),
+    ("Studies 2 and 3", "Studies 2 and 3. The other studies differ."),
+    ("$0 and $1000", "The range was $0 and $1000, with equal steps."),
+    ("value was 1,000", "The value was 1,000. Another value follows."),
+])
+def test_exact_numeric_quote_can_end_before_sentence_or_list_punctuation(quote, text):
+    result = verify_quote(quote, [source(text).model_dump()], "main")
+    assert result.status == "supported"
+    assert text[result.source_char_start:result.source_char_end] == quote
+
+
+@pytest.mark.parametrize("quote,text", [
+    ("p = .8", "p = .88."),
+    ("value was 1", "The value was 1,000."),
+    ("value was 1.", "The value was 1.25."),
+    ("88", "p = .88."),
+    ("1000", "The value was -1000."),
+])
+def test_numeric_quote_still_cannot_truncate_decimal_grouping_or_sign(quote, text):
+    assert verify_quote(quote, [source(text).model_dump()], "main").status == "unanchored"
+
+
 def test_findings_are_retained_and_unresolved_without_claim_verifier():
     finding = Finding(id="f1", module="design", claim="Concern", rationale="Why", remedy="Clarify",
                       evidence=[Evidence(source_id="main", quote="estimate was −0.25")])

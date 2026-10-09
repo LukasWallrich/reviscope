@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
 from .render import render_all
+from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
 from .schemas import Evidence, ExternalCheck, ExternalSourceTask, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageProvenance, StageRecord, StudyMap
@@ -112,7 +113,7 @@ absence everywhere. Do not demand proof of incorrect implementation to assess a 
 reporting claim, or support a broader implementation allegation from an omission. An
 inaccessible source essential to the claim leaves it unresolved. Missing information
 without a specific assessment consequence is not automatically a supported criticism.
-"""
+""" + "When assessing a criticism about a manuscript inference, apply the following criteria to the criticized connection and the criticism itself. These are assessment criteria, not requests to add output fields.\n" + REASONING_ASSESSMENT
 
 
 class ReviewPipeline:

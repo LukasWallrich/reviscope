@@ -137,3 +137,64 @@ def test_general_baseline_reads_supplements_and_asks_for_remedy_necessity(tmp_pa
     assert not payload["partial"] and payload["issues"][0]["remedy_necessity"] == "essential"
     assert [source["kind"] for source in payload["sources"]] == ["manuscript", "supplement"]
     assert payload["prompt"].startswith("General one-call review")
+
+
+def test_planted_error_scores_refuse_mixed_judging_conditions():
+    require_uniform = runpy.run_path(str(EVAL / "score_known_errors.py"))["require_uniform_judging"]
+    row = {"judge": "identity-with-effort", "annotations_sha256": "labels", "adjudicator_sha256": "code"}
+    require_uniform([row, row])
+    for key in row:
+        with pytest.raises(ValueError, match="Mixed judge"):
+            require_uniform([row, {**row, key: "different"}])
+
+
+def test_uncredited_published_candidate_is_not_reported_as_retrieved():
+    where_lost = runpy.run_path(str(EVAL / "trace_known_errors.py"))["where_lost"]
+    judgment = {"candidate": {"verdict": "detected", "matched_finding_ids": ["a"]},
+                "published": {"verdict": "not_detected"}}
+    finding = {"verifier_status": "supported", "status": "llm_supported", "editorial_disposition": "publish"}
+    assert where_lost(judgment, {"a": finding}) == "published candidate; published match not established"
+
+
+def test_adjudication_reuse_requires_current_code_labels_and_judge_settings(tmp_path):
+    from reviscope.backend import ClaudeBackend
+    driver = runpy.run_path(str(EVAL / "run_known_errors.py"))
+    review = tmp_path / "review.json"
+    review.write_text('{"partial": false}')
+    truth = tmp_path / "ground_truth" / "error_insertions.csv"
+    truth.parent.mkdir()
+    truth.write_text("labels")
+    args = type("Args", (), {"root": tmp_path, "code": EVAL.parent, "judge_model": "claude-opus-5-5",
+                             "judge_effort": "high", "timeout": 3600})()
+    data = {"review": {"sha256": driver["sha256"](review)},
+            "ground_truth": {"sha256": driver["sha256"](truth)},
+            "adjudicator_script": {"sha256": driver["sha256"](EVAL / "adjudicate_known_errors.py")},
+            "judge": {"identity": ClaudeBackend(args.judge_model, args.timeout, args.judge_effort, tools=False).identity,
+                      "tools": False}}
+    assert driver["adjudication_matches"](data, review, args)
+    for section in ("review", "ground_truth", "adjudicator_script", "judge"):
+        modified = json.loads(json.dumps(data))
+        modified[section]["identity" if section == "judge" else "sha256"] = "old"
+        assert not driver["adjudication_matches"](modified, review, args)
+    args.judge_effort = "low"
+    assert not driver["adjudication_matches"](data, review, args)
+
+
+def test_numerical_conclusions_require_computations_to_support_them():
+    pytest.importorskip("scipy")
+    validate = runpy.run_path(str(EVAL / "check_development_numerics.py"))["validate_conclusions"]
+    data = json.loads((EVAL.parent / "docs/pipeline-development-analysis/numerical-checks.json").read_text())
+    validate(data["checks"])
+    for row in data["checks"]:
+        modified = json.loads(json.dumps(row))
+        c = modified["calculated"]
+        changes = {"bonetto-thermometer": {"absolute_t": .81, "absolute_d": .10},
+                   "bonetto-blame-p": {"two_sided_p": .96},
+                   "bonetto-pooled-demographics": {"weighted_mean_age": 23.83},
+                   "ziano-correlation-stars": {"minimum_one_sided_p_with_rounding": .0001},
+                   "ziano-comparison-p": {"rounding_p_interval": [.0395, .0405]},
+                   "ziano-negative-correlations": {"negative": 8},
+                   "ziano-replication-label": {"consistent": True}}
+        c.update(changes[row["id"]])
+        with pytest.raises(ValueError, match="does not support"):
+            validate([modified])

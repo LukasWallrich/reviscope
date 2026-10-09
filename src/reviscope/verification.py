@@ -61,16 +61,21 @@ def _normalize_with_offsets(text: str) -> tuple[str, list[int]]:
 def _numeric_boundaries_ok(text: str, start: int, needle: str) -> bool:
     """Reject a substring match that cuts through a larger numeric token."""
     end = start + len(needle)
-    def numeric_part(char: str) -> bool:
-        return char.isnumeric() or char in ".,+-eE×^%‰"
+    def numeric_part(position: int) -> bool:
+        char = text[position]
+        # A trailing sentence stop or list comma does not extend a number.
+        # Decimal/grouping punctuation does when another digit follows it.
+        if char in ".,":
+            return position + 1 < len(text) and text[position + 1].isnumeric()
+        return char.isnumeric() or char in "+-eE×^%‰"
 
     if needle and start:
         left = (text[start - 1], needle[0])
-        if all(numeric_part(char) for char in left) and any(char.isnumeric() for char in left):
+        if numeric_part(start - 1) and numeric_part(start) and any(char.isnumeric() for char in left):
             return False
     if needle and end < len(text):
         right = (needle[-1], text[end])
-        if all(numeric_part(char) for char in right) and any(char.isnumeric() for char in right):
+        if numeric_part(end - 1) and numeric_part(end) and any(char.isnumeric() for char in right):
             return False
     return True
 

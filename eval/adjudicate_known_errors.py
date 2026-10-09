@@ -114,7 +114,7 @@ def main() -> int:
     parser.add_argument("review", type=Path, help="Completed review.json produced without access to annotations")
     parser.add_argument("--annotations", required=True, type=Path, help="Dawes error_insertions CSV")
     parser.add_argument("--allow-partial", action="store_true", help="Score an incomplete run for development diagnosis only; preserve its partial status")
-    parser.add_argument("--paper", default="8", help="Paper identifier in the annotations CSV (default: 8)")
+    parser.add_argument("--paper", required=True, help="Paper identifier in the annotations CSV")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--model", choices=["claude-opus-5-5"], default="claude-opus-5-5")
     parser.add_argument("--effort", default="high")

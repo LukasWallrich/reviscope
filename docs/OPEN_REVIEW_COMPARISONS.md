@@ -1,5 +1,11 @@
 # Open-review comparisons for pipeline development
 
+All Meta-Psychology cases are training/development data as designated on 5 October
+2026, including cases not previously reviewed by the pipeline. They support iterative
+quality assessment and repair, not independent validation. An independent corpus will
+be selected later. This designation does not permit human reports or revised manuscripts
+to enter generation inputs.
+
 ## Selected submitted manuscripts and reports
 
 The [curated manifest](../eval/corpus/open_peer_review_curated.v1.json) contains
@@ -84,8 +90,8 @@ versions and text hashes. `fonttools` supports the embedded CFF font encodings
 used by some PDFs. Files are under
 `eval/corpus/cache/open-review-curation-20261002/<cache_key>/`:
 
-* `manuscript/original.pdf` or `original.docx`: the generation input;
-* `manuscript/original.txt`: extracted source for text inspection;
+* `manuscript/original.pdf` or `original.docx`: the hash-pinned submitted archive file;
+* `manuscript/original.txt`: pinned extraction used for matched generation and comparison;
 * `human-reviews/`: downloaded reports, including combined source files;
 * `comparators/<review_id>.txt`: individual, anonymized judge references;
 * `prepared.json`: exact local inputs and hashes.
