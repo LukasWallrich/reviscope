@@ -34,7 +34,7 @@ from .schemas import ReviewRun, SourceDocument, StageProvenance, StageRecord
 from .verification import verify_quote
 
 PROTOCOL = "criticism-judge-v1"
-CLUSTER_PROTOCOL = "criticism-cluster-v2"
+CLUSTER_PROTOCOL = "criticism-cluster-v3"
 NORMALIZE_STAGE = "normalize-human-review-v1"
 DEFAULT_JUDGES = ("codex:gpt-6.1-sol:high", "claude:claude-opus-5-5:high")
 DEFAULT_CLUSTERER = "codex:gpt-6.1-sol:high"
@@ -294,7 +294,9 @@ passage, construct, design decision, analysis or claim, found wanting in the sam
 even when they describe its consequence differently, propose different remedies, or one is broader or more severe
 than another (for example, one says a test statistic is inconsistent with the reported means and another that the
 nonsignificant result drawn from it is wrong). Keep criticisms apart when they allege different problems, even about
-the same passage or study (for example, one doubts a measure's validity and another its scoring). Consequences and
+the same passage or study (for example, one doubts a measure's validity and another its scoring). Problems with
+different reported quantities or different measures are different problems, even in the same table or study; do not
+form a cluster for a category such as "statistical inconsistencies in Study 1". Consequences and
 remedies are assessed separately for each criticism, so do not split a cluster because of them.
 Do not judge whether a criticism is correct, important or well argued, and ignore length, tone and confidence.
 Assign every criticism id to exactly one cluster; a criticism with no counterpart forms its own cluster. Give
