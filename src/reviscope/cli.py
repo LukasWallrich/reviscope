@@ -23,6 +23,8 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--supplement", action="append", default=[])
     review.add_argument("--preregistration", action="append", default=[])
     review.add_argument("--profile", default="social_psychology", help="bundled profile id or profile directory (default: social_psychology)")
+    review.add_argument("--parallel", type=int, default=4,
+                        help="model stages run concurrently: independent modules, then verification batches (default 4)")
     review.add_argument("--backend", choices=["codex", "claude", "fixture"], default="codex")
     review.add_argument("--model", choices=["gpt-6-luna", "gpt-6.1-sol", "claude-opus-5-5"])
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
@@ -71,7 +73,7 @@ def _review_command(args: argparse.Namespace) -> int:
             if not args.quiet:
                 print(message, file=sys.stderr, flush=True)
         run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress,
-                             run_metacheck=not args.no_metacheck).run(
+                             run_metacheck=not args.no_metacheck, parallel=args.parallel).run(
             args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
     except (FileNotFoundError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

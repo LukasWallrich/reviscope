@@ -190,3 +190,40 @@ def test_source_followup_receives_and_reassesses_the_full_explanation(tmp_path):
     assert run.findings[0].editorial_disposition != "publish"
     assert [task.lookup_recorded for task in run.source_tasks] == [False, True]
     assert run.source_tasks[-1].check == "refuted"
+
+
+def test_concurrent_stages_keep_their_own_tool_calls_and_match_a_sequential_run(tmp_path):
+    import threading
+    import time
+
+    class ConcurrentBackend(EvidenceBackend):
+        active = peak = 0
+        lock = threading.Lock()
+
+        def generate(self, instruction, evidence, response_model):
+            if response_model.__name__ == "DiscoveryResponse":
+                with self.lock:
+                    type(self).active += 1
+                    type(self).peak = max(type(self).peak, type(self).active)
+                time.sleep(0.05)
+                topic = requested_checks(instruction)[0]
+                self._record([ToolCall(backend="codex", sequence=0, kind="exec", name="shell",
+                                       command=f"echo {topic}", output=topic, timestamp=datetime.now(timezone.utc))])
+                with self.lock:
+                    type(self).active -= 1
+            return super().generate(instruction, evidence, response_model)
+
+        def _record(self, calls):
+            self._tool_calls.extend(calls)
+
+    source = manuscript(tmp_path)
+    concurrent = ReviewPipeline(ConcurrentBackend(count=2), run_metacheck=False, parallel=4).run(source, output_dir=tmp_path / "a")
+    assert ConcurrentBackend.peak > 1
+    for stage in concurrent.stages:
+        if stage.name.startswith("review-") and stage.name != "review-blind_spots":
+            module = stage.name.removeprefix("review-")
+            assert [c.output for c in stage.tool_calls] == [TOPICS[module][0]], stage.name
+            assert stage.status == "completed"
+    sequential = ReviewPipeline(ConcurrentBackend(count=2), run_metacheck=False, parallel=1).run(source, output_dir=tmp_path / "b")
+    assert [f.id for f in concurrent.candidates] == [f.id for f in sequential.candidates]
+    assert [s.name for s in concurrent.stages] == [s.name for s in sequential.stages]

@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -153,10 +154,22 @@ class Backend(ABC):
         """Version of the program behind the backend; provenance, not part of the identity."""
         return None
 
+    @property
+    def _tool_calls(self) -> list[ToolCall]:
+        """Tool calls recorded by the current thread, so concurrent stages keep separate provenance."""
+        local = self.__dict__.setdefault("_thread_calls", threading.local())
+        if not hasattr(local, "calls"):
+            local.calls = []
+        return local.calls
+
+    @_tool_calls.setter
+    def _tool_calls(self, calls: list[ToolCall]) -> None:
+        self.__dict__.setdefault("_thread_calls", threading.local()).calls = calls
+
     def take_tool_calls(self) -> list[ToolCall]:
-        """Return and clear the tool calls recorded since the last call."""
-        calls = getattr(self, "_tool_calls", [])
-        self._tool_calls: list[ToolCall] = []
+        """Return and clear the tool calls this thread recorded since its last call."""
+        calls = self._tool_calls
+        self._tool_calls = []
         return calls
 
 

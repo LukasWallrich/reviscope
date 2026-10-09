@@ -103,7 +103,7 @@ def test_verification_batches_retain_successes_and_retry_only_failed_batch(tmp_p
     source, out = paper(tmp_path), tmp_path / "out"
     run = pipeline.run(source, output_dir=out)
     assert run.partial
-    assert [len(rows) for rows in calls] == [10, 10, 3]
+    assert sorted(len(rows) for rows in calls) == [3, 10, 10]  # batches may run concurrently
     assert len({identifier for rows in calls for identifier in rows}) == 23
     assert sum(f.status == "llm_supported" for f in run.findings) == 13
     assert sum(f.status == "unverified" for f in run.findings) == 10

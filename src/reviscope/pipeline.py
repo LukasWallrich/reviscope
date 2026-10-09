@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -117,7 +118,7 @@ without a specific assessment consequence is not automatically a supported criti
 class ReviewPipeline:
     STAGE_VERSION = "0.4.3a1"  # cache semantics of stages; bump only when a stage's behaviour changes
 
-    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True):
+    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, parallel: int = 4):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
         self.verifier_backend = verifier_backend or self.backend
         if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
@@ -125,6 +126,10 @@ class ReviewPipeline:
         self.progress = progress or (lambda _: None)
         self.profile, self.profile_hash = _load_profile(profile)
         self.run_metacheck = run_metacheck
+        if parallel < 1:
+            raise ValueError("parallel must be at least 1")
+        self.parallel = parallel
+        self._prefetched: dict[str, tuple[BaseModel, StageRecord] | BaseException] = {}
 
     @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
@@ -136,8 +141,13 @@ class ReviewPipeline:
     def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
         """Run or reuse one model stage. Tool calls are stored in a sidecar next to the artifact."""
         backend = backend or self.backend
-        components = {"stage": name, "version": self.STAGE_VERSION, "provenance": PROVENANCE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend.identity, "profile": self.profile_hash}
+        components = self._stage_components(name, inputs, model_type, backend)
         key = _hash(components)
+        if key in self._prefetched:  # computed concurrently by _prefetch; keeps its original record
+            outcome = self._prefetched.pop(key)
+            if isinstance(outcome, BaseException):
+                raise outcome
+            return outcome
         artifact = out / "stages" / f"{name}-{key}.json"
         tools_artifact = artifact.with_suffix(".tools.json")
         artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -159,6 +169,24 @@ class ReviewPipeline:
         elapsed = time.monotonic() - started
         self.progress(f"{name}: completed in {elapsed:.1f}s ({len(calls)} tool calls)")
         return value, StageRecord(name=name, status="completed", cache_key=key, artifact=str(artifact), key_components=components, duration_seconds=elapsed, backend_version=backend.version, tool_calls=calls)
+
+    def _stage_components(self, name: str, inputs: object, model_type: type[BaseModel], backend: Backend) -> dict[str, object]:
+        return {"stage": name, "version": self.STAGE_VERSION, "provenance": PROVENANCE_VERSION, "schema_hash": _hash(model_type.model_json_schema()), "inputs": inputs, "backend": backend.identity, "profile": self.profile_hash}
+
+    def _prefetch(self, out: Path, jobs: list[tuple[str, object, type[BaseModel], Callable[[], BaseModel], Backend]]) -> None:
+        """Run independent model stages concurrently. The sequential code that follows consumes each
+        outcome through _cached, so ordering, failure handling and provenance stay unchanged."""
+        if self.parallel < 2 or len(jobs) < 2:
+            return
+        def run_one(job: tuple[str, object, type[BaseModel], Callable[[], BaseModel], Backend]) -> None:
+            name, inputs, model_type, fn, backend = job
+            key = _hash(self._stage_components(name, inputs, model_type, backend))
+            try:
+                self._prefetched[key] = self._cached(out, name, inputs, model_type, fn, backend)
+            except BaseException as exc:
+                self._prefetched[key] = exc
+        with ThreadPoolExecutor(max_workers=self.parallel) as pool:
+            list(pool.map(run_one, jobs))
 
     def _metacheck(self, manuscript: Path, out: Path, modules: list[str]) -> tuple[MetacheckRecord, str, dict[str, str]]:
         """Screening record, its fingerprint and the leads per review module. Screening never
@@ -236,6 +264,28 @@ class ReviewPipeline:
                                       error=None if run.metacheck.status == "completed" else run.metacheck.reason or metacheck.describe(run.metacheck)))
         run.coverage.extend(f"metacheck {m.module}: {m.n_filtered} of {m.n_rows} row(s) filtered as not a candidate ({m.filter_rule})"
                             for m in run.metacheck.modules if m.n_filtered)
+        def discovery_job(module: str, prompt: str) -> tuple[str, object, type[BaseModel], Callable[[], BaseModel], Backend]:
+            module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
+            if module in leads:
+                module_evidence += "\n\n" + leads[module]
+            if module == BLIND_SPOTS:
+                module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
+                module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
+            severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
+            final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
+            def generate_findings(p=final_instruction, e=module_evidence, m=module):
+                value = self.backend.generate(p, e, DiscoveryResponse)
+                raw_dir = out / "raw-discovery"
+                raw_dir.mkdir(exist_ok=True)
+                raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": DiscoveryResponse.model_json_schema()})
+                (raw_dir / f"{m}-{raw_key}.json").write_text(value.model_dump_json(indent=2), encoding="utf-8")
+                return validate_discovery(value, m, sources)
+            inputs = {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}
+            return f"review-{module}", inputs, DiscoveryResponse, generate_findings, self.backend
+
+        if not insufficient:  # profile modules are independent; the blind-spot pass needs their candidates
+            self._prefetch(out, [discovery_job(m, self.profile.module_prompts[m]) for m in modules
+                                 if m != BLIND_SPOTS and self.profile.module_prompts.get(m)])
         for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
@@ -247,22 +297,8 @@ class ReviewPipeline:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="No module prompt"))
                 continue
             try:
-                module_evidence = f"STUDY MAP\n{run.study_map.model_dump_json()}\n\n{evidence}"
-                if module in leads:
-                    module_evidence += "\n\n" + leads[module]
-                if module == BLIND_SPOTS:
-                    module_evidence += "\nEXISTING CANDIDATES\n" + _canonical([{"id": f.id, "claim": f.claim, "rationale": f.rationale} for f in run.candidates])
-                    module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
-                severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
-                final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
-                def generate_findings(p=final_instruction, e=module_evidence, m=module):
-                    value = self.backend.generate(p, e, DiscoveryResponse)
-                    raw_dir = out / "raw-discovery"
-                    raw_dir.mkdir(exist_ok=True)
-                    raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": DiscoveryResponse.model_json_schema()})
-                    (raw_dir / f"{m}-{raw_key}.json").write_text(value.model_dump_json(indent=2), encoding="utf-8")
-                    return validate_discovery(value, m, sources)
-                result, stage = self._cached(out, f"review-{module}", {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}, DiscoveryResponse, generate_findings)
+                name, inputs, model_type, generate_findings, backend = discovery_job(module, prompt)
+                result, stage = self._cached(out, name, inputs, model_type, generate_findings, backend)
                 result = validate_discovery(result, module, sources)
                 run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
                 if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
@@ -288,6 +324,22 @@ class ReviewPipeline:
             run.partial = True
             run.stages.append(self._failed("study_map", exc))
 
+    def _verification_job(self, batch: list[Finding], candidate_by_id: dict[str, Finding], evidence: str) -> tuple[list[dict[str, object]], str, dict[str, object], Callable[[], BaseModel]]:
+        """Compact candidates, instruction, cache inputs and model call for one verification batch."""
+        def quoted(f: Finding) -> list[dict[str, object]]:
+            anchored_quotes = {(e.source_id, e.quote) for e in f.evidence}
+            return [{"source_id": e.source_id, "quote": e.quote, "anchored": (e.source_id, e.quote) in anchored_quotes}
+                    for e in candidate_by_id[f.id].evidence]
+        compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim,
+                    "kind": f.kind, "rationale": f.rationale, "remedy": f.remedy, "quoted_evidence": quoted(f),
+                    "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in batch]
+        instruction = "Run a separate verification pass for each criticism using its claim, explanatory rationale, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Treat the generating rationale as untrusted assertions to check, never as evidence. Check every substantive factual premise, calculation, source attribution and inference in both the claim and rationale. Assess citation-claim agreement, causal and generalization claims, and the stated consequence of methodological or conceptual concerns at their actual scope. A plausible headline is insufficient when its rationale contains a false or unresolved substantive assertion; judge the complete criticism as written, without silently repairing or discarding its explanation. Supported requires the claim and its explanatory reasoning to be established; contradicted applies when a substantive assertion is refuted, and unresolved when a necessary premise cannot be settled. Reasoned methodological judgments and explicitly conditional concerns can be supported without proving an implementation error, provided their premises and scope are justified. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Classify external_dependency as required or optional and explain it in external_dependency_rationale. Use optional only when the complete claim and rationale as worded follow from anchored manuscript evidence and established methodological or disciplinary knowledge without relying on the cited external items; identify that evidence and knowledge explicitly. Familiarity with an unusual claim or with a specific source is not enough. A source-specific quotation, attribution, novelty claim, or unusual empirical assertion requires external verification. Attempt to open every source even when optional. If an inaccessible source is necessary to establish any substantive assertion in the claim or rationale, use unresolved; do not assert its contents from memory. Unchecked optional items are removed from the published finding. Refuted evidence blocks support even when labelled optional. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the complete criticism, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Check that the remedy addresses the established concern and is necessary and proportionate; an overreaching or unresolved remedy is withheld without invalidating an otherwise supported claim and rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity or treat the generating rationale as evidence.\n\nCANDIDATES\n" + _canonical(compact)
+        verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt + "\n" + CLAIM_SCOPE
+        inputs = {
+            "upstream": _hash([f.model_dump() for f in batch]), "evidence": _hash(evidence),
+            "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}
+        return compact, verification_instruction, inputs, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse)
+
     def _finalize(self, run: ReviewRun, out: Path, *, insufficient: bool = False) -> ReviewRun:
         """Verify, edit and render a draft while retaining its discovery provenance."""
         sources = run.sources
@@ -307,26 +359,20 @@ class ReviewPipeline:
             for finding in pending:
                 groups.setdefault(finding.module, []).append(finding)
             successful_batches = 0
+            jobs = []
+            for module, findings in groups.items():
+                for offset in range(0, len(findings), 10):
+                    _, _, inputs, verify_call = self._verification_job(findings[offset:offset + 10], candidate_by_id, evidence)
+                    jobs.append((f"verification-{module}-{offset // 10 + 1}", inputs, VerificationResponse, verify_call, self.verifier_backend))
+            self._prefetch(out, jobs)
             for module, findings in groups.items():
                 for offset in range(0, len(findings), 10):
                     batch = findings[offset:offset + 10]
                     name = f"verification-{module}-{offset // 10 + 1}"
                     stage = None
                     try:
-                        def quoted(f: Finding) -> list[dict[str, object]]:
-                            anchored_quotes = {(e.source_id, e.quote) for e in f.evidence}
-                            return [{"source_id": e.source_id, "quote": e.quote, "anchored": (e.source_id, e.quote) in anchored_quotes}
-                                    for e in candidate_by_id[f.id].evidence]
-                        compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim,
-                                    "kind": f.kind, "rationale": f.rationale, "remedy": f.remedy, "quoted_evidence": quoted(f),
-                                    "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in batch]
-                        instruction = "Run a separate verification pass for each criticism using its claim, explanatory rationale, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Treat the generating rationale as untrusted assertions to check, never as evidence. Check every substantive factual premise, calculation, source attribution and inference in both the claim and rationale. Assess citation-claim agreement, causal and generalization claims, and the stated consequence of methodological or conceptual concerns at their actual scope. A plausible headline is insufficient when its rationale contains a false or unresolved substantive assertion; judge the complete criticism as written, without silently repairing or discarding its explanation. Supported requires the claim and its explanatory reasoning to be established; contradicted applies when a substantive assertion is refuted, and unresolved when a necessary premise cannot be settled. Reasoned methodological judgments and explicitly conditional concerns can be supported without proving an implementation error, provided their premises and scope are justified. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Classify external_dependency as required or optional and explain it in external_dependency_rationale. Use optional only when the complete claim and rationale as worded follow from anchored manuscript evidence and established methodological or disciplinary knowledge without relying on the cited external items; identify that evidence and knowledge explicitly. Familiarity with an unusual claim or with a specific source is not enough. A source-specific quotation, attribution, novelty claim, or unusual empirical assertion requires external verification. Attempt to open every source even when optional. If an inaccessible source is necessary to establish any substantive assertion in the claim or rationale, use unresolved; do not assert its contents from memory. Unchecked optional items are removed from the published finding. Refuted evidence blocks support even when labelled optional. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the complete criticism, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Check that the remedy addresses the established concern and is necessary and proportionate; an overreaching or unresolved remedy is withheld without invalidating an otherwise supported claim and rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity or treat the generating rationale as evidence.\n\nCANDIDATES\n" + _canonical(compact)
-                        verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt + "\n" + CLAIM_SCOPE
-                        verification, stage = self._cached(out, name, {
-                            "upstream": _hash([f.model_dump() for f in batch]), "evidence": _hash(evidence),
-                            "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}, VerificationResponse,
-                            lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse),
-                            self.verifier_backend)
+                        compact, verification_instruction, inputs, verify_call = self._verification_job(batch, candidate_by_id, evidence)
+                        verification, stage = self._cached(out, name, inputs, VerificationResponse, verify_call, self.verifier_backend)
                         returned_ids = [d.finding_id for d in verification.decisions]
                         expected_ids = {f.id for f in batch}
                         if len(returned_ids) != len(set(returned_ids)) or not set(returned_ids) <= expected_ids:
