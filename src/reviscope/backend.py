@@ -414,7 +414,9 @@ class SubprocessBackend(Backend):
         if returncode is None:
             raise TimeoutError(f"{self.name} timed out after {self.timeout} s ({len(calls)} tool calls recorded)")
         if returncode:
-            detail = stderr[-1000:].strip() or f"no stderr (stdout contained {len(stdout)} characters)"
+            # Usage limits and refusals arrive on stdout for some CLIs; keep the end so the reason is visible.
+            detail = stderr[-1000:].strip() or (f"no stderr; stdout ({len(stdout)} characters) ends: "
+                                                + " ".join(stdout[-600:].split()))
             raise RuntimeError(f"{self.name} failed ({returncode}): {detail}")
         return output
 
