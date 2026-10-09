@@ -37,6 +37,10 @@ particularly useful because it distinguishes submitted files, reports, responses
 and revisions. Open reviews attached to a published article are insufficient by
 themselves: the source under review must also be identifiable.
 
+All six cases are development data. [Corpus splits](CORPUS_SPLITS.md) assigns
+these and the newer cases to development, judge-calibration, fenced-validation
+and excluded splits.
+
 ## Version correspondence
 
 The manifest records archive locations, raw-file SHA-256 values and explicit
