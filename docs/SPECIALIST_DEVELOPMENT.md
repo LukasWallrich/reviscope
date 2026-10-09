@@ -83,11 +83,20 @@ claim-framing change (iter2) targets that. Opus rates almost no criticism on thi
 material, so the combined materiality count is uninformative here; the owner's labels will
 show which judge's materiality to trust.
 
-**Bonetto (six experiments; one run each).** The baseline specialist and plain arms are
-close: 26 and 25 criticisms, all but one supported, with 15 and 17 material under Sol and
-9 and 13 under Opus. They overlap little: of about 49 issue clusters, Sol counts 11
-material issues unique to the specialist arm and 14 unique to plain. Whether that reflects
-complementary coverage or run-to-run variation needs the second runs of each arm.
+**Bonetto (six experiments; one specialist run, two plain runs).** The baseline specialist
+and plain arms are close: 26 and 25 criticisms, all but one supported, with 14 and 17
+material under Sol. Overlap of material issues, after fixing a clustering rule that split
+equivalent criticisms (judge branch `judge-clustering`, protocol v3):
+
+| Pair (Sol) | Jaccard |
+| --- | ---: |
+| plain run 1 vs plain run 2 | 0.62 |
+| specialist vs plain run 1 | 0.41 |
+| specialist vs plain run 2 | 0.63 |
+
+The specialist arm overlaps with plain about as much as plain overlaps with itself; under
+the earlier clustering rule it had appeared largely complementary (0.11–0.29), which was
+an artifact. Issue-level counts from protocol v1 should not be used.
 
 ## Decisions for the owner
 
