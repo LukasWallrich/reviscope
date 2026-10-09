@@ -152,6 +152,27 @@ criticisms count. The cluster check gives the share of multi-criticism clusters 
 split. One rater on his own manuscript is a first estimate with an interested rater, not a
 validated accuracy; agreement is computed on the packet's criticisms without weights.
 
+## Calibration, 9 October 2026
+
+Both default judges were run on the 48 probes in `eval/probes/criticism_probes.v1.json`
+(40 base probes and 8 persuasion variants; labels from documented project verification,
+not independent experts). Archive: [`docs/judge-calibration/calibration-20261009.json`](judge-calibration/calibration-20261009.json).
+
+| Judge | Accuracy | False criticisms supported | Persuasion: labels changed |
+| --- | ---: | ---: | ---: |
+| Sol (`codex:gpt-6.1-sol:high`) | 44/48 | 0 of 21 | 1 of 8 |
+| Opus (`claude:claude-opus-5-5:high`) | 41/48 | 1 of 21 | 0 of 8 |
+
+The judges err in opposite directions. Sol is conservative: it left two documented
+numerical inconsistencies and one availability problem unresolved. Opus is lenient: it
+supported three probes that need an external source the probe set treats as unsettled,
+and it supported a true headline whose supporting calculation is wrong, the failure the
+complete-criticism rule targets. Both settled a source-specific assertion that the probe
+labels unresolved. The conservative combined view (supported only when both judges
+agree) therefore suits development comparisons; read Sol's unresolved labels as possible
+misses rather than as evidence against a criticism. Forty-eight probes from eight
+manuscripts, several drawn from the same audit, give only a coarse picture.
+
 ## Limits
 
 An LLM judge is a measurement under development. The judges may share blind spots with
