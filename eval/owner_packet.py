@@ -302,7 +302,7 @@ CSS = """
 --serif:"Iowan Old Style","Charter","Source Serif 4","Georgia",serif;--ui:system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#191a1c;--fg:#e6e3dc;--muted:#a19d94;--card:#222326;--line:#36373b;--accent:#8db4dc;--accent-soft:#2a3441;--done:#7fbf8e;--quote:#2a2b2e}}
 *{box-sizing:border-box}html{scroll-padding-top:6rem}
-body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.6 var(--serif)}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.6 var(--serif);overflow-wrap:anywhere}
 .bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);font-family:var(--ui);font-size:14px}
 .bar-in{max-width:52rem;margin:0 auto;padding:.6rem 1.2rem;display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center}
 .bar h1{font-size:15px;margin:0;font-weight:600;flex:1 1 auto}
