@@ -45,7 +45,8 @@ def test_schema():
             assert not path.is_absolute() and ".." not in path.parts
             assert source["path"].startswith("eval/probes/sources/"), "sources must be materialized copies"
         criticism, expected = probe["criticism"], probe["expected"]
-        assert set(criticism) == CRITICISM_KEYS and set(expected) == EXPECTED_KEYS
+        assert set(criticism) == CRITICISM_KEYS and EXPECTED_KEYS <= set(expected) <= EXPECTED_KEYS | {"also_acceptable"}
+        assert set(expected.get("also_acceptable", [])) <= CORRECTNESS - {expected["correctness"]}
         assert criticism["claim"].strip() and criticism["rationale"].strip()
         assert criticism["remedy"] is None or criticism["remedy"].strip()
         assert criticism["quotes"] and all(isinstance(q, str) and q.strip() for q in criticism["quotes"])

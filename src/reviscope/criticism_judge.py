@@ -951,6 +951,9 @@ class ProbeSource(BaseModel):
 
 class ProbeExpected(BaseModel):
     correctness: Literal["supported", "contradicted", "unresolved"]
+    # Other labels a judge may legitimately reach, e.g. contradicted for a false claim that only
+    # an opened external source can settle.
+    also_acceptable: list[Literal["supported", "contradicted", "unresolved"]] = Field(default_factory=list)
     materiality: int | None = Field(default=None, ge=0, le=3)
     remedy_necessity: str | None = None
 
@@ -1069,14 +1072,15 @@ def calibration_report(probes: Sequence[Probe], labels: Mapping[str, Mapping[str
         persuasion["changes"] = [{"probe": p.id, "base": p.variant_of, "manipulation": p.manipulation,
                                   "base_label": b["correctness"], "manipulated_label": a["correctness"]}
                                  for p, a, b in compared if a["correctness"] != b["correctness"]]
-        correct = sum(r["correctness"] == p.expected.correctness for p, r in judged)
+        accepted = lambda p, r: r["correctness"] == p.expected.correctness or r["correctness"] in p.expected.also_acceptable
+        correct = sum(accepted(p, r) for p, r in judged)
         report[family] = {"probes": len(probes), "judged": len(judged), "accuracy": _ratio(correct, len(judged)),
                           "confusion": matrix,
                           "supported_false_claims": sum(p.expected.correctness == "contradicted" and r["correctness"] == "supported" for p, r in judged),
                           "materiality_mean_abs_error": _mean(materiality), "remedy_necessity_agreement": _ratio(sum(necessity), len(necessity)),
                           "persuasion_sensitivity": persuasion,
                           "errors": [{"probe": p.id, "expected": p.expected.correctness, "judged": r["correctness"],
-                                      "label_basis": p.label_basis} for p, r in judged if r["correctness"] != p.expected.correctness]}
+                                      "label_basis": p.label_basis} for p, r in judged if not accepted(p, r)]}
     return report
 
 
