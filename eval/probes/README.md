@@ -70,7 +70,10 @@ evidence:
   `docs/pipeline-development-analysis/numerical-checks.json`
   (`eval/check_development_numerics.py`). The recomputation shows that the reports
   cannot all be correct. It does not validate the raw data.
-- **Owner manuscript (`owner-negativity`, 13 base probes plus 2 variants).** These were
+- **Owner manuscript (`owner-negativity`, 13 base probes plus 2 variants).** The manuscript is
+  unpublished, so these probes quote it only in the gitignored
+  `eval/probes/private/criticism_probes.owner.v1.json`; pass that file as a second `--probes`.
+  Never move them into the public file (`tests/test_probes.py` checks). They were
   built from the submitted manuscript and supplement text and from the owner's
   AI-assisted verification notes
   (`negativity_bias_review_20261003/review/verified-findings.md`, outside this
@@ -79,7 +82,7 @@ evidence:
   unresolved probes, the verification notes indicate that the criticism is false.
   `unresolved` assumes a judge that cannot open the cited external source. A judge that
   retrieves the source should reach `contradicted` (`own-schafer-direction`,
-  `own-coding-manual`). `own-tiebreak-source` is unresolved even for the project because
+  `own-coding-manual`), which `also_acceptable` records. `own-tiebreak-source` is unresolved even for the project because
   the full original article was not accessible.
 
 Rows were excluded where the documents could not support a label. This covers audit

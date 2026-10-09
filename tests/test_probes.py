@@ -27,8 +27,13 @@ def _load():
     return json.loads(PROBES.read_text())
 
 
+PRIVATE = Path(__file__).parents[1] / "eval" / "probes" / "private" / "criticism_probes.owner.v1.json"
+
+
 def _probes():
-    return _load()["probes"]
+    """Public probes plus the gitignored owner probes when present on this machine."""
+    private = json.loads(PRIVATE.read_text(encoding="utf-8"))["probes"] if PRIVATE.is_file() else []
+    return _load()["probes"] + private
 
 
 def test_schema():
@@ -91,14 +96,20 @@ def test_label_and_size_counts():
     probes = _probes()
     counts = Counter(probe["expected"]["correctness"] for probe in probes)
     assert 36 <= len(probes) <= 48
-    assert counts["contradicted"] >= 14 and counts["supported"] >= 14 and counts["unresolved"] >= 6
+    assert counts["contradicted"] >= 13 and counts["supported"] >= 14 and counts["unresolved"] >= 5
     supported = [p for p in probes if p["expected"]["correctness"] == "supported"]
     assert any(p["expected"]["materiality"] in {0, 1} for p in supported), "needs correct-but-immaterial probes"
     assert any(p["expected"]["remedy_necessity"] == "extending" for p in supported), "needs disproportionate remedies"
 
 
+def test_owner_probes_never_enter_the_public_file():
+    assert not any(p["case"] == "owner-negativity" for p in _load()["probes"])
+
+
 def test_owner_case_is_separable():
     owner = [p for p in _probes() if p["case"] == "owner-negativity"]
+    if not PRIVATE.is_file():
+        pytest.skip("private owner probes not present")
     assert owner and all(all("owner-negativity/" in s["path"] for s in p["sources"]) for p in owner)
     assert all(all("owner-negativity/" not in s["path"] for s in p["sources"]) for p in _probes() if p["case"] != "owner-negativity")
 

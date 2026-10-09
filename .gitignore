@@ -13,3 +13,6 @@ runs/
 eval/corpus/cache/
 eval/corpus/cache/
 eval/probes/sources/
+
+# Probes quoting unpublished manuscripts; never commit
+eval/probes/private/

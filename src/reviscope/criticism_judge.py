@@ -987,10 +987,13 @@ def _probe_batches(probes: Sequence[tuple[Probe, Variant]], size: int) -> list[l
     return [[v for _, v in b] for b in batches]
 
 
-def calibrate(probe_path: Path, out: Path, *, judges: Sequence[str] = DEFAULT_JUDGES, root: Path | None = None,
+def calibrate(probe_paths: Path | Sequence[Path], out: Path, *, judges: Sequence[str] = DEFAULT_JUDGES, root: Path | None = None,
               judge_factories: Mapping[str, Callable[[], Any]] | None = None, batch_size: int = 6, timeout: int = 3600,
               workers: int = 2, seed: int = DEFAULT_SEED, progress: Callable[[str], None] = lambda _: None) -> dict[str, Any]:
-    probe_set = ProbeSet.model_validate_json(probe_path.read_text(encoding="utf-8"))
+    probe_paths = [probe_paths] if isinstance(probe_paths, Path) else list(probe_paths)
+    sets = [ProbeSet.model_validate_json(path.read_text(encoding="utf-8")) for path in probe_paths]
+    probe_set = ProbeSet(version=sets[0].version, probes=[probe for s in sets for probe in s.probes])
+    probe_path = probe_paths[0]
     ids = [p.id for p in probe_set.probes]
     if len(ids) != len(set(ids)):
         raise ValueError("probe ids must be unique")
@@ -1031,7 +1034,8 @@ def calibrate(probe_path: Path, out: Path, *, judges: Sequence[str] = DEFAULT_JU
             for probe, variant in pairs:
                 labels.setdefault(label, {})[probe.id] = rows.get(variant.id)
     report = calibration_report(probe_set.probes, labels)
-    result = {"protocol": PROTOCOL, "probes": str(probe_path), "probe_sha256": hashlib.sha256(probe_path.read_bytes()).hexdigest(),
+    result = {"protocol": PROTOCOL, "probes": [str(path) for path in probe_paths],
+              "probe_sha256": {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in probe_paths},
               "judges": {names[s]: f().identity for s, f in factories.items()},
               "partial": bool(failures), "failures": failures, "judgments": labels, "stages": stages, "report": report}
     _write_atomic(out / "calibration.json", json.dumps(result, indent=2, ensure_ascii=False, default=str))
@@ -1162,7 +1166,8 @@ def register(subparsers: Any) -> None:
     summary.add_argument("--scope", choices=["author_visible", "published_only"], default="author_visible")
     summary.set_defaults(func=_summary_command)
     calibrate_parser = subparsers.add_parser("judge-calibrate", help="score the criticism judge against labelled probes")
-    calibrate_parser.add_argument("--probes", required=True, type=Path)
+    calibrate_parser.add_argument("--probes", required=True, type=Path, action="append",
+                                  help="probe file; repeat to combine, e.g. with a private gitignored set")
     calibrate_parser.add_argument("--out", type=Path, default=Path("runs/judge-calibration"))
     calibrate_parser.add_argument("--root", type=Path, help="directory that probe source paths are relative to (default: repository root)")
     calibrate_parser.add_argument("--batch-size", type=int, default=6)

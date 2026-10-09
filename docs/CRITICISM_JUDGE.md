@@ -156,7 +156,7 @@ validated accuracy; agreement is computed on the packet's criticisms without wei
 
 Both default judges were run on the 48 probes in `eval/probes/criticism_probes.v1.json`
 (40 base probes and 8 persuasion variants; labels from documented project verification,
-not independent experts). Archive: [`docs/judge-calibration/calibration-20261009.json`](judge-calibration/calibration-20261009.json).
+not independent experts). The 15 probes on the owner's unpublished manuscript live in the gitignored `eval/probes/private/criticism_probes.owner.v1.json`; pass it as a second `--probes`. The full archive, which quotes that manuscript, stays local in `runs/judge-calibration-20261009/`.
 
 | Judge | Accuracy | False criticisms supported | Persuasion: labels changed |
 | --- | ---: | ---: | ---: |
