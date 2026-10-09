@@ -115,9 +115,9 @@ without a specific assessment consequence is not automatically a supported criti
 
 
 class ReviewPipeline:
-    STAGE_VERSION = "0.4.3a1"
+    STAGE_VERSION = "0.4.3a1"  # cache semantics of stages; bump only when a stage's behaviour changes
 
-    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, strategy: Literal["specialist", "holistic"] = "specialist", evidence_audit: bool = False):
+    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
         self.verifier_backend = verifier_backend or self.backend
         if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
@@ -125,12 +125,6 @@ class ReviewPipeline:
         self.progress = progress or (lambda _: None)
         self.profile, self.profile_hash = _load_profile(profile)
         self.run_metacheck = run_metacheck
-        if strategy not in {"specialist", "holistic"}:
-            raise ValueError(f"Unknown discovery strategy: {strategy}")
-        self.strategy = strategy
-        if evidence_audit and strategy != "holistic":
-            raise ValueError("The evidence audit supplements holistic discovery")
-        self.evidence_audit = evidence_audit
 
     @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
@@ -210,8 +204,7 @@ class ReviewPipeline:
                                                           "different_model_same_family" if self.backend.name == self.verifier_backend.name else
                                                           "different_model_family"),
                                profile=self.profile.id, profile_hash=self.profile_hash,
-                               input_hash=input_hash, output_dir=str(out), discovery_strategy=self.strategy,
-                               evidence_audit=self.evidence_audit)
+                               input_hash=input_hash, output_dir=str(out))
         run = ReviewRun(metadata=metadata, sources=sources)
         for source in sources:
             run.coverage.extend(f"{source.id}: {warning}" for warning in source.extraction_warnings)
@@ -222,8 +215,7 @@ class ReviewPipeline:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
         manuscript_chars = sum(len(source.text.strip()) for source in sources if source.kind == "manuscript")
         insufficient = self.backend.name in {"codex", "claude"} and manuscript_chars < 1000 and not any(source.kind != "manuscript" for source in sources)
-        if self.strategy == "specialist" or insufficient:
-            self._study_map(run, out, input_hash, evidence)
+        self._study_map(run, out, input_hash, evidence)
         if insufficient:
             run.partial = True
             excerpt = next(source for source in sources if source.kind == "manuscript").text.strip()[:300]
@@ -244,11 +236,6 @@ class ReviewPipeline:
                                       error=None if run.metacheck.status == "completed" else run.metacheck.reason or metacheck.describe(run.metacheck)))
         run.coverage.extend(f"metacheck {m.module}: {m.n_filtered} of {m.n_rows} row(s) filtered as not a candidate ({m.filter_rule})"
                             for m in run.metacheck.modules if m.n_filtered)
-        if self.strategy == "holistic" and not insufficient:
-            self._evidence_discovery(run, out)
-            return self._finalize(run, out)
-        if self.strategy == "holistic":
-            modules = ["broad", *(["evidence_audit"] if self.evidence_audit else [])]
         for module in modules:
             if insufficient:
                 run.stages.append(StageRecord(name=f"review-{module}", status="skipped", error="Insufficient manuscript material"))
@@ -300,53 +287,6 @@ class ReviewPipeline:
         except Exception as exc:
             run.partial = True
             run.stages.append(self._failed("study_map", exc))
-
-    def _evidence_discovery(self, run: ReviewRun, out: Path) -> None:
-        """Two fresh source reads; the audit receives neither candidates nor the broad overview."""
-        from .evidence_review import BROAD_REVIEW, EVIDENCE_AUDIT, REVIEW_RULES, BroadReview, EvidenceAudit, calculation_recorded
-        from .verification import verify_quote
-
-        evidence = self._evidence(run.sources)
-        guidance = "\nSeverity guidance: " + _canonical(self.profile.metadata.get("severity_guidance", {}))
-        discipline = "\nDiscipline: " + self.profile.title
-        # Every retained screening module reaches both reads without specialist routing.
-        screened_evidence = evidence + "\n\n" + metacheck.holistic_leads(run.metacheck)
-        stages = [("broad", BROAD_REVIEW + REVIEW_RULES + guidance + discipline, screened_evidence, BroadReview)]
-        if self.evidence_audit:
-            stages.append(("evidence_audit", EVIDENCE_AUDIT + REVIEW_RULES + guidance + discipline, screened_evidence, EvidenceAudit))
-        for module, instruction, inputs, schema in stages:
-            stage = None
-            try:
-                result, stage = self._cached(out, f"review-{module}",
-                    {"evidence": _hash(inputs), "instruction_hash": _hash(REVIEW_GUARD + instruction)},
-                    schema, lambda p=instruction, e=inputs, s=schema: self.backend.generate(p, e, s))
-                result = validate_discovery(result, module, run.sources)
-                if module == "broad":
-                    run.study_map = result.study_map
-                    run.preliminary_study_map = result.study_map.model_copy(deep=True)
-                run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
-                if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
-                    run.coverage.append(f"{module}: discovery reports unfinished work or missing coverage entries")
-                if module == "evidence_audit":
-                    source_rows = [s.model_dump() for s in run.sources]
-                    for operation in result.operations:
-                        anchors = sum(verify_quote(e.quote, source_rows, e.source_id).status == "supported"
-                                      for e in operation.evidence)
-                        recorded = calculation_recorded(operation, stage.tool_calls)
-                        calculation = "code/output recorded" if recorded else "code/output not matched in trace" if operation.code else "source comparison"
-                        run.coverage.append(f"evidence operation ({operation.status}; {calculation}): {operation.question} — {operation.result} "
-                                            f"[{anchors}/{len(operation.evidence)} quotation anchors; assumptions: "
-                                            + "; ".join(operation.assumptions) + "]")
-                for index, finding in enumerate(result.findings):
-                    run.candidates.append(Finding.model_validate({**finding.model_dump(),
-                        "id": f"{module}:{index}:{finding.id or 'finding'}", "module": module}))
-                run.stages.append(stage)
-            except Exception as exc:
-                if stage and stage.artifact:
-                    Path(stage.artifact).unlink(missing_ok=True)
-                run.partial = True
-                run.stages.append(self._failed(f"review-{module}", exc, stage))
-                run.coverage.append(f"{module}: not assessed (stage failed)")
 
     def _finalize(self, run: ReviewRun, out: Path, *, insufficient: bool = False) -> ReviewRun:
         """Verify, edit and render a draft while retaining its discovery provenance."""
@@ -598,8 +538,5 @@ def review(manuscript: str | Path, **kwargs: object) -> ReviewRun:
     verifier_backend = kwargs.pop("verifier_backend", None)
     progress = kwargs.pop("progress", None)
     run_metacheck = kwargs.pop("run_metacheck", True)
-    strategy = kwargs.pop("strategy", "specialist")
-    evidence_audit = kwargs.pop("evidence_audit", False)
     return ReviewPipeline(backend=backend, profile=profile, verifier_backend=verifier_backend,
-                          progress=progress, run_metacheck=run_metacheck, strategy=strategy,
-                          evidence_audit=evidence_audit).run(manuscript, **kwargs)
+                          progress=progress, run_metacheck=run_metacheck).run(manuscript, **kwargs)

@@ -17,31 +17,30 @@ These are evaluation dimensions, not discovery quotas or a requirement to find a
 issue of each type. A justified suggestion can improve a paper without alleging an
 error; its premises, purpose and proportionality still require assessment.
 
-The opt-in candidate combines a broad read, full-criticism verification, recorded
-source tasks and editorial reconciliation. A separate operational audit is an optional
-arm. These are development hypotheses; the specialist strategy remains available and
-no configuration has established scientific validity.
+The product under test is the specialist pipeline: metacheck leads, a descriptive
+study map, coverage-first specialist modules, a blind-spot pass, full-criticism
+verification, recorded source tasks and editorial reconciliation. The plain one-call
+review is the comparator it must beat. The broad-review strategy and evidence audit
+were retired in 0.5.0; the development pilot below used them and is kept as history.
+No configuration has established scientific validity.
 
 ```mermaid
 flowchart LR
   I[Submitted manuscript] --> M[Metacheck leads]
-  I --> B[Broad review and descriptive map]
-  M --> B
-  I --> A[Optional source and calculation audit]
-  M --> A
-  B --> V[Verify every candidate]
-  A --> V
+  I --> S0[Descriptive study map]
+  M --> D[Specialist modules]
+  S0 --> D
+  D --> BS[Blind-spot pass]
+  BS --> V[Verify every candidate]
   V --> S[Required-source follow-up where unfinished]
   S --> E[Editorial dispositions]
   E --> R[Supported findings and labelled unresolved concerns]
 ```
 
-The audit receives neither broad findings nor the overview. Verification and editorial
-use tools; preference judges and normalization use no tools. The factual gates,
-external-source policy, contamination audit and editorial publication rules are shared
-across discovery strategies. Editorial cannot rewrite a finding or its severity.
+Verification and editorial use tools; preference judges and normalization use no tools.
+Editorial cannot rewrite a finding or its severity.
 
-## Development pilot
+## Development pilot (0.4.3, retired arms)
 
 The two first cases are a six-experiment group-membership/deviance-punishment submission
 and a two-experiment direct/indirect-harm replication submission. Their author labels

@@ -11,8 +11,6 @@ from .verification import verify_quote
 
 
 TOPICS = {
-    'broad': [],
-    'evidence_audit': ['reported_quantities', 'analysis_and_scores', 'categorical_agreement', 'inferential_targets'],
     'contribution': ['question_and_claims', 'theoretical_argument', 'design_addresses_question'],
     'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
     'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],

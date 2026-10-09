@@ -193,7 +193,8 @@ class RunMetadata(BaseModel):
     profile_hash: str
     input_hash: str
     output_dir: str
-    engine_version: str = "0.4.3a1"
+    engine_version: str = "0.5.0a1"
+    # "holistic" and evidence_audit=True occur only in runs archived before 0.5.0 (tag pre-specialist-only-0.4.3).
     discovery_strategy: Literal["specialist", "holistic"] = "specialist"
     evidence_audit: bool = False
 

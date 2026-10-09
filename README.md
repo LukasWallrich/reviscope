@@ -10,7 +10,7 @@ The default `social_psychology` profile covers quantitative social psychology. I
 
 Discovery is coverage-first: each module audits its whole responsibility, records a coverage check per topic, and returns every distinct, justified issue; one blind-spot pass follows. No stage limits the number of findings. See [discovery and verification](docs/DISCOVERY.md).
 
-The experimental `--strategy holistic` uses one broad review that also extracts the descriptive study map. `--evidence-audit` adds an independent-input read that reconstructs quantities, scoring recipes, categorical facts and inferential targets. Both retain every candidate and use the same verification and editorial requirements. The audit's additional findings and work can be compared with the broad review alone; see the [validation plan](docs/PIPELINE_VALIDATION_PLAN.md).
+Specialist modules are the only review strategy. The experimental broad-review strategy and its optional evidence audit were retired in 0.5.0 because they did not plausibly add to a plain prompt that users can run themselves; the tag `pre-specialist-only-0.4.3` preserves them for reproducing archived results. A plain one-call review remains an evaluation baseline (`eval/plain_review.py`), which the specialist pipeline must beat; see the [validation plan](docs/PIPELINE_VALIDATION_PLAN.md).
 
 ## Install and run
 
@@ -29,13 +29,13 @@ uv run reviscope review paper.pdf \
 
 Use `--verifier-backend claude --verifier-model claude-opus-5-5` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification uses separate calls to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
 
-An experimental broad review with a different-family verifier:
+The development configuration, with a different-family verifier:
 
 ```bash
-uv run reviscope review paper.pdf --strategy holistic --evidence-audit \
+uv run reviscope review paper.pdf \
   --backend codex --model gpt-6.1-sol --effort high \
   --verifier-backend claude --verifier-model claude-opus-5-5 \
-  --out runs/paper-holistic-audit
+  --out runs/paper
 ```
 
 Review, verification and editorial calls run with tools: web search and fetching to check cited sources, related literature and novelty claims, and a sandboxed shell to recompute statistics with code. The shell cannot read the home directory (where CLI credentials live), writes only to a temporary directory per call, and has no network access. It therefore sees only software installed outside the home directory: install the Python and R packages that reviewers may use system-wide (on Debian or Ubuntu, for example `python3-scipy`, `python3-statsmodels` and `r-base`). On Linux, Codex runs each shell command by re-executing its own binary inside the sandbox, so tool-enabled Codex calls use the first `codex` on `PATH` installed outside the home directory and refuse to run without one. Findings can cite external evidence (URL or DOI, quotation, and what it shows). A finding is published only with an anchored quotation from the manuscript itself; if it depends on external evidence, at least one item must be confirmed by the verifier with a recorded fetch or search of that URL or DOI. Verification checks the complete claim and explanatory rationale, including factual premises, calculations, citation use and inferential scope; the rationale is untrusted material to check, not evidence. Remedies are assessed separately for necessity and proportionality. The verifier may classify external evidence as optional only by explaining how the manuscript and established knowledge support the complete claim and rationale without it. Unchecked optional items are dropped; refuted items block support. Unusual empirical assertions and claims about a particular source require external verification. Each stage records its tool calls in `review.json`; the report ends with a Tool use summary. Models are instructed not to consult reviews or commentary of the manuscript itself, or other versions of it (published article, preprints, other drafts). If a managed Claude or Codex policy file widens the shell sandbox (excluded or unsandboxed commands, reads in the home directory, network access), tool-enabled calls stop with an error. Before using a run as benchmark evidence, audit it:

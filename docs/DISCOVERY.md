@@ -2,30 +2,17 @@
 
 Status: implemented for every profile; scientific benefit not yet established.
 
-## Holistic discovery and optional evidence audit
+## Retired strategies
 
-`--strategy holistic` uses one broad tool-enabled read of the manuscript and all
-retained metacheck leads. It returns candidates and a descriptive study map in the
-same call, without receiving a separate overview or specialist inventory. It asks
-for methodological, statistical and conceptual criticism rather than named category
-quotas. The broad read does not manufacture a coverage ledger.
-
-`--evidence-audit` adds a separate tool-enabled source read with concrete operations:
-reported quantities, analysis/scoring recipes, categorical agreement and inferential
-targets. It receives full sources and all retained screening leads, without the
-broad review's candidates, overview or coverage. Its separate input does not establish
-independent-model evidence when the same model performs both reads. Every operation
-records evidence, reported inputs, assumptions, method, result and unfinished work.
-Calculations include code and the short printed result. The pipeline labels code/output
-as recorded only when both match the audit's own successful shell trace. This proves
-recording, not mathematical correctness or independent reproduction. The complete
-operation ledger remains in the stage artifact; coverage reports every operation.
-
-The audit is optional so its marginal findings and work can be measured. Origin-based
-verification batches and content-keyed caches reuse broad discovery and broad
-verification when the audit is added. Editorial reconciles the combined findings.
-The specialist strategy is the default comparison path; holistic discovery and the
-optional audit are experimental. Both use the same verification and publication gates.
+Engine 0.4.3 also offered `--strategy holistic`, one broad tool-enabled read, and an
+optional `--evidence-audit`. Both were retired in 0.5.0: on development papers the
+broad read did not plausibly add to a plain prompt a user can run, and the audit's
+operations already belong to the specialist modules. Its scoring-recipe, categorical
+and recomputation operations are in `measurement`, `consistency` and
+`statistical_inference`; decision-rule reconstruction for central claims is now part of
+`interpretation`. Archived runs remain readable; the tag `pre-specialist-only-0.4.3`
+reproduces them. Metacheck leads that no specialist module owns now reach the
+blind-spot pass rather than being dropped.
 
 Discovery owns a lean candidate schema, including claim type, wording, severity,
 remedy and evidence. It does not assign evidential status, confidence, editorial
