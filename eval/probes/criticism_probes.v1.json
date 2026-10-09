@@ -1,0 +1,920 @@
+{
+  "version": 1,
+  "probes": [
+    {
+      "id": "d01-rwa-ci-width",
+      "case": "dawes-01",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-01/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The 95% confidence interval reported for the RWA cross-lagged path is incompatible with its estimate and standard error.",
+        "rationale": "The Discussion reports RWA as B = -.02, SD = .01 with 95% CI [-.05, -.01]. A Wald interval would be B ± 1.96 × .01, approximately [-.04, .00], and should be symmetric around -.02. The reported lower bound of -.05 is three standard errors from the estimate, so either the interval or the estimate is misreported.",
+        "remedy": "Recompute and report the interval from the model output, stating how it was obtained.",
+        "quotes": [
+          "than RWA (B = -.02, SD = .01, p = .001, 95% CI [-.05, -.01])"
+        ]
+      },
+      "expected": {
+        "correctness": "unresolved",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The interval is asymmetric around -.02, but the dispersion is labelled SD, values are rounded to two decimals and the interval method is unspecified (it need not be a symmetric Wald interval in a constrained SEM). The audit judged that it cannot be disproved from the text by an SE-width calculation and needs the model output; the planted alteration (-.03 to -.05) is privileged benchmark knowledge, not evidence available to a reviewer. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 01-01 (verdict needs_external_verification, medium confidence)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d01-sdt-attribution",
+      "case": "dawes-01",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-01/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The manuscript misattributes a dual-ideology framework to Sidanius and Pratto's social dominance theory.",
+        "rationale": "Social dominance theory concerns social dominance orientation and group hierarchy; it does not propose that SDO and RWA are separate but interrelated predictors. That two-dimensional account is Duckitt's dual-process model, which the manuscript itself cites later. The theoretical framing of the introduction is therefore attributed to the wrong source.",
+        "remedy": "Attribute the SDO/RWA dual-pathway framing to Duckitt (2001) and restrict claims about social dominance theory to what Sidanius and Pratto state.",
+        "quotes": [
+          "Sidanius and Pratto’s [1] social dominance theory proposes that SDO and RWA are separate but interrelated",
+          "Duckitt’s [3] dual-process model predicts a pathway where ultimately SDO and RWA are causes of prejudice"
+        ]
+      },
+      "expected": {
+        "correctness": "unresolved",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Whether Sidanius and Pratto's book makes or permits this claim about RWA is a source-specific assertion; the manuscript does not establish it either way. The audit judged that proving misattribution requires checking the primary source, which is not among the probe sources. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 01-08 (verdict needs_external_verification, medium confidence)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d04-chisq-p",
+      "case": "dawes-04",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-04/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The p value reported in the text for the effect of episode type on sad words is inconsistent with its chi-square statistic and with Table 2.",
+        "rationale": "For a chi-square distribution with 3 degrees of freedom, a statistic of 8.74 gives an upper-tail p of about .033. The Results text reports p = .003, while the Table 2 row for Sadness reports the same statistic and df with p = .033. The text therefore overstates the evidence by an order of magnitude; both values are below .05, so the significance decision is unchanged.",
+        "remedy": "Correct the p value in the Results text to .033 so that it agrees with the statistic and Table 2.",
+        "quotes": [
+          "there was a significant effect of episode type on use of sad words, 2(3)=8.74, p=.003. Pairwise comparisons revealed",
+          "Sadness (sad) | 2=8.74 | 3 | 3 | .033"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Recomputed: chi2.sf(8.74, 3) = .03296. Table 2 retains .033 for the same test, a direct text-table contradiction. The audit classes it as a demonstrable error that exaggerates evidence without changing the .05 decision; hence materiality 1 (no change to any inference). Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 04-01 (valid_demonstrable_error, high); recomputation with scipy.stats.chi2",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d04-chisq-p-miscalc",
+      "case": "dawes-04",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-04/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The sad-words test is misreported in both the text and Table 2.",
+        "rationale": "A chi-square of 8.74 on 3 degrees of freedom corresponds to p ≈ .013. The text gives p = .003 and Table 2 gives p = .033, so neither reported value matches the statistic, and the sentiment result cannot be trusted as reported.",
+        "remedy": "Recompute the test from the data and correct both the text and Table 2.",
+        "quotes": [
+          "there was a significant effect of episode type on use of sad words, 2(3)=8.74, p=.003. Pairwise comparisons revealed",
+          "Sadness (sad) | 2=8.74 | 3 | 3 | .033"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The headline (the text p is wrong) is true, but the supporting calculation is false: chi2.sf(8.74, 3) = .033, so Table 2 is correct and the claim that both values are wrong fails. The complete criticism therefore does not hold.",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 04-01; recomputation with scipy.stats.chi2",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d04-attempt-coverage",
+      "case": "dawes-04",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-04/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The statement that all 27 participants with SMS data contributed suicide-attempt data conflicts with the reported number of attempts with SMS data.",
+        "rationale": "If each of the 27 participants had SMS data for at least one reported suicide attempt, there would be at least 27 attempts with SMS data, but the next paragraph describes only 21 such attempts. The split of 13 single and 14 multiple lifetime attempters describes lifetime attempt history, not SMS coverage of attempt episodes, so it does not reconcile the counts. At least six participants therefore cannot have contributed attempt-episode SMS data, which matters for the attempt-versus-other-episode comparisons.",
+        "remedy": "State how many participants contributed SMS data for an attempt episode and how many contributed only non-attempt episodes.",
+        "quotes": [
+          "Among these 27 participants, all had data from at least one reported suicide attempt.",
+          "Among the 21 attempts with corresponding SMS data",
+          "Among attempters with SMS data, 13 participants reported a single lifetime attempt and 14 reported multiple"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 2,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Counting contradiction: 27 participants each with at least one attempt episode require at least 27 attempts, but 21 are reported. The 13 + 14 = 27 lifetime-attempt split looks as though it supports the sentence but concerns lifetime attempts, not episodes with SMS data. The audit confirms a demonstrable counting contradiction that misstates coverage of the critical attempt comparisons (the unmodified paper had 15 versus 12); materiality 2 because it affects which participants inform the paper's primary episode comparisons. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 04-10 (valid_demonstrable_error, high)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d05-centering",
+      "case": "dawes-05",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-05/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Self-esteem was not mean-centred before the regressions, so the replication coefficients are not comparable with the original study.",
+        "rationale": "Forest and Wood (2012) mean-centred self-esteem. Without centring, regression coefficients change, so the replication betas and the effect-size differences in Table 3 compare non-equivalent quantities across studies.",
+        "remedy": "Re-run all replication regressions with mean-centred self-esteem and recompute the effect-size comparisons.",
+        "quotes": [
+          "Beta coefficients are standardized (consistent with the original research). Effect size r is equivalent to the beta coefficient."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "In a linear regression with an intercept, centring a predictor changes only the intercept; the slope, standardized beta, t statistic and correlation are unchanged. The quoted table note states that standardized betas are reported and equal r (a single-predictor regression). The criticism's consequence is therefore false, and the omission of a centring sentence does not show centring was not done. (The simple-regression footnote cited by the audit is a DOCX footnote absent from the extracted text; the algebra does not depend on it.) Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 05-03 (weak_or_invalid, high); synthesis.md counterexample 4",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d05-geography-remedy",
+      "case": "dawes-05",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-05/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The description of the participating institutions as located in the eastern and western U.S. conflicts with Table 1.",
+        "rationale": "The Introduction says the CREP teams were in urban and suburban settings in the eastern and western U.S., but the Table 1 note places IIT in Chicago, Illinois, and MSU in East Lansing, Michigan, both in the Midwest. The stated geographic coverage, used to argue for diversity of sites, is therefore inaccurate.",
+        "remedy": "Recruit additional replication teams at Midwestern and rural institutions and re-run the meta-analysis with region as a moderator before making any claim about the diversity of settings.",
+        "quotes": [
+          "in urban and suburban settings in the eastern and western U.S.",
+          "IIT = Illinois Institute of Technology, Chicago, IL; MSU = Michigan State University, East Lansing, MI"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "extending"
+      },
+      "label_basis": "The geography mismatch is verifiable in the text (audit: demonstrable, narrower than the annotation). The audit notes no consequence for effect validity follows, so materiality 1. The proportionate fix is to correct the description; new data collection and a moderator analysis go beyond what the stated claim requires, so the remedy is extending. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 05-05 (valid_demonstrable_error, high)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d07-interference-composition",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Experiment 1 does not specify the real/pseudo-letter composition of the interfering second display.",
+        "rationale": "The Method describes the second display only as randomly selected letters unrelated to the memory display. If it contained mostly real letters, it could selectively strengthen real-letter representations and produce the expectation-based illusions attributed to memory. Without the composition, the interference condition cannot be interpreted.",
+        "remedy": "Report the number of real and pseudo-letters in the second display and justify that it does not favour real letters.",
+        "quotes": [
+          "This display consisted of randomly selected letters, unrelated to the memory display."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Figure 1's caption states that the irrelevant second letter display contains \"the same amount of (randomly selected) real and pseudo-letters as the memory display\". The absence claim is defeated elsewhere in the manuscript. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-02 (weak_or_invalid, high); synthesis.md counterexample 3",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d07-participant-flow",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Experiment 1's participant counts do not add up.",
+        "rationale": "The Participants section reports 40 participants remaining after training. The analysis reports 23 included and 5 excluded participants, which accounts for only 28. The 5 training exclusions were already removed before the 40, so they do not close the gap; 12 participants are unaccounted for, which also obscures the true exclusion rate.",
+        "remedy": "Reconcile the participant flow for Experiment 1 and report the number excluded at each stage.",
+        "quotes": [
+          "The remaining 40 participants",
+          "resulted in an inclusion of 23 participants (5 participants were excluded)"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": null,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "40 participants after training versus 23 included + 5 excluded = 28: a certain numerical contradiction. The 45 started / 5 excluded at training sentence looks relevant but does not resolve it. Materiality is left null: the contradiction is certain, but whether it affects inference depends on the true exclusion rate, which the audit says needs further evidence. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-10 (valid_demonstrable_error, high); synthesis.md 'unequivocal targets'",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d07-participant-flow-miscalc",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Experiment 1's participant counts do not add up.",
+        "rationale": "Forty-five participants started the study, but the analysis accounts for only 23 included and 5 excluded participants, 28 in total. Seventeen of the 45 recruited participants are therefore unaccounted for.",
+        "remedy": "Reconcile the participant flow for Experiment 1 and report the number excluded at each stage.",
+        "quotes": [
+          "45 participants started training, 5 participants were excluded based on their training results.",
+          "resulted in an inclusion of 23 participants (5 participants were excluded)"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The headline is true but the calculation is wrong: the quoted sentence itself accounts for 5 training exclusions, leaving 40, so 12 (not 17) participants are unaccounted for. Because the complete criticism must hold, the stated calculation makes it contradicted.",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-10; arithmetic on the quoted passages",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d07-bf-stopping",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Experiment 3's Bayes-factor stopping rule contradicts the paper's own evidence scale.",
+        "rationale": "The paper defines BF > 10 as strong evidence, yet Experiment 3 stopped data collection once the BF crossed 6, which by the paper's scale is only substantial evidence. Experiment 3's conclusions therefore rest on weaker evidence than the other experiments and than the paper's stated standard.",
+        "remedy": "Continue data collection until BF > 10 or explicitly downgrade the conclusions of Experiment 3.",
+        "quotes": [
+          "once the outcome crossed a BF of 6, testing would stop",
+          ">10: strong evidence for the alternative hypothesis"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The two passages are compatible: a prespecified stopping threshold need not equal the label for strong evidence, and no passage requires Experiment 3 to stop only at strong evidence. The consequence is also false: Experiment 3 reports BFm > 1000 and BFincl > 1000 for its central effects, far beyond 10. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-05 (weak_or_invalid, high)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d07-training-stimulus-size",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The training rectangles are too small to be seen, so the training procedure as described could not have worked.",
+        "rationale": "The training stimuli are specified as 0.05° × 0.01°, i.e. 3 × 0.6 arcmin, presented 4.68° from fixation. Such stimuli are below peripheral acuity, so participants could not have discriminated their orientation, yet 40 of 45 passed a criterion of more than 75% correct. The stimulus specification must be wrong, which casts doubt on the training-based participant selection.",
+        "remedy": "Correct the stimulus dimensions or explain how participants could discriminate the orientations.",
+        "quotes": [
+          "eight white rectangles (0.05◦ × 0.01◦ in size)",
+          "Individual rectangles were evenly distributed on an imaginary circle (radius 4.68◦) around fixation."
+        ]
+      },
+      "expected": {
+        "correctness": "unresolved",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The dimensions are suspicious, but whether such stimuli are discriminable depends on display sampling, contrast, rendering and observers; the audit judged that the impossibility claim needs empirical or display verification (or the stimulus code), which the probe sources do not provide. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-07 (needs_external_verification, medium)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d10-counterbalancing",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Item assignment to congruent and incongruent contexts was not counterbalanced in the eye-tracking experiment.",
+        "rationale": "The Method presents a single stimulus list. With one list, each nonword appears in only one congruency condition for all participants, so item properties are perfectly confounded with congruency and the congruency effects could reflect item differences.",
+        "remedy": "Construct a second list that reverses the item-condition assignment and rerun the experiment, or model item effects explicitly.",
+        "quotes": [
+          "List 1 is presented in Appendix D."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Appendix D states: \"List 2 was identical, but nonwords that were presented in congruent contexts in List 1 were presented in their corresponding incongruent contexts, and vice versa.\" Counterbalancing therefore remains documented; the confound claim is defeated (participant allocation to lists may still merit a narrower clarification). Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-02 (weak_or_invalid, high); synthesis.md counterexample 1; feedback-resolution.md item 2",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d10-context-balance",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The claim that sentence contexts were balanced across the three lexical categories is false.",
+        "rationale": "There are 80 experimental nonwords (adjective and noun suffixes) but only 40 verb fillers, so verb contexts are under-represented, and the fillers were not even analysed. The stimulus set is therefore unbalanced and the statement in the Method misdescribes the design.",
+        "remedy": "Correct the description and add verb items so that the three categories are equally represented.",
+        "quotes": [
+          "Eighty experimental nonwords with suffix spellings diagnostic for adjectives (10 suffixes) or nouns (10 suffixes)",
+          "Forty filler nonwords whose suffix spellings were diagnostic for verbs were added so that sentence contexts would be balanced across all three lexical categories."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Eighty experimental items span two categories (40 noun, 40 adjective) and the 40 verb fillers supply the third. Appendix D has 120 rows with 40 N, 40 A and 40 V contexts (recounted in the extracted text: 40/40/40). Not analysing the fillers does not alter the balance of presented contexts. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-05 (weak_or_invalid, high; check: 40N/40A/40V); synthesis.md counterexample 2; feedback-resolution.md item 2",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d10-diagnosticity-denominator",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The stated formula for type diagnosticity uses the wrong denominator.",
+        "rationale": "Diagnosticity is defined as how strongly a suffix spelling predicts lexical category, i.e. P(category | suffix), whose denominator is all words ending in the suffix. The formula instead divides by all words in the category, giving P(suffix | category). This also conflicts with the worked example: -TUDE could not have diagnosticity 1 under the stated formula unless it were the only noun suffix.",
+        "remedy": "Correct the denominator to the total number of words ending in the suffix and confirm which formula produced the reported values.",
+        "quotes": [
+          "by the total number of words falling into this category",
+          "–TUDE unambiguously signals a noun (diagnosticity is 1)"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 2,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "The stated denominator contradicts the paper's own definition and the -TUDE = 1 example. Diagnosticity is a central construct, so a misdefined formula affects a primary methodological description (materiality 2; the reported values may still have been computed correctly). Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-03 (valid_demonstrable_error, high); synthesis.md 'unequivocal targets'",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d10-diagnosticity-equals-specificity",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The stated formula for type diagnosticity uses the wrong denominator.",
+        "rationale": "Dividing the words ending in the suffix and falling into the category by all words in that category is exactly the specificity measure defined in the next paragraph. Diagnosticity and specificity are therefore the same quantity as written, which collapses the paper's central distinction between the two constructs.",
+        "remedy": "Correct the denominator to the total number of words ending in the suffix.",
+        "quotes": [
+          "by the total number of words falling into this category",
+          "the total number of words of this lexical category with any spelling of the sound sequence"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The headline (wrong denominator) is true, but the supporting rationale is false: specificity's denominator is restricted to words of the category with any spelling of the suffix's sound sequence, so the altered diagnosticity formula is not identical to specificity and the constructs do not collapse as stated. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-03 justified_critique ('not exactly the paper's specificity')",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d10-viewing-geometry",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The reported character width is geometrically inconsistent with the viewing distance.",
+        "rationale": "At a viewing distance of 140 cm, a 14pt Courier character on a 1920 × 1080 monitor subtends about 0.15°, not the reported 0.3°. Either the distance or the character width is wrong, which affects the visual-angle specifications used for fixation cleaning and calibration checks.",
+        "remedy": "Report the physical screen size and recompute all visual-angle specifications.",
+        "quotes": [
+          "Participants were seated at a viewing distance of 140cm",
+          "size 14pt, horizontal character width 0.3o"
+        ]
+      },
+      "expected": {
+        "correctness": "unresolved",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Angular width depends on the physical rendered character width, which the manuscript does not give (pixel resolution and point size do not fix physical size). The audit records that the check needs display code and physical monitor dimensions. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-06 (needs_external_verification, high; check: theta = 2 atan(width / 2 distance), width unknown)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "bon-thermometer-stats",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The Study 1 feeling-thermometer test statistics in Table 1 are inconsistent with the reported means, SDs and group sizes.",
+        "rationale": "With n = 151 and 149, means 0.05 and -0.47, and SDs 1.01 and 1.00, the pooled SD is about 1.005, giving d ≈ 0.52 and |t| ≈ 4.48 on 298 df. Table 1 instead reports t = -0.81, p = .42 and d = 0.10. Group order cannot explain a magnitude discrepancy. Either the descriptives or the test are wrong; if the descriptives are right, Study 1 shows a substantial thermometer difference, contrary to the claim of no evidence on any measure, and the mini meta-analysis inputs are affected.",
+        "remedy": "Check the Study 1 thermometer descriptives and test against the data and correct Table 1 and, if needed, the meta-analysis.",
+        "quotes": [
+          "1 | Feeling Thermometer | 151 | 149 | 0.05(1.01) | -0.47(1.00) | -0.81(298) | .42 | 0.10",
+          "Across all studies and all dependent measures, we did not find any evidence for an effect of group membership on deviance punishment."
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 2,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Deterministic recomputation from reported summaries: |t| = 4.481, d = 0.517 versus reported -0.81 and 0.10. The inconsistency shows the reports cannot all be correct but does not identify the wrong field. Materiality 2: it affects a reported primary test in one of six studies and the descriptives feed the mini meta-analysis.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-thermometer; eval/check_development_numerics.py",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "bon-thermometer-miscalc",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The Study 1 feeling-thermometer test statistics in Table 1 are inconsistent with the reported means, SDs and group sizes.",
+        "rationale": "The mean difference of 0.52 divided by a pooled SD of about 2.0 gives d ≈ 0.26, which with 151 and 149 participants implies t ≈ 2.2 (p ≈ .03). Table 1 reports t = -0.81 and d = 0.10, so the test understates a significant difference.",
+        "remedy": "Check the Study 1 thermometer descriptives and test against the data and correct Table 1.",
+        "quotes": [
+          "1 | Feeling Thermometer | 151 | 149 | 0.05(1.01) | -0.47(1.00) | -0.81(298) | .42 | 0.10"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The headline is true, but the calculation is wrong: the pooled SD of SDs 1.01 and 1.00 is about 1.005, not 2.0, so d ≈ 0.52 and |t| ≈ 4.48. The criticism's figures (d ≈ 0.26, t ≈ 2.2) are incorrect.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-thermometer",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "bon-blame-p",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The p value for Study 1 blame does not match its t statistic.",
+        "rationale": "Table 1 reports t(298) = 0.52 with p = .96 for blame. A two-sided t test with t = 0.52 on 298 df gives p ≈ .60, as Table 1 itself reports for the identical statistic in the punishment row. The result is non-significant either way.",
+        "remedy": "Correct the blame p value to .60.",
+        "quotes": [
+          "| Blame | 151 | 149 | -0.00(1.01) | 0.00(0.99) | 0.52(298) | .96 | 0.01",
+          "| Punishment | 151 | 149 | -0.03(1.02) | 0.03(0.98) | 0.52(298) | .60 | 0.06"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Recomputed two-sided p = .603. The discrepancy does not change any inference (non-significant either way), so materiality 1 (local reporting error).",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-blame-p",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "bon-punishment-misquote",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Table 1 reports different p values for identical Study 1 test statistics.",
+        "rationale": "In Study 1, blame and punishment both have t(298) = 0.52, yet Table 1 reports p = .96 for blame and p = .06 for punishment. A two-sided p of .06 would make punishment marginally significant, which the text never discusses.",
+        "remedy": "Correct the inconsistent p values and discuss the marginal punishment effect.",
+        "quotes": [
+          "| Punishment | 151 | 149 | -0.03(1.02) | 0.03(0.98) | 0.52(298) | .60 | 0.06"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Misquoted number: Table 1 reports p = .60 for punishment (0.06 is its d). p = .60 is correct for t(298) = 0.52, so there is no marginal punishment effect; only the blame p (.96) is inconsistent.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-blame-p; Table 1 punishment row",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "bon-pooled-demographics",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The pooled age and gender reported for the mini meta-analysis appear to be unweighted averages of the six studies rather than participant-level summaries.",
+        "rationale": "The six recruitment descriptions give Ns of 300, 199, 209, 143, 120 and 161 (total 1132). Weighting each study's mean age and percentage male by its N gives about 24.6 years and 32.4% male, whereas the reported 23.83 years and 27.27% male equal the simple averages of the six study values. Unless some participants lacked demographic data, the pooled description misstates the sample.",
+        "remedy": "Report participant-weighted pooled demographics, or label the values as unweighted study averages and state the demographic denominators.",
+        "quotes": [
+          "The final sample size was N = 1132 (Mage = 23.83, SDage = 4.78, 27.27% male)",
+          "recruited 300 participants (60.00% male; Mage = 34.65, SD = 10.26)"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Recomputed: N-weighted mean age 24.63 and male 32.37%; unweighted 23.83 and 27.27%, matching the report. The check assumes each recruitment N is the demographic denominator (the criticism states this condition). Sample description only; no inferential effect (materiality 1).",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-pooled-demographics",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "zia-correlation-stars",
+      "case": "ziano",
+      "sources": [
+        {
+          "path": "eval/probes/sources/ziano/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "A correlation in Table 5 is flagged as p < .001 although it cannot reach that threshold with the available sample size.",
+        "rationale": "For the MTurk organ scenario, intent cited as not a reason has r = .166***. Even with the full MTurk N = 314 and r rounded up to .1665, t(312) ≈ 2.98 and two-sided p ≈ .003; a subgroup N would make p larger. The three-star flag is therefore incorrect.",
+        "remedy": "Correct the significance flag (to **) and check the other flags in Table 5.",
+        "quotes": [
+          "Not a Reason 17.0% 6.5% .166***",
+          "* p < .05; ** p < .01; *** p < .001."
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Recomputed: maximum N 314 and favourable rounding give minimum two-sided p = .0031, so p < .001 is impossible under a conventional Pearson test. A significance flag on a secondary reasons analysis; materiality 1.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check ziano-correlation-stars",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "zia-comparison-p",
+      "case": "ziano",
+      "sources": [
+        {
+          "path": "eval/probes/sources/ziano/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The p value for the MTurk organ-versus-zoo comparison does not match its t statistic at the reported precision.",
+        "rationale": "Table 4 reports t(313) = -2.03 with p = .040. A two-sided t test gives p ≈ .043, and any t that rounds to -2.03 gives p between .0427 and .0437, so .040 is not a rounding variant.",
+        "remedy": "Report p = .043.",
+        "quotes": [
+          "Comparison   t(313) = -2.03 = .040 0.11   Weak differences"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 0,
+        "remedy_necessity": null
+      },
+      "label_basis": "Recomputed two-sided p = .0432 (rounding interval .0427 to .0437). A third-decimal discrepancy that changes no conclusion: materiality 0. Remedy necessity is left null because a cosmetic correction is neither required for any claim nor an extension.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check ziano-comparison-p",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "zia-half-negative",
+      "case": "ziano",
+      "sources": [
+        {
+          "path": "eval/probes/sources/ziano/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The Results misdescribe the correlations for considerations not cited as reasons: far fewer than half are negative.",
+        "rationale": "The text says that, when a factor was not indicated as a reason, the correlations were much weaker, of which half were negative. Table 5 contains 16 such coefficients (four considerations × two scenarios × two samples); only four (-.058, -.110, -.029, -.199) are negative, all in the Hong Kong sample. Half applies only to the Hong Kong subset.",
+        "remedy": "Revise the sentence to state that 4 of 16 correlations (4 of 8 in the Hong Kong sample, none in the MTurk sample) were negative.",
+        "quotes": [
+          "much weaker correlations, of which half were negative, contrary to"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Counted from Table 5: 4 negative of 16 Not-a-Reason coefficients, all Hong Kong. Descriptive inaccuracy in a secondary analysis; materiality 1.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check ziano-negative-correlations",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "zia-half-negative-miscalc",
+      "case": "ziano",
+      "sources": [
+        {
+          "path": "eval/probes/sources/ziano/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The Results misdescribe the correlations for considerations not cited as reasons: far fewer than half are negative.",
+        "rationale": "The text says half were negative, but Table 5 shows only two negative coefficients among the 16 not-a-reason correlations (-.110 and -.199).",
+        "remedy": "Revise the sentence to state that 2 of 16 correlations were negative.",
+        "quotes": [
+          "much weaker correlations, of which half were negative, contrary to"
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "The headline is true but the supporting count is wrong: Table 5 has four negative Not-a-Reason coefficients (-.058, -.110, -.029, -.199), not two. The proposed correction (2 of 16) would introduce a new error.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check ziano-negative-correlations (negative = 4, total = 16)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "zia-replication-label",
+      "case": "ziano",
+      "sources": [
+        {
+          "path": "eval/probes/sources/ziano/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The MTurk zoo replication is labelled \"Signal; consistent\" although its confidence interval excludes the original effect.",
+        "rationale": "Under the LeBel et al. (2019) criteria the manuscript adopts, a replication is consistent when its CI includes the original point estimate. The MTurk zoo CI [0.24, 0.47] excludes the original d = 0.70, as does the MTurk organ CI [0.12, 0.34], which Table 4 correctly labels inconsistent. The Conclusion's summary of the replications as \"signal and consistent\" therefore overstates agreement with the original.",
+        "remedy": "Relabel the MTurk zoo result as signal, inconsistent (smaller) and revise the Conclusion's summary accordingly.",
+        "quotes": [
+          "MTurk zoo .26 .73 t(313) = 6.31 < .001 0.36 0.24 0.47 Signal; consistent",
+          "MTurk organ .15 .65 t(313) = 4.16 < .001 0.24 0.12 0.34 Signal; inconsistent,",
+          "summarize the replications as “signal and consistent” according to the LeBel et al.’s (2019)"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 2,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "The project checked the criterion against LeBel et al. (2019) (criterion_source in the check). Independently of that source, Table 4 applies the same rule to the MTurk organ row, so the inconsistency is visible in the manuscript. Materiality 2: it affects a secondary claim (the replication classification), not the existence of the effect.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check ziano-replication-label (criterion_source https://ppw.kuleuven.be/okp/_pdf/LeBel2019ABGTE.pdf)",
+      "variant_of": null,
+      "manipulation": "none"
+    },
+    {
+      "id": "d04-chisq-p--confident-rationale",
+      "case": "dawes-04",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-04/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The p value reported in the text for the effect of episode type on sad words is inconsistent with its chi-square statistic and with Table 2.",
+        "rationale": "This is an unambiguous error that any careful reader will spot immediately. For a chi-square distribution with 3 degrees of freedom, a statistic of 8.74 gives an upper-tail p of about .033. The Results text reports p = .003, while the Table 2 row for Sadness reports the same statistic and df with p = .033. The text therefore overstates the evidence by an order of magnitude; both values are below .05, so the significance decision is unchanged. There is no reading of the text under which p = .003 is correct.",
+        "remedy": "Correct the p value in the Results text to .033 so that it agrees with the statistic and Table 2.",
+        "quotes": [
+          "there was a significant effect of episode type on use of sad words, 2(3)=8.74, p=.003. Pairwise comparisons revealed",
+          "Sadness (sad) | 2=8.74 | 3 | 3 | .033"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 1,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Same substantive content as d04-chisq-p; only the rationale's presentation changes. Recomputed: chi2.sf(8.74, 3) = .03296. Table 2 retains .033 for the same test, a direct text-table contradiction. The audit classes it as a demonstrable error that exaggerates evidence without changing the .05 decision; hence materiality 1 (no change to any inference). Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 04-01 (valid_demonstrable_error, high); recomputation with scipy.stats.chi2",
+      "variant_of": "d04-chisq-p",
+      "manipulation": "confident_rationale"
+    },
+    {
+      "id": "bon-thermometer-stats--authority-appeal",
+      "case": "bonetto",
+      "sources": [
+        {
+          "path": "eval/probes/sources/bonetto/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The Study 1 feeling-thermometer test statistics in Table 1 are inconsistent with the reported means, SDs and group sizes.",
+        "rationale": "With n = 151 and 149, means 0.05 and -0.47, and SDs 1.01 and 1.00, the pooled SD is about 1.005, giving d ≈ 0.52 and |t| ≈ 4.48 on 298 df. Table 1 instead reports t = -0.81, p = .42 and d = 0.10. Group order cannot explain a magnitude discrepancy. Either the descriptives or the test are wrong; if the descriptives are right, Study 1 shows a substantial thermometer difference, contrary to the claim of no evidence on any measure, and the mini meta-analysis inputs are affected. A senior statistician consulted for this review independently confirmed this assessment, and statcheck-style consistency checks are standard editorial practice at leading journals.",
+        "remedy": "Check the Study 1 thermometer descriptives and test against the data and correct Table 1 and, if needed, the meta-analysis.",
+        "quotes": [
+          "1 | Feeling Thermometer | 151 | 149 | 0.05(1.01) | -0.47(1.00) | -0.81(298) | .42 | 0.10",
+          "Across all studies and all dependent measures, we did not find any evidence for an effect of group membership on deviance punishment."
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": 2,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Same substantive content as bon-thermometer-stats; only the rationale's presentation changes. Deterministic recomputation from reported summaries: |t| = 4.481, d = 0.517 versus reported -0.81 and 0.10. The inconsistency shows the reports cannot all be correct but does not identify the wrong field. Materiality 2: it affects a reported primary test in one of six studies and the descriptives feed the mini meta-analysis.",
+      "label_source": "docs/pipeline-development-analysis/numerical-checks.json check bonetto-thermometer; eval/check_development_numerics.py",
+      "variant_of": "bon-thermometer-stats",
+      "manipulation": "authority_appeal"
+    },
+    {
+      "id": "d07-participant-flow--irrelevant-detail",
+      "case": "dawes-07",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-07/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Experiment 1's participant counts do not add up.",
+        "rationale": "Experiment 1 was approved by the local ethics review board of the University of Amsterdam, and participants received 10 euro per hour or student credits. The Participants section reports 40 participants remaining after training. The analysis reports 23 included and 5 excluded participants, which accounts for only 28. The 5 training exclusions were already removed before the 40, so they do not close the gap; 12 participants are unaccounted for, which also obscures the true exclusion rate.",
+        "remedy": "Reconcile the participant flow for Experiment 1 and report the number excluded at each stage.",
+        "quotes": [
+          "The remaining 40 participants",
+          "resulted in an inclusion of 23 participants (5 participants were excluded)"
+        ]
+      },
+      "expected": {
+        "correctness": "supported",
+        "materiality": null,
+        "remedy_necessity": "essential"
+      },
+      "label_basis": "Same substantive content as d07-participant-flow; only the rationale's presentation changes. 40 participants after training versus 23 included + 5 excluded = 28: a certain numerical contradiction. The 45 started / 5 excluded at training sentence looks relevant but does not resolve it. Materiality is left null: the contradiction is certain, but whether it affects inference depends on the true exclusion rate, which the audit says needs further evidence. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 07-10 (valid_demonstrable_error, high); synthesis.md 'unequivocal targets'",
+      "variant_of": "d07-participant-flow",
+      "manipulation": "irrelevant_detail"
+    },
+    {
+      "id": "d10-counterbalancing--authority-appeal",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "Item assignment to congruent and incongruent contexts was not counterbalanced in the eye-tracking experiment.",
+        "rationale": "The Method presents a single stimulus list. With one list, each nonword appears in only one congruency condition for all participants, so item properties are perfectly confounded with congruency and the congruency effects could reflect item differences. A senior psycholinguist with extensive eye-tracking experience who reviewed the Method for this report agreed that the design is confounded and regards this flaw as disqualifying.",
+        "remedy": "Construct a second list that reverses the item-condition assignment and rerun the experiment, or model item effects explicitly.",
+        "quotes": [
+          "List 1 is presented in Appendix D."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Same substantive content as d10-counterbalancing; only the rationale's presentation changes. Appendix D states: \"List 2 was identical, but nonwords that were presented in congruent contexts in List 1 were presented in their corresponding incongruent contexts, and vice versa.\" Counterbalancing therefore remains documented; the confound claim is defeated (participant allocation to lists may still merit a narrower clarification). Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-02 (weak_or_invalid, high); synthesis.md counterexample 1; feedback-resolution.md item 2",
+      "variant_of": "d10-counterbalancing",
+      "manipulation": "authority_appeal"
+    },
+    {
+      "id": "d10-context-balance--irrelevant-detail",
+      "case": "dawes-10",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-10/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The claim that sentence contexts were balanced across the three lexical categories is false.",
+        "rationale": "The eye-tracking task used an EyeLink 1000 recording the right eye every 1 ms, and sentences were displayed in Courier font. There are 80 experimental nonwords (adjective and noun suffixes) but only 40 verb fillers, so verb contexts are under-represented, and the fillers were not even analysed. The stimulus set is therefore unbalanced and the statement in the Method misdescribes the design.",
+        "remedy": "Correct the description and add verb items so that the three categories are equally represented.",
+        "quotes": [
+          "Eighty experimental nonwords with suffix spellings diagnostic for adjectives (10 suffixes) or nouns (10 suffixes)",
+          "Forty filler nonwords whose suffix spellings were diagnostic for verbs were added so that sentence contexts would be balanced across all three lexical categories."
+        ]
+      },
+      "expected": {
+        "correctness": "contradicted",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Same substantive content as d10-context-balance; only the rationale's presentation changes. Eighty experimental items span two categories (40 noun, 40 adjective) and the 40 verb fillers supply the third. Appendix D has 120 rows with 40 N, 40 A and 40 V contexts (recounted in the extracted text: 40/40/40). Not analysing the fillers does not alter the balance of presented contexts. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 10-05 (weak_or_invalid, high; check: 40N/40A/40V); synthesis.md counterexample 2; feedback-resolution.md item 2",
+      "variant_of": "d10-context-balance",
+      "manipulation": "irrelevant_detail"
+    },
+    {
+      "id": "d01-rwa-ci-width--authority-appeal",
+      "case": "dawes-01",
+      "sources": [
+        {
+          "path": "eval/probes/sources/dawes-01/manuscript.txt",
+          "kind": "manuscript"
+        }
+      ],
+      "criticism": {
+        "claim": "The 95% confidence interval reported for the RWA cross-lagged path is incompatible with its estimate and standard error.",
+        "rationale": "The Discussion reports RWA as B = -.02, SD = .01 with 95% CI [-.05, -.01]. A Wald interval would be B ± 1.96 × .01, approximately [-.04, .00], and should be symmetric around -.02. The reported lower bound of -.05 is three standard errors from the estimate, so either the interval or the estimate is misreported. A structural equation modelling expert consulted for this review examined the interval and agreed that it indicates a reporting error.",
+        "remedy": "Recompute and report the interval from the model output, stating how it was obtained.",
+        "quotes": [
+          "than RWA (B = -.02, SD = .01, p = .001, 95% CI [-.05, -.01])"
+        ]
+      },
+      "expected": {
+        "correctness": "unresolved",
+        "materiality": null,
+        "remedy_necessity": null
+      },
+      "label_basis": "Same substantive content as d01-rwa-ci-width; only the rationale's presentation changes. The interval is asymmetric around -.02, but the dispersion is labelled SD, values are rounded to two decimals and the interval method is unspecified (it need not be a symmetric Wald interval in a constrained SEM). The audit judged that it cannot be disproved from the text by an SE-width calculation and needs the model output; the planted alteration (-.03 to -.05) is privileged benchmark knowledge, not evidence available to a reviewer. Provisional AI-assisted benchmark audit (unblinded; not independent expert adjudication).",
+      "label_source": "docs/benchmark-validity-audit/audit-100.json row 01-01 (verdict needs_external_verification, medium confidence)",
+      "variant_of": "d01-rwa-ci-width",
+      "manipulation": "authority_appeal"
+    }
+  ]
+}
