@@ -166,6 +166,9 @@ def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
         if shutil.which(tool) is None:
             raise MetacheckError(f"{tool} not found on PATH; needed to convert {manuscript.suffix} input")
     text = manuscript.read_text(encoding="utf-8")
+    # PDF extraction can leave C0 control characters, which TeX cannot typeset.
+    controls = sum(1 for ch in text if ord(ch) < 32 and ch not in "\t\n\r")
+    text = "".join(" " if ord(ch) < 32 and ch not in "\t\n\r" else ch for ch in text)
     marked = 0
     if manuscript.suffix.lower() == ".txt":
         lines = []
@@ -185,7 +188,8 @@ def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
                             capture_output=True, text=True, timeout=R_TIMEOUT, cwd=directory)
     if result.returncode or not pdf.is_file():
         raise MetacheckError(f"pandoc could not typeset {manuscript.name}: {result.stderr[-500:].strip()}")
-    return pdf, f"pandoc Markdown to PDF (tectonic){f', {marked} section headings marked' if marked else ''}"
+    notes = [f"{marked} section headings marked"] * bool(marked) + [f"{controls} control characters replaced"] * bool(controls)
+    return pdf, "pandoc Markdown to PDF (tectonic)" + "".join(f", {note}" for note in notes)
 
 
 def _converter(suffix: str, log: str) -> str:
