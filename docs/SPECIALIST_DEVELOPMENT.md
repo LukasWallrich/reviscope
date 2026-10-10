@@ -167,6 +167,30 @@ measure the verification and editorial stages currently cost coverage and buy no
 The judges may be too lenient where the verifier is right; the cases the verifier withheld
 or rejected are the priority for human assessment.
 
+**How does coarse itself compare?** Real coarse (`coarse-ink` 1.9.6, `coarse-review --host codex
+--model gpt-6.1-sol --effort high`, through the Codex subscription) was run on all six papers
+and converted with `eval/coarse_adapter.py`. To avoid API charges it read local markdown
+(`--pre-extracted`: pandoc for DOCX, extracted text with standard section names marked as
+headings for PDFs), so it ran without Mistral OCR, and without Perplexity literature search
+(arXiv fallback). Means over six papers:
+
+| Arm | Criticisms per paper | Distinct material issues | Contradicted share (Sol) |
+| --- | ---: | ---: | ---: |
+| Plain | 21.1 | 17.4 (12.2) | 0.5% |
+| Specialist iter3 (five papers) | 29.2 | 15.6 (11.2) | 0.7% |
+| coarse | 11.5 | 7.3 (7.5) | 5.8% |
+
+coarse finds the fewest distinct material issues on every development paper and has the
+highest contradicted share under Sol. On the owner paper Opus rated five coarse criticisms
+material, against none in any other arm. Two caveats work against coarse here: its overall
+issues bundle several points into one criticism, which an issue count penalises, and it ran
+without its OCR and literature search. Even so, the gap is large: ReviScope's deviations
+from coarse have not made it less useful than coarse. A design audit of the deviations
+(kept locally, as it discusses the owner's paper) still points to specific coarse elements
+worth testing inside ReviScope: a whole-paper overview pass beside the specialists,
+severity set at the editorial stage with all findings in view, and folding the details of
+merged duplicates into the surviving finding.
+
 **What the diagnosis of the owner paper showed.** The baseline modules audited thoroughly
 (recomputing statistics and sample flow) and raised nothing on model specification, theory
 or counterevidence, which plain review did. After the scope change they raised those
