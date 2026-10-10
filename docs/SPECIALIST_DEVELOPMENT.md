@@ -158,11 +158,11 @@ concerns the report lists as unconfirmed:
 
 | Arm | All shown | Published only | Contradicted per paper |
 | --- | ---: | ---: | ---: |
-| Plain | 17.5 (12.2) | 17.5 (12.2) | 0.2 (0.1) |
-| Plain + finalization | 14.7 (10.8) | 12.8 (9.3) | 0.3 (0.2) |
+| Plain | 17.5 (12.2) | 17.5 (12.2) | 0.2 (0.2) |
+| Plain + finalization | 14.7 (10.8) | 12.8 (9.3) | 0.5 (0.0) |
 
 Finalization removes about a sixth of plain's material issues, and over a quarter of the
-published ones, without reducing the criticisms the judges contradict. By the judges'
+published ones, without a clear reduction in the criticisms the judges contradict (both rare). By the judges'
 measure the verification and editorial stages currently cost coverage and buy no precision.
 The judges may be too lenient where the verifier is right; the cases the verifier withheld
 or rejected are the priority for human assessment.
