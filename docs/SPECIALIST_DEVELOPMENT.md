@@ -134,6 +134,22 @@ What this shows:
   depend on the materiality threshold: at 1 or more, the pipeline has more supported
   criticisms than plain.
 
+**Where iter3 loses plain's material issues.** Clustering each paper's full iter3
+candidate pool with the plain runs (judge protocol v3, `--skip-judging`;
+`eval/trace_candidate_views.py` writes the candidate views) places each of plain's 108
+material issues on the five empirical papers (Sol's materiality):
+
+| Fate in iter3 | Issues |
+| --- | ---: |
+| Published | 64 (59%) |
+| Never among the candidates | 26 (24%) |
+| Shown only as an unresolved concern | 9 (8%) |
+| Merged into another finding | 6 (6%) |
+| Contradicted by the verifier | 3 (3%) |
+
+Discovery is the main loss; verification and editorial account for about a sixth. Whether
+the three contradictions are correct rejections or verifier errors needs a human check.
+
 **What the diagnosis of the owner paper showed.** The baseline modules audited thoroughly
 (recomputing statistics and sample flow) and raised nothing on model specification, theory
 or counterevidence, which plain review did. After the scope change they raised those
