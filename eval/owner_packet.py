@@ -209,12 +209,15 @@ def template_text() -> str:
     return render_html({"meta": meta, "issues": [{"cluster_id": "K", "number": 1, "variants": variants}]})
 
 
-def leaks(document: str, result: Mapping[str, Any]) -> list[str]:
+def leaks(document: str, result: Mapping[str, Any], fixed: str | None = None, allowed: Sequence[str] = ()) -> list[str]:
     """Forbidden terms found in `document` outside the criticism text itself and the fixed template.
-    A term counts as criticism text when it occurs in any variant's shown fields."""
+    A term counts as criticism text when it occurs in any variant's shown fields. `fixed` is the
+    document type's template (this packet's by default); `allowed` holds further text the reader
+    already has, such as the manuscript itself, in which a term reveals nothing."""
     shown = " ".join(" ".join([v.get("claim") or "", v.get("rationale") or "", v.get("remedy") or "", *v.get("quotes", []),
                                *v.get("external", [])]) for v in result["variants"]).casefold()
-    fixed = template_text().casefold()
+    shown += " " + " ".join(allowed).casefold()
+    fixed = (template_text() if fixed is None else fixed).casefold()
     text = document.casefold()
     found = []
     for term in sorted(forbidden_terms(result)):

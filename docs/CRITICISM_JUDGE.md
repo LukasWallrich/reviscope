@@ -156,6 +156,36 @@ criticisms count. The cluster check gives the share of multi-criticism clusters 
 split. One rater on his own manuscript is a first estimate with an interested rater, not a
 validated accuracy; agreement is computed on the packet's criticisms without weights.
 
+### Validation workspace
+
+The workspace is the same packet as a two-pane page in which the owner checks each criticism
+against his manuscript without leaving it.
+
+```bash
+uv run python eval/validation_workspace.py build runs/criticism-judge/p/result.json \
+  --manuscript paper.pdf [--supplement supp.pdf ...] --out runs/criticism-judge/p/workspace.html \
+  [--seed N] [--max-variants 80]
+```
+
+It reuses the packet's sampling, order, packet id, label schema and leak check, so a workspace and
+a packet built from the same `result.json`, seed and `--max-variants` share a packet id, share
+autosaved labels in the same browser, and their exports are both scored by `owner_packet.py score`.
+The left pane shows one criticism (claim, reasoning, remedy, outside sources, numbered quotations)
+above the label form; the right pane holds the text of the manuscript and supplements as
+extracted by `reviscope.ingest`, with paragraphs and page markers kept. Quotations are anchored at
+build time with `verify_quote` and stored as character offsets; the current criticism's
+quotations are highlighted, the first is scrolled into view, clicking a quotation jumps to it, and
+quotations that do not occur in the extracted text are marked "not found verbatim". The
+build reports how many anchored. A navigator lists issues and criticisms with their completion
+state, a filter for unlabelled ones and a progress bar; **Compare** shows an issue's criticisms
+side by side with the same-issue question. Keyboard: `1`–`4` correctness, `q w e r` materiality
+0–3, `a s d f g` requested action, `z x c` would act, `j`/`k` next/previous, `n` next unlabelled,
+`/` search, `?` help. Labels autosave in local storage keyed by packet id; the page shows when
+labels were last exported and warns before closing with unexported changes. The file embeds the
+manuscript text, so it must stay under the gitignored `runs/`. The manuscript text is excluded from
+the leak check (a word such as "major" in the paper reveals nothing); quote anchoring is computed
+afresh and is not the pipeline's verification status.
+
 ## Calibration, 9 October 2026
 
 Both default judges were run on the 48 probes in `eval/probes/criticism_probes.v1.json`
