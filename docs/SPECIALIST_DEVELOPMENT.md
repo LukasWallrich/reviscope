@@ -87,19 +87,41 @@ characters). One run per arm unless noted.
 
 Cells are Sol / Opus. Contradicted criticisms are rare in every arm (at most one per run).
 
-What this shows:
+What this shows (revised after a review by GPT 6.1 Sol, which recomputed these numbers
+from the judge outputs; see `research/llm-reviewer-sources/sol-review-of-development-results.md`):
 
-* The changes moved the specialist pipeline from clearly behind plain review to roughly
-  level with it, mainly under Opus (8.6 to 11.0, against 12.3 for plain). They did not put
-  it ahead: plain still has more material criticism on four of six papers.
-* Iter2 and iter3 use the same prompts; their differences of up to six per paper are
-  run-to-run variation. Single runs cannot rank versions this close.
-* Pooling does not favour the pipeline either. On the two papers with two plain runs, the
-  material coverage of plain plus pipeline equals that of two plain runs (Bonetto 19.6 vs
-  19 under Sol, 14.2 vs 15 under Opus; Ziano 20.8 vs 21 and 13.4 vs 13). The pipeline
-  adds no more distinct material issues than another plain run.
-* The pipeline costs about 70–90 minutes of model time per paper with two concurrent
-  stages, against 10–20 minutes for one plain call.
+* **Plain review is ahead on distinct material issues.** Counting each issue once, rather
+  than each criticism, the means are:
+
+  | Arm | Material criticisms | Distinct material issues | Published findings only |
+  | --- | --- | --- | --- |
+  | Plain | 17.5 / 12.3 | 17.4 / 12.3 | 17.5 / 12.3 |
+  | Baseline | 14.7 / 8.6 | 12.5 / 7.4 | — |
+  | Iter2 | 17.0 / 11.0 | 13.8 / 8.5 | 12.8 / 8.3 |
+  | Iter3 | 15.7 / 11.0 | 13.7 / 9.3 | 12.7 / 8.7 |
+
+  The specialist modules repeat issues across modules (on Ziano, iter2's 27 / 22
+  material criticisms are 18 / 13 issues), so criticism counts flatter the pipeline. On
+  distinct issues iter3 is about 22–24% below plain under both judges. The changes
+  narrowed the gap from the baseline; they did not close it. Six papers with mostly single
+  runs establish neither superiority nor equivalence.
+* **Pooling shows some complementarity, not a consistent advantage.** On the two papers
+  with two plain runs, plain plus iter3 covers about as many material issues as two plain
+  runs; plain plus iter2 covers somewhat more (Ziano 22 vs 21 under Sol, 15.5 vs 13 under
+  Opus). Iter3 raises a few material issues neither plain run raised.
+* **Version differences are confounded.** Iter3 differs from iter2 by two fixes as well as
+  by fresh generation; the owner-paper iter3 reused iter2's model outputs and is not a
+  replication. Single runs cannot rank these versions.
+* **Burden.** The pipeline shows authors about 6,700 words of criticism per paper against
+  about 2,900 for plain, and takes 70–95 minutes elapsed (120–165 minutes of summed stage
+  time at two concurrent stages) against 10–20 minutes. Whether verification prevents
+  enough harmful advice to justify this is unmeasured; contradicted criticisms are rare in
+  every arm.
+* **Measurement caveats.** Results depend on the materiality threshold (at ≥ 1 the
+  pipeline has more supported criticisms than plain) and on cluster boundaries set without
+  the manuscript. Judge calibration covers correctness on selected probes, not materiality;
+  materiality agreement between judges is moderate (weighted kappa about 0.4–0.6) on the
+  empirical papers and nil on the owner paper.
 
 Two measurement and product bugs found along the way changed these numbers and are fixed:
 
@@ -117,28 +139,34 @@ Two measurement and product bugs found along the way changed these numbers and a
 specification, theory or counterevidence; plain did. Iter1 raised those issues framed as
 wording fixes, rated less material; iter2's problem-level framing brought the pipeline to
 plain's level on this paper under Sol. Opus rates no criticism on this paper as material,
-so the owner's labels are the deciding evidence here.
+so the owner's labels are an important diagnostic here, though one author's view of an
+atypical reanalysis is not an independent standard.
 
 **Where the pipeline loses.** On PeerJ 16147 every material issue raised only by plain
 review falls within a module's remit (composite measures, differences in significance
 read as significant differences, selection of countries by significance, attrition,
-untested change over time, a misrepresented citation). Iter2 discovered most of them; the
-external-verdict bug then withheld many. Remaining losses look like run-to-run variation
-more than systematic blind spots.
+untested change over time, a misrepresented citation). Iter2 discovered most of them and
+the external-verdict bug withheld many, yet after the fix iter3 still misses nine of
+plain's material issues entirely. Being within a module's remit is intended coverage, not
+reliable detection; whether these misses come from stochastic discovery, partitioning that
+discourages cross-cutting reasoning, or downstream filtering needs a stage-by-stage trace.
 
 ## Decisions for the owner
 
-* **Whether the specialist design should stay the product.** On this evidence it matches,
-  but does not beat, a well-prompted single call at about five times the cost, and it adds
-  no more distinct material coverage than a second plain run. Possible directions: keep
+* **Whether the specialist design should stay the product.** On this evidence it finds
+  fewer distinct material issues than a well-prompted single call, at several times the
+  latency and more than twice the reading load, and its extra coverage over a second plain
+  run is inconsistent. Retain it as the default only if independent assessment shows enough
+  distinct material benefit, deeper actionable analysis or harm prevention to justify that. Possible directions: keep
   developing modules (for example deeper per-module tool use, or modules that take a plain
   review's issues as leads and test them); use specialists for checks a single call does
   badly (numerical recomputation, source verification) on top of a broad review; or accept
   the single call as the core and present the pipeline's verification and report structure
   as the added value. These are product decisions, not settled by the judges.
 * **Label the owner-paper packet** (`runs/owner-paper-20261009/validation-packet.html`,
-  44 criticisms in 17 issues, about an hour): it shows whether either judge's materiality
-  matches the author's, which the comparisons above depend on.
+  44 criticisms in 17 issues, about an hour; score it against `judge-v4/result.json`, which
+  it was built from): it gives an author-utility check and a materiality diagnostic for
+  the judges.
 * **Fenced set membership:** two fenced PeerJ cases are attitude surveys at the edge of
   social psychology (16338, 15835). Changing that means changing the rule and redrawing
   before anyone looks at them.
@@ -151,8 +179,16 @@ more than systematic blind spots.
 
 ## Next steps
 
-More runs per paper before further prompt changes: with differences of up to six material
-criticisms between runs of one version, comparisons need at least three runs per arm on
-these six papers. If the specialist design stays, the most promising test is a version in
-which each module receives the plain review's candidate issues as leads, so that the
-specialists deepen and verify rather than rediscover.
+1. Trace each of plain's material issues that the pipeline misses through discovery,
+   verification and editorial on the existing outputs, and replay the old and repaired
+   external-source gates on fixed candidates, to separate discovery losses from filtering.
+2. Compare, with independent caches and matched inputs on several development papers: the
+   repaired specialist pipeline, plain, plain with a second plain run, and plain followed
+   by the pipeline's verification (`eval/experiment_discovery.py --mode replay`). The last
+   arm tests whether verification and report structure add value without specialist
+   discovery.
+3. If the specialist design stays, test modules that receive plain's candidate issues as
+   leads, so they deepen and check rather than rediscover.
+4. Before the fenced validation, prespecify the acceptable coverage deficit and the safety
+   or utility benefit the pipeline must show, and use human assessment of unique material
+   issues, judge disagreements, gate losses and potentially harmful remedies.
