@@ -150,6 +150,23 @@ material issues on the five empirical papers (Sol's materiality):
 Discovery is the main loss; verification and editorial account for about a sixth. Whether
 the three contradictions are correct rejections or verifier errors needs a human check.
 
+**Does finalization add value without specialist discovery?** A replay arm sends one plain
+run's criticisms through the pipeline's verification (Opus) and editorial stages
+(`eval/experiment_discovery.py --mode replay --manuscript …`; metacheck skipped). Distinct
+supported material issues per paper, mean of six papers, Sol (Opus); "all shown" includes
+concerns the report lists as unconfirmed:
+
+| Arm | All shown | Published only | Contradicted per paper |
+| --- | ---: | ---: | ---: |
+| Plain | 17.5 (12.2) | 17.5 (12.2) | 0.2 (0.1) |
+| Plain + finalization | 14.7 (10.8) | 12.8 (9.3) | 0.3 (0.2) |
+
+Finalization removes about a sixth of plain's material issues, and over a quarter of the
+published ones, without reducing the criticisms the judges contradict. By the judges'
+measure the verification and editorial stages currently cost coverage and buy no precision.
+The judges may be too lenient where the verifier is right; the cases the verifier withheld
+or rejected are the priority for human assessment.
+
 **What the diagnosis of the owner paper showed.** The baseline modules audited thoroughly
 (recomputing statistics and sample flow) and raised nothing on model specification, theory
 or counterevidence, which plain review did. After the scope change they raised those
