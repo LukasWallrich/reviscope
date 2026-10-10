@@ -67,56 +67,92 @@ remedies. Run-to-run variation is large, so a gain on one paper is a lead, not a
 
 ## Evidence so far
 
-**Owner paper (reanalysis; one run per version).**
+Six development papers: five ordinary empirical Meta-Psychology and PeerJ submissions and
+the owner's reanalysis. Counts are supported criticisms with materiality ≥ 2 per run,
+averaged over runs, under each judge (judge protocol v3 clustering). Plain is the general
+one-call baseline; baseline is the frozen 0.5.0a1 specialist pipeline; iter2 adds the
+expert-critique scope, replication check and problem-level claims; iter3 is a fresh run of
+iter2's prompts with two fixes (external-verdict matching and metacheck control
+characters). One run per arm unless noted.
 
-| Version | Criticisms shown | Supported (both judges) | Material, Sol | Material, Opus |
-| --- | ---: | ---: | ---: | ---: |
-| Baseline 0.5.0a1 | 6 | 6 | 1 | 0 |
-| Expert-critique scope (iter1) | 15 | 14 | 2 | 0 |
-| Plain, two runs (mean) | 7 | 6.5 | 4.5 | 0 |
+| Paper | Plain | Baseline | Iter2 | Iter3 |
+| --- | --- | --- | --- | --- |
+| Bonetto (2 plain, 2 baseline runs) | 17 / 13 | 12.5 / 10 | 19 / 9 | 15 / 13 |
+| Brohmer | 17 / 14 | 17 / 10 | 15 / 10 | 11 / 8 |
+| PeerJ 16147 | 25 / 18 | 15 / 9 | 16 / 9 | 20 / 13 |
+| Satrevik | 25 / 18 | 20 / 10 | 20 / 16 | 22 / 15 |
+| Ziano (2 plain, 2 baseline runs) | 16.5 / 10.5 | 22.5 / 12.5 | 27 / 22 | 21 / 17 |
+| Owner paper (2 plain runs) | 4.5 / 0 | 1 / 0 | 5 / 0 | 5 / 0 |
+| **Mean** | **17.5 / 12.3** | **14.7 / 8.6** | **17.0 / 11.0** | **15.7 / 11.0** |
 
-The baseline modules audited thoroughly (recomputing statistics and sample flow) yet raised
-nothing on model specification, theory or counterevidence; plain review did. After the
-scope change the specialist pipeline raised those same issues, but framed them as wording
-fixes ("the abstract leaves … unclear"), which the judges rated less material. The
-claim-framing change (iter2) targets that. Opus rates almost no criticism on this paper as
-material, so the combined materiality count is uninformative here; the owner's labels will
-show which judge's materiality to trust.
+Cells are Sol / Opus. Contradicted criticisms are rare in every arm (at most one per run).
 
-**Bonetto (six experiments; one specialist run, two plain runs).** The baseline specialist
-and plain arms are close: 26 and 25 criticisms, all but one supported, with 14 and 17
-material under Sol. Overlap of material issues, after fixing a clustering rule that split
-equivalent criticisms (judge branch `judge-clustering`, protocol v3):
+What this shows:
 
-| Pair (Sol) | Jaccard |
-| --- | ---: |
-| plain run 1 vs plain run 2 | 0.62 |
-| specialist vs plain run 1 | 0.41 |
-| specialist vs plain run 2 | 0.63 |
+* The changes moved the specialist pipeline from clearly behind plain review to roughly
+  level with it, mainly under Opus (8.6 to 11.0, against 12.3 for plain). They did not put
+  it ahead: plain still has more material criticism on four of six papers.
+* Iter2 and iter3 use the same prompts; their differences of up to six per paper are
+  run-to-run variation. Single runs cannot rank versions this close.
+* Pooling does not favour the pipeline either. On the two papers with two plain runs, the
+  material coverage of plain plus pipeline equals that of two plain runs (Bonetto 19.6 vs
+  19 under Sol, 14.2 vs 15 under Opus; Ziano 20.8 vs 21 and 13.4 vs 13). The pipeline
+  adds no more distinct material issues than another plain run.
+* The pipeline costs about 70–90 minutes of model time per paper with two concurrent
+  stages, against 10–20 minutes for one plain call.
 
-The specialist arm overlaps with plain about as much as plain overlaps with itself; under
-the earlier clustering rule it had appeared largely complementary (0.11–0.29), which was
-an artifact. Issue-level counts from protocol v1 should not be used.
+Two measurement and product bugs found along the way changed these numbers and are fixed:
+
+* **Judge clustering** required the same consequence as well as the same problem, which
+  split equivalent criticisms. Issue-level overlap computed with protocol v1 made the arms
+  look complementary (Jaccard 0.11–0.29); with protocol v3 the specialist arm overlaps
+  plain about as much as plain overlaps itself.
+* **External-verdict matching**: the verifier reported checked sources by DOI, while the
+  gate looked verdicts up by URL, so opened and confirmed sources counted as unchecked.
+  This held back 21 verifier-supported findings on Satrevik and 14 on PeerJ 16147 in iter2,
+  falling hardest on the literature-based critique iter2 encouraged. The fix is cherry-picked
+  from the `argument-coherence` branch (cf3068a).
+
+**Owner paper.** The baseline modules audited thoroughly but raised nothing on model
+specification, theory or counterevidence; plain did. Iter1 raised those issues framed as
+wording fixes, rated less material; iter2's problem-level framing brought the pipeline to
+plain's level on this paper under Sol. Opus rates no criticism on this paper as material,
+so the owner's labels are the deciding evidence here.
+
+**Where the pipeline loses.** On PeerJ 16147 every material issue raised only by plain
+review falls within a module's remit (composite measures, differences in significance
+read as significant differences, selection of countries by significance, attrition,
+untested change over time, a misrepresented citation). Iter2 discovered most of them; the
+external-verdict bug then withheld many. Remaining losses look like run-to-run variation
+more than systematic blind spots.
 
 ## Decisions for the owner
 
-* **Label the owner-paper packet** (about an hour): it calibrates the judges, especially on
-  materiality, against someone who knows the paper.
+* **Whether the specialist design should stay the product.** On this evidence it matches,
+  but does not beat, a well-prompted single call at about five times the cost, and it adds
+  no more distinct material coverage than a second plain run. Possible directions: keep
+  developing modules (for example deeper per-module tool use, or modules that take a plain
+  review's issues as leads and test them); use specialists for checks a single call does
+  badly (numerical recomputation, source verification) on top of a broad review; or accept
+  the single call as the core and present the pipeline's verification and report structure
+  as the added value. These are product decisions, not settled by the judges.
+* **Label the owner-paper packet** (`runs/owner-paper-20261009/validation-packet.html`,
+  44 criticisms in 17 issues, about an hour): it shows whether either judge's materiality
+  matches the author's, which the comparisons above depend on.
 * **Fenced set membership:** two fenced PeerJ cases are attitude surveys at the edge of
   social psychology (16338, 15835). Changing that means changing the rule and redrawing
   before anyone looks at them.
 * **Public metadata:** `eval/corpus/splits.v1.json` lists reviewer names and short
   verification snippets from CC BY sources.
-* **The `argument-coherence` branch** adds an `argument_coherence` module and its own
-  point-level judging; it is not merged here. The criticism judge on this branch overlaps
-  with that judging, and one of them should become the standard.
+* **The `argument-coherence` branch** has the external-verdict fix used here and an
+  `argument_coherence` module; its point-level judging overlaps with the criticism judge.
 * **Severity:** every finding on the owner paper was rated minor, including challenges to
-  headline claims. The guidance may be too conservative; the owner's labels should decide.
+  headline claims.
 
 ## Next steps
 
-Complete the interrupted runs (the Opus verifier hit usage limits under concurrent load),
-judge all six development papers for baseline, iter1 and iter2 against plain, and add
-second runs where the overlap question matters. Then test whether pooling diverse passes,
-for example a broad critique as one more module beside the specialists, raises material
-coverage beyond what either finds alone.
+More runs per paper before further prompt changes: with differences of up to six material
+criticisms between runs of one version, comparisons need at least three runs per arm on
+these six papers. If the specialist design stays, the most promising test is a version in
+which each module receives the plain review's candidate issues as leads, so that the
+specialists deepen and verify rather than rediscover.
