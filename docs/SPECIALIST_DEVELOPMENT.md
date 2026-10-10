@@ -81,33 +81,58 @@ supported criticism rated 2 or 3 for materiality.
 | Satrevik | 25 (18) | 20 (10) | 20 (16) | 22 (15) |
 | Ziano | 16.5 (10.5)* | 22.5 (12.5)* | 27 (22) | 21 (17) |
 | Owner paper | 4.5 (0)* | 1 (0) | 5 (0) | 5 (0) |
-| **Mean** | **17.5 (12.2)** | **14.7 (8.6)** | **17.0 (11.0)** | **15.7 (11.0)** |
+| **Mean** | **17.5 (12.3)** | **14.7 (8.6)** | **17.0 (11.0)** | **15.7 (11.0)** |
 
 \* mean of two runs. Iter2 is the expert-critique scope, replication check and claim
 framing. Iter3 reruns iter2's prompts with two fixes: verdicts on external sources are
 accepted under either the cited URL or DOI, and control characters no longer stop
 metacheck. On the owner paper iter3 reused iter2's stages.
 
+Counting each issue once, rather than each criticism, changes the comparison, because
+the specialist modules raise some issues more than once (on Ziano, iter2's 27 (22) material
+criticisms are 18 (13) distinct issues). Means across the six papers:
+
+| Arm | Material criticisms | Distinct material issues | Published findings only |
+| --- | ---: | ---: | ---: |
+| Plain | 17.5 (12.3) | 17.4 (12.3) | 17.5 (12.3) |
+| Baseline 0.5.0a1 | 14.7 (8.6) | 12.5 (7.4) | — |
+| Iter2 | 17.0 (11.0) | 13.8 (8.5) | 12.8 (8.3) |
+| Iter3 | 15.7 (11.0) | 13.7 (9.3) | 12.7 (8.7) |
+
+"Published findings only" leaves out the concerns the verifier could not confirm, which the
+report shows separately. These figures were recomputed from the judge outputs by GPT 6.1
+Sol (`research/llm-reviewer-sources/sol-review-of-development-results.md`).
+
 What this shows:
 
-* **The baseline was below plain review; the changes brought the pipeline level with it,
-  not ahead.** Plain beat the baseline on four of six papers under both judges. Iter2 and
-  iter3 are close to plain on average and still behind on three or four papers.
-* **Differences between pipeline versions are within run-to-run variation.** Iter3 reran
-  iter2's prompts and moved by four to six material criticisms per paper in both directions.
-  Two plain runs of one paper share 60–70% of their material issues.
-* **A pipeline run adds about as much coverage as a second plain run.** On Bonetto and Ziano,
-  one plain run plus one pipeline run covered 18–22 material issues under Sol; two plain runs
-  covered 19–21. The pipeline takes four to five times as long as a plain run.
+* **The changes narrowed the gap to plain review but did not close it.** Plain beat the
+  baseline on four of six papers under both judges. Iter2 and iter3 are close to plain on
+  criticism counts, but on distinct material issues iter3 is about 22–24% below plain under
+  both judges, and further below on published findings. Iter2 and iter3 still trail plain
+  on three or four papers. Six papers with mostly single runs establish neither
+  superiority nor equivalence.
+* **Version differences cannot be separated from run-to-run variation.** Iter3 moved by up
+  to six material criticisms per paper from iter2, in both directions, but it also differs
+  by two fixes; on the owner paper it reused iter2's outputs and is not a replication. Two
+  plain runs of one paper share 57–74% of their material issues (Jaccard).
+* **A pipeline run adds about as much coverage as a second plain run, sometimes a little
+  more.** On Bonetto and Ziano, two plain runs cover 19 and 21 material issues under Sol;
+  one plain run plus iter3 covers 19.5 and 20.5, plus iter2 21 and 22. Iter3 raises a few
+  material issues that neither plain run raised.
 * **Neither arm shows a precision problem the judges can see.** Contradicted criticisms
   average below 0.2 per run in every arm, so verification has no measured precision
   advantage here. The probe calibration shows the judges do catch false criticisms when
-  they occur.
+  they occur, but it does not calibrate materiality.
+* **The pipeline costs more time and more reading.** Iter3 took 70–95 minutes per paper
+  (two concurrent stages) against 10–20 minutes for plain, and shows about 6,700 words of
+  criticism per paper against about 2,900.
 * **The external-source gate was discarding supported findings.** The verifier reported
   sources by DOI and the gate looked them up by URL. Iter2 lost 21 verifier-supported
   findings on Satrevik and 14 on PeerJ 16147 this way. Fixed in iter3.
 * **Issue-level counts need the corrected clustering.** Clustering protocol v1 split
-  equivalent criticisms and made the arms look complementary; v3 does not.
+  equivalent criticisms and made the arms look complementary; v3 does not. Results also
+  depend on the materiality threshold: at 1 or more, the pipeline has more supported
+  criticisms than plain.
 
 **What the diagnosis of the owner paper showed.** The baseline modules audited thoroughly
 (recomputing statistics and sample flow) and raised nothing on model specification, theory
@@ -118,16 +143,17 @@ owner's labels are needed to decide which judge's materiality to trust.
 
 ## What the evidence does not show
 
-It does not show that the specialist pipeline is worse than plain review for an author.
-The judges count criticisms; they do not assess the report as delivered, the audit trail,
+It does not show that the specialist pipeline is worse than plain review for an author,
+only that the judges find fewer distinct material issues in it. The judges count criticisms; they do not assess the report as delivered, the audit trail,
 whether a human would trust the "supported" labels, or whether plain review's criticisms
 survive expert scrutiny as often as verified ones. Five of the six papers come from two
 open-review journals. No human has adjudicated any of these criticisms yet.
 
 ## Decisions for the owner
 
-* **What should the pipeline be better at than a plain prompt?** On the count of supported,
-  material criticisms it is currently level at four to five times the time. Candidate
+* **What should the pipeline be better at than a plain prompt?** On the judges' count of
+  distinct, supported, material issues it is currently about a fifth behind, at four to
+  eight times the time and more than twice the reading. Candidate
   answers that the present evidence cannot settle: precision as judged by experts,
   trustworthy labels and audit trail, recomputation, and stability. If coverage is the
   goal, pooling several cheap broad passes and spending the pipeline's effort on
@@ -152,4 +178,8 @@ open-review journals. No human has adjudicated any of these criticisms yet.
 Hold further prompt iteration until the owner has labelled the packet and chosen what the
 pipeline should earn. Version differences are within noise at one run per paper, so more
 single runs will not rank versions; a decision on the target outcome determines which
-measurement to scale. Development runs so far cover six of 29 development papers.
+measurement to scale. Two diagnostics on existing outputs are under way and do not change
+the pipeline: tracing plain's material issues that iter3 misses through discovery,
+verification and editorial, and a replay arm in which plain review's criticisms go through
+the pipeline's verification and editorial (`eval/experiment_discovery.py --mode replay`),
+which tests whether finalization adds value without specialist discovery. Development runs so far cover six of 29 development papers.
