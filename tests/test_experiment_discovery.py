@@ -72,7 +72,7 @@ class ReplayBackend(Backend):
         if kind == "EditorialResponse":
             rows = json.loads(instruction.split("\nFINDINGS\n")[1])
             return response_model.model_validate({"decisions": [
-                {"finding_id": row["id"], "disposition": "keep", "reason": "Distinct."} for row in rows],
+                {"finding_id": row["id"], "disposition": "keep", "reason": "Distinct.", "severity": row["severity"]} for row in rows],
                 "reconciled_overview": {"design_summary": "Descriptive seed.",
                                         "contribution_summary": "Contribution.", "strengths": []}})
         raise AssertionError(f"Unexpected model stage: {kind}")

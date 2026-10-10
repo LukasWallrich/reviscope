@@ -14,6 +14,9 @@ class Severity(str, Enum):
     critical = "critical"
 
 
+SUPPORTED_STATUSES = frozenset({"llm_supported", "supported", "recomputed", "verified_deterministic"})
+
+
 class Evidence(BaseModel):
     source_id: str
     quote: str = Field(min_length=1)
@@ -117,7 +120,17 @@ class CandidateFinding(BaseModel):
     study_id: str | None = None
 
 
+class MergedPoint(BaseModel):
+    finding_id: str
+    module: str
+    claim: str
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
 class Finding(CandidateFinding):
+    discovery_severity: Severity | None = None
+    priority: int | None = Field(default=None, ge=1)
+    merged_points: list[MergedPoint] = Field(default_factory=list)
     external_evidence: list[ExternalEvidence] = Field(default_factory=list)
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)

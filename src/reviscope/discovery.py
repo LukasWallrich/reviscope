@@ -12,6 +12,7 @@ from .reasoning import ARGUMENT_ASSESSMENT, LITERATURE_ASSESSMENT, MATERIAL_ASSE
 
 
 TOPICS = {
+    'overview': ['central_claims_and_evidence', 'alternative_explanations_and_scope', 'consequential_gaps'],
     'contribution': ['question_and_claims', 'theoretical_argument', 'design_addresses_question'],
     'design': ['confounds_and_controls', 'sampling_and_assignment', 'timing_and_dependence', 'attrition_and_missing_data'],
     'measurement': ['construct_validity', 'scoring_and_denominators', 'comparability_and_validity'],
@@ -53,7 +54,7 @@ def discovery_instruction(module: str, base: str) -> str:
     base += '\n' + ARGUMENT_ASSESSMENT
     if module == 'contribution':
         base += LITERATURE_ASSESSMENT
-    if module in {'measurement', 'interpretation', 'consistency', 'blind_spots',
+    if module in {'overview', 'measurement', 'interpretation', 'consistency', 'blind_spots',
                   'social_psychology_context', 'education_context'}:
         base += MATERIAL_ASSESSMENT
     return base + '''\nAudit the entire supplied manuscript within your assigned responsibility and return every
@@ -77,8 +78,9 @@ smallest remedy that resolves the issue, which may well be a wording change, and
 essential when the claims as stated cannot stand without it, strengthening when it would improve
 support or clarity without being required, extending when it goes beyond the manuscript's scope. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
-by default. Missing information alone cannot be major or critical without a demonstrated material
-consequence. Set search_incomplete=true if you could not complete the audit of your responsibility.
+by default. Missing information is major only when a central claim cannot be assessed without it.
+Severity here is provisional; editorial assigns final severity with all findings in view.
+Set search_incomplete=true if you could not complete the audit of your responsibility.
 ''' + _CHECKS_LINE + ', '.join(topics) + '''.
 For assessed checks, explain what you compared and cite source evidence; empty findings do not imply
 coverage. Mark not_applicable, insufficient_evidence or not_checked with a reason when appropriate.

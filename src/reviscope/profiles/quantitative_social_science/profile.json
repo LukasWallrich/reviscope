@@ -2,12 +2,12 @@
   "id": "quantitative_social_science",
   "name": "Quantitative social science",
   "status": "alpha",
-  "modules": ["contribution", "design", "measurement", "statistical_inference", "interpretation", "consistency"],
+  "modules": ["contribution", "design", "measurement", "statistical_inference", "interpretation", "consistency", "overview"],
   "terminology": {"participant": "participant or observational unit", "outcome": "outcome or dependent variable"},
   "severity_guidance": {
-    "critical": "A demonstrated issue that invalidates a central result; uncertainty, acknowledged scope limits, and requests for broader validation are not critical.",
-    "major": "A supported issue that could materially change a central inference or requires substantial correction.",
-    "minor": "A localized issue, proportionate reporting request, or unresolved information limitation that does not itself establish failure."
+    "critical": "A demonstrated error that invalidates a central result.",
+    "major": "A supported issue that could change a central conclusion or its interpretation, an internal inconsistency affecting a reported result, or a missing analysis or information without which a central claim cannot be assessed.",
+    "minor": "A local, presentational or reporting issue without such consequence."
   },
   "metadata": {"validated": false, "version": "0.4.0"}
 }

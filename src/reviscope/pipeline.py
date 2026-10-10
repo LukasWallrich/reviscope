@@ -9,15 +9,15 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .backend import REVIEW_GUARD, Backend, CodexBackend
 from .ingest import ingest
-from .render import render_all
+from .render import finding_order, render_all
 from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
-from .schemas import Evidence, ExternalCheck, ExternalSourceTask, Finding, MetacheckRecord, Profile, ReviewRun, RunMetadata, SourceDocument, StageProvenance, StageRecord, StudyMap
+from .schemas import SUPPORTED_STATUSES, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, Profile, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap
 
 
 class VerificationDecision(BaseModel):
@@ -41,6 +41,14 @@ class EditorialDecision(BaseModel):
     disposition: Literal["keep", "merge", "reject", "needs_review"]
     reason: str
     target_id: str | None = None
+    severity: Severity | None = None
+    priority: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _keep_severity(self) -> "EditorialDecision":
+        if self.disposition == "keep" and self.severity is None:
+            raise ValueError("Editorial keep decisions require severity")
+        return self
 
 
 class ReconciledOverview(BaseModel):
@@ -347,6 +355,8 @@ class ReviewPipeline:
         evidence = self._evidence(sources)
         from .verification import verify_findings
 
+        run.candidates = [f.model_copy(update={"discovery_severity": f.discovery_severity or f.severity})
+                          for f in run.candidates]
         anchored = verify_findings(run.candidates, sources)
         pending = [f for f in anchored if f.status == "unresolved"]
         if not pending:
@@ -413,7 +423,7 @@ class ReviewPipeline:
                 decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="completed")
             else:
-                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. The number of published findings is not limited: never reject a finding or mark it needs_review because of how many other findings there are. Use the severity guidance to judge whether each finding is proportionately stated; severity itself is immutable at this stage. Missing-information claims rated major or critical require a demonstrated material consequence; otherwise use needs_review. The manuscript supplies context for the reconciled overview and proportionality, not a replacement verification pass. Keep distinct, proportionately stated supported findings under the editorial rules; do not override factual verification on a fresh substantive reading. If you identify a factual disagreement with verification, use needs_review and explain it for audit rather than silently rejecting it. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
+                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. The number of published findings is not limited: never reject a finding or mark it needs_review because of how many other findings there are. Assign final severity and a positive integer priority for every keep decision, with all findings in view; lower priority numbers come first within each severity. Critical means a demonstrated error that invalidates a central result. Major means a supported issue that could change a central conclusion or its interpretation, an internal inconsistency affecting a reported result, or missing analysis or information without which a central claim cannot be assessed. Minor means a local, presentational or reporting issue without such consequence. Missing information is major only when a central claim cannot be assessed without it. Discovery severity is provisional and retained for audit. Severity never overrides verification status. The manuscript supplies context for the reconciled overview and proportionality, not a replacement verification pass. Keep distinct, proportionately stated supported findings under the editorial rules; do not override factual verification on a fresh substantive reading. If you identify a factual disagreement with verification, use needs_review and explain it for audit rather than silently rejecting it. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input),
                     "evidence": _hash(evidence), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse,
                     lambda: self.backend.generate(instruction, evidence, EditorialResponse))
@@ -437,7 +447,9 @@ class ReviewPipeline:
             for finding in run.findings:
                 groups.setdefault((" ".join(finding.claim.lower().split()), finding.study_id), []).append(finding)
             epistemic_rank = {"recomputed": 5, "verified_deterministic": 5, "supported": 4, "llm_supported": 4, "unresolved": 2, "candidate": 1, "unverified": 0, "contradicted": -1}
-            duplicate_winner = {key: max(items, key=lambda f: (epistemic_rank.get(f.status, 0), len(f.evidence), f.id)).id for key, items in groups.items()}
+            duplicate_winner = {key: max(items, key=lambda f: (epistemic_rank.get(f.status, 0),
+                by_id.get(f.id) is not None and by_id[f.id].disposition == "keep", len(f.evidence), f.id)).id
+                for key, items in groups.items()}
             finding_by_id = {f.id: f for f in run.findings}
             edited: list[Finding] = []
             for finding in run.findings:
@@ -471,7 +483,10 @@ class ReviewPipeline:
                         reason = decision.reason
                         if decision.disposition == "needs_review":
                             disposition = "needs_review"
-                edited.append(finding.model_copy(update={"editorial_disposition": disposition, "editorial_reason": reason, "merged_into": merged_into}))
+                updates = {"editorial_disposition": disposition, "editorial_reason": reason, "merged_into": merged_into}
+                if decision and decision.disposition == "keep" and disposition == "publish" and finding.status in SUPPORTED_STATUSES:
+                    updates.update(severity=decision.severity, priority=decision.priority)
+                edited.append(finding.model_copy(update=updates))
             quarantined: list[Finding] = []
             for finding in edited:
                 if finding.status == "contradicted":
@@ -486,14 +501,19 @@ class ReviewPipeline:
             for finding in run.findings:
                 if finding.editorial_disposition == "merged":
                     target = final_by_id.get(finding.merged_into or "")
-                    if target is None or target.editorial_disposition != "publish" or target.status == "contradicted":
+                    if target is None or target.editorial_disposition != "publish" or target.status not in SUPPORTED_STATUSES:
                         merge_repair_needed = True
                         finding = finding.model_copy(update={"editorial_disposition": "needs_review", "merged_into": None,
                                                              "editorial_reason": "Merge target was not publishable; retained for review."})
                 repaired_findings.append(finding)
-            # Reports and review.json list findings in this order: critical, major, minor.
-            severity_order = {"critical": 0, "major": 1, "minor": 2}
-            run.findings = sorted(repaired_findings, key=lambda f: severity_order[f.severity.value])
+            related: dict[str, list[MergedPoint]] = {}
+            for finding in repaired_findings:
+                if finding.editorial_disposition == "merged" and finding.status in SUPPORTED_STATUSES and finding.merged_into:
+                    related.setdefault(finding.merged_into, []).append(MergedPoint(
+                        finding_id=finding.id, module=finding.module, claim=finding.claim,
+                        evidence=[e for e in finding.evidence if e.source_char_start is not None]))
+            folded = [f.model_copy(update={"merged_points": related.get(f.id, [])}) for f in repaired_findings]
+            run.findings = sorted(folded, key=finding_order)
             if merge_repair_needed:
                 run.partial = True
                 run.coverage.append("editorial: invalid merge target was retained as needs_review")

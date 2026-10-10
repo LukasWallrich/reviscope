@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .metacheck import describe
-from .schemas import Finding, ReviewRun
+from .schemas import SUPPORTED_STATUSES, Evidence, Finding, ReviewRun
 
 UNCONFIRMED_HEADING = "## Concerns the verifier could not confirm"
 
@@ -21,14 +21,24 @@ def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
 
 def published_findings(run: ReviewRun) -> list[Finding]:
     """Findings shown in the report's Findings section."""
-    return [f for f in run.findings if f.editorial_disposition == "publish" and f.status not in {"candidate", "unverified", "unresolved", "contradicted"}]
+    return sorted([f for f in run.findings if f.editorial_disposition == "publish" and f.status in SUPPORTED_STATUSES], key=finding_order)
+
+
+def finding_order(finding: Finding) -> tuple[int, bool, int]:
+    return ({"critical": 0, "major": 1, "minor": 2}[finding.severity.value],
+            finding.priority is None, finding.priority or 0)
+
+
+def _quotation_lines(evidence: list[Evidence]) -> list[str]:
+    lines = []
+    for ev in evidence:
+        where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
+        lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
+    return lines
 
 
 def _evidence_lines(finding: Finding) -> list[str]:
-    lines = []
-    for ev in finding.evidence:
-        where = ev.location or (f"page {ev.page}" if ev.page else "location unavailable")
-        lines.append(f"> “{ev.quote}” — `{ev.source_id}`, {where}")
+    lines = _quotation_lines(finding.evidence)
     for ext in finding.external_evidence:
         lines.append(f"> External source ({ext.check}): “{ext.quote}” — {ext.locator}; shows: {ext.shows}")
     return lines
@@ -58,6 +68,11 @@ def to_markdown(run: ReviewRun) -> str:
             label = f" ({NECESSITY[finding.remedy_necessity]})" if finding.remedy_necessity else ""
             lines.extend([f"**Suggested response{label}:** {finding.remedy}", ""])
         lines.extend([*_evidence_lines(finding), ""])
+        if finding.merged_points:
+            lines.extend(["**Also raised by other modules:**", ""])
+            for point in finding.merged_points:
+                lines.extend([f"- `{point.module}` (`{point.finding_id}`): {point.claim}", "",
+                              *_quotation_lines(point.evidence), ""])
     unconfirmed = unconfirmed_concerns(run)
     if unconfirmed:
         lines.extend([UNCONFIRMED_HEADING, "",

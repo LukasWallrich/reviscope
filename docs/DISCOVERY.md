@@ -21,8 +21,10 @@ specification conflict compares incompatible reported specifications; a clarific
 request identifies missing information and the particular assessment or reproduction
 it prevents. Kind does not override the complete wording or discipline criteria.
 Verification assesses the claim at that scope, and essential inaccessible material
-leaves the claim unresolved. Severity stays immutable during editorial. Classification
-does not automatically support an omission or change its severity.
+leaves the claim unresolved. Discovery severity is provisional and retained as
+`discovery_severity` for audit.
+Editorial assigns final severity with all findings in view. Classification does not
+automatically support an omission or change its severity.
 
 ## Discovery
 
@@ -53,7 +55,16 @@ named coverage check, so the coverage ledger shows whether the owner assessed it
 | `measurement` | `construct_validity`, `scoring_and_denominators`, `comparability_and_validity` | construct validity |
 | `statistical_inference` | `hypothesis_test_alignment`, `statistical_errors`, `power_and_sensitivity`, `analytic_flexibility`, `uncertainty_and_estimates` | statistical errors; analytic flexibility |
 | `interpretation` | `causal_inference`, `generalizability`, `theory_and_mechanism_claims`, `claim_evidence_consistency` | causal inference; generalizability |
+| `overview` | `central_claims_and_evidence`, `alternative_explanations_and_scope`, `consequential_gaps` | the whole argument; central conclusions, competing explanations and consequential gaps |
 | `consistency` | `cross_section_agreement`, `sample_counts_through_stages`, `planned_versus_reported_analyses` | internal consistency; reporting completeness |
+
+`overview` reads the manuscript as one argument from question to conclusion and raises
+the issues an expert reviewer would put first. It covers problems spanning methodological
+lenses and missing content or analyses needed to assess central claims. It leaves narrow
+checks to their owners unless they are central to the main claims. It runs in parallel
+with the other modules and uses the same verification and editorial gates. Both
+`social_psychology` and `education` inherit it. Metacheck lead routing is unchanged;
+no leads are routed to overview. The blind-spot pass still follows all modules.
 
 `consistency` checks agreement across the whole manuscript: numbers and statements
 across sections (abstract against results, text against tables and figures), sample
@@ -139,7 +150,25 @@ anchoring or external-source checks, are listed only in the set-aside audit.
 
 Editorial selection merges duplicates and sets aside findings that verification does
 not support or that no candidate states proportionately. It never sets a finding aside
-because of how many there are. Published findings are ordered critical, major, minor.
+because of how many there are. Every keep decision must return final severity and is
+asked for a positive integer priority. Published findings are ordered critical, major,
+minor, then by editorial priority within each severity (lower numbers first). Missing
+priorities follow assigned ones; ties retain pipeline order. Older stored findings remain
+readable with `discovery_severity` and `priority` defaulting to null.
+
+Critical means a demonstrated error that invalidates a central result. Major means a
+supported issue that could change a central conclusion or its interpretation, an internal
+inconsistency affecting a reported result, or missing analysis or information without
+which a central claim cannot be assessed. Minor covers local, presentational or reporting
+issues without such consequence. Missing information is major only when a central claim
+cannot be assessed without it. Severity never overrides verification status.
+
+After publication gates and merge-target checks, supported merged findings contribute
+their unchanged claims and anchored quotations to the survivor's `merged_points`, each
+with its finding id and module. Reports show these under “Also raised by other modules:”.
+No new prose is generated for a merge. Unresolved, unverified and contradicted sources
+are not folded, and every original finding remains in the audit. Older stored findings
+default to an empty `merged_points` list.
 
 ## Tool use
 

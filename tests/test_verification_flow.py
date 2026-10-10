@@ -53,7 +53,7 @@ class EvidenceBackend(Backend):
         if kind == "EditorialResponse":
             rows = json.loads(instruction.split("FINDINGS\n")[1])
             return response_model.model_validate({"decisions": [{"finding_id": row["id"],
-                "disposition": "keep", "reason": "Distinct.", "target_id": None} for row in rows],
+                "disposition": "keep", "reason": "Distinct.", "target_id": None, "severity": row["severity"]} for row in rows],
                 "reconciled_overview": {"design_summary": "Overview sentinel.", "contribution_summary": "c", "strengths": []}})
         raise AssertionError(kind)
 

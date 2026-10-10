@@ -84,8 +84,9 @@ def decision(item, status="supported"):
 
 
 def keep_all(rows):
-    return [{"finding_id": row["id"], "disposition": "keep", "reason": "retain", "target_id": None}
-            for row in rows]
+    return [{"finding_id": row["id"], "disposition": "keep", "reason": "retain", "target_id": None,
+             "severity": row["severity"], "priority": i}
+            for i, row in enumerate(rows, 1)]
 
 
 def test_verification_batches_retain_successes_and_retry_only_failed_batch(tmp_path):
@@ -154,7 +155,7 @@ def test_merge_cannot_move_supported_finding_into_lower_support_target(tmp_path)
     def edit(rows):
         return [
             {"finding_id": rows[0]["id"], "disposition": "merge", "reason": "combine", "target_id": rows[1]["id"]},
-            {"finding_id": rows[1]["id"], "disposition": "keep", "reason": "target", "target_id": None},
+            {"finding_id": rows[1]["id"], "disposition": "keep", "reason": "target", "target_id": None, "severity": "major"},
         ]
     generator.editorial = edit
     run = ReviewPipeline(generator, one_module(), QualityBackend(model="verifier", verification=verify)).run(

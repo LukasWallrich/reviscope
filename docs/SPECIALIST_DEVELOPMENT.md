@@ -9,6 +9,11 @@ from LLM judges on development papers; they guide development and validate nothi
 
 **Product.**
 
+* Iter4 adds a whole-paper `overview` module beside the specialists, assigns final severity
+  and priority at editorial while retaining discovery severity, and folds supported merged
+  claims and anchored quotations into the surviving finding. Verification gates and
+  metacheck lead routing are unchanged; scientific benefit remains untested.
+
 * The broad-review strategy and evidence audit are retired (tag `pre-specialist-only-0.4.3`).
   Their operations already belonged to modules; decision-rule reconstruction for central
   claims moved into `interpretation`. Metacheck leads without an owning module now reach
