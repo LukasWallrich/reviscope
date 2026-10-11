@@ -196,6 +196,39 @@ worth testing inside ReviScope: a whole-paper overview pass beside the specialis
 severity set at the editorial stage with all findings in view, and folding the details of
 merged duplicates into the surviving finding.
 
+**Iter4: three coarse ideas.** Iter4 adds a whole-paper `overview` module beside the
+specialists, sets final severity and priority at the editorial stage with all findings in
+view, and folds merged duplicates' claims and quotations under the surviving finding. One
+fresh run per paper. Distinct supported material issues per paper, Sol (Opus):
+
+| Paper | Plain | Iter3 | Iter4 | coarse |
+| --- | ---: | ---: | ---: | ---: |
+| Bonetto | 16 (12) | 13 (11) | 14 (12) | 7 (8) |
+| Ziano | 16.5 (10.5) | 16 (11) | 16 (11) | 9 (6) |
+| Satrevik | 25 (18) | 18 (13) | 22 (18) | 8 (7) |
+| Brohmer | 17 (14) | 11 (8) | 17 (13) | 8 (9) |
+| PeerJ 16147 | 25 (18) | 19 (12) | 17 (12) | 6 (9) |
+| **Mean, five papers** | **19.9 (14.5)** | **15.4 (11.0)** | **17.2 (13.2)** | **7.6 (7.8)** |
+| Owner paper | 4.5 (0) | 5 (0) | 5 (0) | 5 (5) |
+
+Iter4 narrows the gap to plain from about a quarter to 14% under Sol and 9% under Opus, but
+single runs differ by four to six issues on one paper, so this is a lead. Published-only, iter4
+averages 15.4 (12.0) on these papers. The judge does not yet count folded points, which now
+appear under surviving findings (23–52 per paper), so iter4's coverage as read by an author
+is somewhat higher than these counts.
+
+Severity now carries information. Among judged criticisms on the five papers, the share
+that judges rate material (Sol):
+
+| Arm | Labelled major or critical | Labelled minor or moderate |
+| --- | ---: | ---: |
+| Iter3 (severity fixed at discovery) | 100% of 20 | 58% of 126 |
+| Iter4 (severity set at editorial) | 97% of 88 | 35% of 65 |
+| Plain | 99% of 79 | 65% of 97 |
+
+Iter3 labelled many material issues minor; iter4's labels separate material from minor
+issues better than either iter3 or plain review.
+
 **What the diagnosis of the owner paper showed.** The baseline modules audited thoroughly
 (recomputing statistics and sample flow) and raised nothing on model specification, theory
 or counterevidence, which plain review did. After the scope change they raised those
