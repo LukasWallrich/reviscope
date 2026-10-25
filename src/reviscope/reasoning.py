@@ -38,8 +38,10 @@ not retained or inspected by authors; the former never establishes the latter. P
 privacy-based withholding and request the smallest necessary clarification or a feasible
 privacy-preserving alternative. A caption or extracted figure text is not inspectable
 image evidence: do not invent visual contents. Questions about visual patterns, arrows
-or readability require actual image inspection; otherwise leave those steps unresolved.
-Extracted table values may support a numerical comparison without visual inspection.
+or readability require actual image inspection, which the page images of PDF sources
+allow; otherwise leave those steps unresolved. Table text extracted from DOCX, Markdown or
+plain-text sources may support a numerical comparison as extracted; text extracted from a
+PDF table can misplace cells and drop signs, so read PDF table values from the page images.
 """
 
 REASONING_ASSESSMENT = ARGUMENT_ASSESSMENT + LITERATURE_ASSESSMENT + MATERIAL_ASSESSMENT

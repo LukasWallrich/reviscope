@@ -1,21 +1,25 @@
 from __future__ import annotations
 
 import html
+import os
 import re
 from pathlib import Path
 
 from .metacheck import describe
-from .schemas import SUPPORTED_STATUSES, Evidence, Finding, ReviewRun
+from .schemas import SUPPORTED_STATUSES, Evidence, Finding, ReviewRun, TableReading
+from .verification import held_for_tables
 
 UNCONFIRMED_HEADING = "## Concerns the verifier could not confirm"
 
 
 def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
-    """Findings the verifier itself judged unresolved on the evidence, with an anchored manuscript quotation.
+    """Findings the verifier judged unresolved on the evidence, or supported while the table cells
+    they rest on were not confirmed against the page images, with an anchored manuscript quotation.
 
     Findings left unresolved by quote anchoring or external-source checks are not included."""
     manuscripts = {source.id for source in run.sources if source.kind == "manuscript"}
-    return [f for f in run.findings if f.status == "unresolved" and f.verifier_status == "unresolved"
+    return [f for f in run.findings if f.status == "unresolved"
+            and (f.verifier_status == "unresolved" or f.verifier_status == "supported" and held_for_tables(f))
             and any(ev.source_id in manuscripts and ev.location for ev in f.evidence)]
 
 
@@ -37,8 +41,40 @@ def _quotation_lines(evidence: list[Evidence]) -> list[str]:
     return lines
 
 
-def _evidence_lines(finding: Finding) -> list[str]:
+def _cell(reading: TableReading) -> str:
+    marks = f", marks `{reading.marks}`" if reading.marks else ""
+    emphasis = f", {reading.emphasis} type" if reading.emphasis not in (None, "none") else ""
+    unit = f" ({reading.unit})" if reading.unit else ""
+    return (f"{reading.table}, row “{' › '.join(reading.row)}”, column “{' › '.join(reading.column)}”: "
+            f"**{reading.value}**{unit}{marks}{emphasis}")
+
+
+def _page_link(run: ReviewRun, source_id: str, page: int) -> str:
+    """Link to the whole-page image, relative to the report."""
+    for rendered in run.page_images:
+        for image in rendered.images:
+            if rendered.source_id == source_id and image.page == page and image.view == "page":
+                target = os.path.relpath(Path(rendered.directory) / image.file, run.metadata.output_dir)
+                return f"[page {page} image]({Path(target).as_posix()})"
+    return f"page {page} (no image)"
+
+
+def _table_lines(run: ReviewRun, finding: Finding) -> list[str]:
+    lines = []
+    for check in finding.table_checks:
+        r = check.reading
+        lines.append(f"> Read from the page image, not a text quotation ({check.origin}): {_cell(r)} — `{r.source_id}`, "
+                     f"{_page_link(run, r.source_id, r.page)}; separate reading: **{check.outcome.replace('_', ' ')}**. {check.reason}")
+    if not finding.table_checks:
+        for r in finding.table_readings:
+            lines.append(f"> Claimed reading from the page image, not checked: {_cell(r)} — `{r.source_id}`, {_page_link(run, r.source_id, r.page)}")
+    return lines
+
+
+def _evidence_lines(finding: Finding, run: ReviewRun | None = None) -> list[str]:
     lines = _quotation_lines(finding.evidence)
+    if run is not None:
+        lines += _table_lines(run, finding)
     for ext in finding.external_evidence:
         lines.append(f"> External source ({ext.check}): “{ext.quote}” — {ext.locator}; shows: {ext.shows}")
     return lines
@@ -67,7 +103,7 @@ def to_markdown(run: ReviewRun) -> str:
         else:
             label = f" ({NECESSITY[finding.remedy_necessity]})" if finding.remedy_necessity else ""
             lines.extend([f"**Suggested response{label}:** {finding.remedy}", ""])
-        lines.extend([*_evidence_lines(finding), ""])
+        lines.extend([*_evidence_lines(finding, run), ""])
         if finding.merged_points:
             lines.extend(["**Also raised by other modules:**", ""])
             for point in finding.merged_points:
@@ -76,14 +112,18 @@ def to_markdown(run: ReviewRun) -> str:
     unconfirmed = unconfirmed_concerns(run)
     if unconfirmed:
         lines.extend([UNCONFIRMED_HEADING, "",
-                      "The verifier could neither establish nor rule out these concerns from the supplied material. "
-                      "They are not established findings. Each lists the verifier's reason.", ""])
+                      "The verifier could neither establish nor rule out these concerns from the supplied material, "
+                      "or the table cells they rest on were not confirmed against the page images. "
+                      "They are not established findings. Each lists the reason.", ""])
         for finding in unconfirmed:
-            lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "",
-                          f"**Verifier's reason:** {finding.verifier_rationale or 'No reason recorded.'}", "",
-                          finding.rationale, "", *_evidence_lines(finding), ""])
+            held = held_for_tables(finding) if finding.verifier_status == "supported" else None
+            reason = (f"**Held because:** {held} The verifier otherwise supported it." if held else
+                      f"**Verifier's reason:** {finding.verifier_rationale or 'No reason recorded.'}")
+            lines.extend([f"### {finding.severity.value.title()}: {finding.claim}", "", reason, "",
+                          finding.rationale, "", *_evidence_lines(finding, run), ""])
     lines.extend(["## Coverage and audit", ""])
     lines.extend(_metacheck(run))
+    lines.extend(_page_images(run))
     lines.extend(f"- {item}" for item in run.coverage)
     lines.append("")
     for stage in run.stages:
@@ -155,9 +195,28 @@ def _metacheck(run: ReviewRun) -> list[str]:
     return lines + [""]
 
 
+def _page_images(run: ReviewRun) -> list[str]:
+    if not run.page_images:
+        return []
+    lines = ["### Page images", "",
+             "Every page of each PDF source was rendered locally and made available to the specialist modules, the "
+             "verifier and the separate cell reader. Availability does not show that a model inspected a page; table "
+             "cells count as checked only where a separate reading is recorded with a finding.", ""]
+    for rendered in run.page_images:
+        if rendered.error:
+            lines.append(f"- `{rendered.source_id}`: no page images ({rendered.error})")
+            continue
+        manifest = Path(os.path.relpath(Path(rendered.directory) / rendered.source_id / "manifest.json", run.metadata.output_dir)).as_posix()
+        lines.append(f"- `{rendered.source_id}`: {rendered.pages} page(s), {len(rendered.images)} image(s); "
+                     f"{rendered.config.get('renderer')} {rendered.config.get('pypdfium2')}, PDFium {rendered.config.get('pdfium')}; "
+                     f"configuration `{rendered.config_hash}`; {_page_link(run, rendered.source_id, 1)}; "
+                     f"[manifest with image hashes]({manifest})")
+    return lines + [""]
+
+
 def _tool_use(run: ReviewRun) -> list[str]:
     calls = [call for stage in run.stages for call in stage.tool_calls]
-    counts = {kind: sum(call.kind == kind for call in calls) for kind in ("search", "fetch", "exec", "other")}
+    counts = {kind: sum(call.kind == kind for call in calls) for kind in ("search", "fetch", "exec", "view", "other")}
     lines = ["", "### Tool use", "", f"{len(calls)} tool calls: " + ", ".join(f"{n} {kind}" for kind, n in counts.items()) + ". "
              "Every query, command and output is recorded in review.json.", ""]
     for stage in run.stages:
@@ -168,12 +227,18 @@ def _tool_use(run: ReviewRun) -> list[str]:
     if opened:
         lines.extend(["", "Pages opened:", ""])
         lines.extend(f"- {url}{' (refused or failed)' if error else ''}" for url, error in dict.fromkeys(opened))
+    viewed = [(call.path, call.error) for call in calls if call.kind == "view" and call.path]
+    if viewed:
+        lines.extend(["", "Files opened by a file or image tool (Codex image views are not recorded):", ""])
+        lines.extend(f"- `{path}`{' (refused or failed)' if error else ''}" for path, error in dict.fromkeys(viewed))
     return lines
 
 
 def _inline(text: str) -> str:
     text = html.escape(text, quote=False)
-    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+    text = re.sub(r"`([^`]+)`", lambda m: "<code>" + m.group(1).replace("*", "&#42;") + "</code>", text)
+    # Links to page images and manifests in the run directory; other link targets stay text.
+    text = re.sub(r"\[([^\]]+)\]\(((?:\.\./)*page-images/[\w./-]+)\)", r"<a href='\2'>\1</a>", text)
     return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
 
 

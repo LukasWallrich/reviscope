@@ -11,13 +11,14 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from .backend import REVIEW_GUARD, Backend, CodexBackend
+from .backend import REVIEW_GUARD, Backend, CodexBackend, StagedImages
 from .ingest import ingest
+from . import page_images
 from .render import finding_order, render_all
 from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
-from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, DiscoveryResponse, discovery_instruction, validate_discovery
-from .schemas import SUPPORTED_STATUSES, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, Profile, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap
+from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, TABLE_READING_GUIDANCE, DiscoveryResponse, discovery_instruction, validate_discovery
+from .schemas import SUPPORTED_STATUSES, CellReading, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, PageImageSet, Profile, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap, TableCheck, TableReading
 
 
 class VerificationDecision(BaseModel):
@@ -30,10 +31,49 @@ class VerificationDecision(BaseModel):
     external_dependency_rationale: str = ""
     remedy_status: Literal["supported", "overreaching", "unresolved"] = "unresolved"
     remedy_rationale: str = ""
+    table_dependence: bool = False
+    table_readings: list[TableReading] = Field(default_factory=list)
 
 
 class VerificationResponse(BaseModel):
     decisions: list[VerificationDecision]
+
+
+class CellReadingResponse(BaseModel):
+    readings: list[CellReading]
+
+
+TABLE_VERIFICATION = """TABLE CELLS. Set table_dependence=true when any substantive premise of the claim or
+rationale rests on what a table in a PDF source prints: a value, its sign, significance marks,
+typeface, or which row or column a value belongs to. Then return in table_readings every cell the
+claim relies on, read from the page images (open them; the extracted text can misplace cells, join
+numbers and drop signs or stars), with the table label, the row labels (for a row without a label
+of its own, the label it falls under and its position, such as "second row") and the column headers
+from the outermost spanning header down to the cell's own, the value exactly as printed, its marks, its
+emphasis when the claim relies on typeface (otherwise null) and its unit. A candidate's own
+table_readings are assertions to check, not evidence. A separate reader will read each relied-on cell
+from the page images without seeing the values; a claim whose cells it does not confirm is held as
+unresolved. Evidence quotations stay verbatim extracted text: quote the caption, table label or the
+prose the claim concerns, and never present a value read from an image as a quotation. A value that
+the page prints differently from the extracted text is decided by the page."""
+
+BLIND_READING = """Read table cells from the attached page images of a manuscript. Each request names a
+source, page, table label, row labels (outermost group first) and column headers (outermost spanning
+header first). For each request find that table on that page, or on a neighbouring page if the table
+continues there, and the single cell at the intersection of that row and that column, using the
+spanning headers to decide which columns they cover. A row label may end with a position such as
+"second row" for a row without a label of its own; count rows within the named group. Report the value exactly as printed (sign,
+decimal point and digits as shown, without marks), the marks printed with it (significance stars,
+footnote letters or symbols; empty when none), its emphasis (none, bold, italic or other) and its unit
+when the table states one. Set located=false when no single cell sits at that row and column, for
+example when the headers place that column under a different group or the row is absent, and say why
+in note. Set legible=false when the cell cannot be read with confidence. Read only the page images;
+do not use extracted text, do not infer values from other cells, the text or your expectations, and do
+not guess. Further page images are in the page-images directory if a table continues onto a page not
+attached. Return one reading per request_id."""
+
+# Pages attached to one cell-reading call, each with its magnified quarters.
+READING_PAGES_PER_CALL = 6
 
 
 class EditorialDecision(BaseModel):
@@ -107,7 +147,7 @@ def _load_profile(profile: str | Path | Profile) -> tuple[Profile, str]:
 
 
 # Format of the tool-call sidecars and the event parsing behind them; a change invalidates cached stages.
-PROVENANCE_VERSION = "3"
+PROVENANCE_VERSION = "4"
 
 CLAIM_SCOPE = """Evaluate the complete claim at its stated scope; the kind label does not
 override its wording or the discipline criteria. For defect, test whether the alleged
@@ -125,7 +165,7 @@ without a specific assessment consequence is not automatically a supported criti
 
 
 class ReviewPipeline:
-    STAGE_VERSION = "0.4.3a1"  # cache semantics of stages; bump only when a stage's behaviour changes
+    STAGE_VERSION = "0.5.0a2"  # cache semantics of stages; bump only when a stage's behaviour changes
 
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, parallel: int = 4):
         self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
@@ -141,24 +181,42 @@ class ReviewPipeline:
         self._prefetched: dict[str, tuple[BaseModel, StageRecord] | BaseException] = {}
 
     @staticmethod
-    def _reading_text(source: SourceDocument) -> str:
-        layouts = [f"[Page {page.page}, table layout]\n{page.table_layout}"
-                   for page in source.pages if page.table_layout]
-        if not layouts:
-            return source.text
-        return (source.text + "\n\nTABLE LAYOUT COPIES\n"
-                "Full-page layout copies of pages with a table caption, to help read table columns. "
-                "Each copy contains the whole page, so text from neighbouring columns or prose can share "
-                "a line with table cells. Evidence quotations must come from the normal text above.\n\n"
-                + "\n\n".join(layouts))
-
-    @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
         chunks = []
         for source in sources:
-            content = ReviewPipeline._reading_text(source)
-            chunks.append(f"SOURCE_ID: {source.id}\nTYPE: {source.kind}\nCONTENT BEGIN\n{content}\nCONTENT END")
+            chunks.append(f"SOURCE_ID: {source.id}\nTYPE: {source.kind}\nCONTENT BEGIN\n{source.text}\nCONTENT END")
         return "\n\n".join(chunks)
+
+    def _render_pages(self, run: ReviewRun, out: Path) -> None:
+        """Render every page of each PDF source once per run directory (reused when verified)."""
+        if any(source.path.lower().endswith(".pdf") for source in run.sources):
+            self.progress("page images: started")
+        started = time.monotonic()
+        for source in run.sources:
+            rendered = page_images.render_source(source, out)
+            if rendered is None:
+                continue
+            run.page_images.append(rendered)
+            if rendered.error:
+                run.partial = True
+                run.coverage.append(f"{source.id}: {rendered.error}; claims that rest on its tables cannot be checked against the printed page")
+            else:
+                run.coverage.append(f"{source.id}: {rendered.pages} page(s) rendered as images ({len(rendered.images)} files, "
+                                    f"configuration {rendered.config_hash}); review stages can open any page, but a manifest "
+                                    "does not show which pages a model inspected")
+        if run.page_images:
+            self.progress(f"page images: completed in {time.monotonic() - started:.1f}s")
+
+    @staticmethod
+    def _images(run: ReviewRun, attach: list[str] | None = None) -> StagedImages | None:
+        files = page_images.files(run.page_images)
+        return StagedImages(files=files, attach=tuple(attach or ())) if files else None
+
+    @staticmethod
+    def _generate(backend: Backend, instruction: str, evidence: str, model_type: type[BaseModel], images: StagedImages | None) -> BaseModel:
+        if images is None:  # offline test backends predate the images argument
+            return backend.generate(instruction, evidence, model_type)
+        return backend.generate(instruction, evidence, model_type, images=images)
 
     def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
         """Run or reuse one model stage. Tool calls are stored in a sidecar next to the artifact."""
@@ -245,7 +303,7 @@ class ReviewPipeline:
         sources = [ingest(manuscript)]
         sources += [ingest(p, "supplement") for p in supplements or []]
         sources += [ingest(p, "preregistration") for p in preregistrations or []]
-        input_hash = _hash([(s.kind, s.sha256, _hash(self._reading_text(s))) for s in sources])
+        input_hash = _hash([(s.kind, s.sha256, _hash(s.text)) for s in sources])
         metadata = RunMetadata(run_id=input_hash[:12], backend=self.backend.name, model=self.backend.model, effort=self.backend.effort,
                                verifier_backend=self.verifier_backend.name, verifier_model=self.verifier_backend.model,
                                verifier_effort=self.verifier_backend.effort,
@@ -260,6 +318,7 @@ class ReviewPipeline:
             run.coverage.extend(f"{source.id}: {warning}" for warning in source.extraction_warnings)
             if source.extraction_warnings:
                 run.partial = True
+        self._render_pages(run, out)
         evidence = self._evidence(sources)
         if len(evidence) > 150_000:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
@@ -272,6 +331,7 @@ class ReviewPipeline:
             run.candidates.append(Finding(id="intake:insufficient-material", module="intake", claim="The supplied material is incomplete for a substantive peer review.", rationale=f"Only {manuscript_chars} manuscript characters were available, which is insufficient to assess design, measurement, results, and interpretation.", remedy="Supply the complete manuscript and any relevant supplements or preregistration.", severity="minor", evidence=[{"source_id": sources[0].id, "quote": excerpt}], status="verified_deterministic", verification="This is an intake limitation, determined from extracted input length, rather than a methodological criticism."))
             run.coverage.append("intake: insufficient manuscript material; discovery was not run")
         modules = [*self.profile.modules, BLIND_SPOTS]
+        manifest = page_images.manifest_text(run.page_images)
         if insufficient:
             skipped = MetacheckRecord(status="skipped", reason="skipped: insufficient manuscript material")
             run.metacheck, metacheck_fingerprint, leads = skipped, metacheck.fingerprint(skipped), {}
@@ -295,14 +355,17 @@ class ReviewPipeline:
                 module_evidence += "\nCOVERAGE LEDGER\n" + _canonical(run.coverage)
             severity_rules = _canonical(self.profile.metadata.get("severity_guidance", {}))
             final_instruction = discovery_instruction(module, prompt) + "\nSeverity guidance: " + severity_rules
+            if manifest:
+                final_instruction += "\n" + TABLE_READING_GUIDANCE + "\n" + manifest
             def generate_findings(p=final_instruction, e=module_evidence, m=module):
-                value = self.backend.generate(p, e, DiscoveryResponse)
+                value = self._generate(self.backend, p, e, DiscoveryResponse, self._images(run))
                 raw_dir = out / "raw-discovery"
                 raw_dir.mkdir(exist_ok=True)
                 raw_key = _hash({"instruction": p, "evidence": e, "backend": self.backend.identity, "schema": DiscoveryResponse.model_json_schema()})
                 (raw_dir / f"{m}-{raw_key}.json").write_text(value.model_dump_json(indent=2), encoding="utf-8")
-                return validate_discovery(value, m, sources)
-            inputs = {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, ""))}
+                return validate_discovery(value, m, sources, run.page_images)
+            inputs = {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, "")),
+                      "page_images": page_images.fingerprint(run.page_images)}
             return f"review-{module}", inputs, DiscoveryResponse, generate_findings, self.backend
 
         if not insufficient:  # profile modules are independent; the blind-spot pass needs their candidates
@@ -321,7 +384,7 @@ class ReviewPipeline:
             try:
                 name, inputs, model_type, generate_findings, backend = discovery_job(module, prompt)
                 result, stage = self._cached(out, name, inputs, model_type, generate_findings, backend)
-                result = validate_discovery(result, module, sources)
+                result = validate_discovery(result, module, sources, run.page_images)
                 run.coverage.extend(f"{module}/{c.check}: {c.status} — {c.rationale}" for c in result.checks)
                 if result.search_incomplete or any(c.status == "not_checked" for c in result.checks):
                     run.coverage.append(f"{module}: discovery reported incomplete by the model or missing coverage entries")
@@ -346,7 +409,7 @@ class ReviewPipeline:
             run.partial = True
             run.stages.append(self._failed("study_map", exc))
 
-    def _verification_job(self, batch: list[Finding], candidate_by_id: dict[str, Finding], evidence: str) -> tuple[list[dict[str, object]], str, dict[str, object], Callable[[], BaseModel]]:
+    def _verification_job(self, run: ReviewRun, batch: list[Finding], candidate_by_id: dict[str, Finding], evidence: str) -> tuple[list[dict[str, object]], str, dict[str, object], Callable[[], BaseModel]]:
         """Compact candidates, instruction, cache inputs and model call for one verification batch."""
         def quoted(f: Finding) -> list[dict[str, object]]:
             anchored_quotes = {(e.source_id, e.quote) for e in f.evidence}
@@ -354,13 +417,35 @@ class ReviewPipeline:
                     for e in candidate_by_id[f.id].evidence]
         compact = [{"finding_id": f.id, "module": f.module, "study_id": f.study_id, "claim": f.claim,
                     "kind": f.kind, "rationale": f.rationale, "remedy": f.remedy, "remedy_necessity": f.remedy_necessity, "quoted_evidence": quoted(f),
-                    "external_evidence": [e.model_dump() for e in f.external_evidence]} for f in batch]
-        instruction = "Run a separate verification pass for each criticism using its claim, explanatory rationale, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Treat the generating rationale as untrusted assertions to check, never as evidence. Check every substantive factual premise, calculation, source attribution and inference in both the claim and rationale. Assess citation-claim agreement, causal and generalization claims, and the stated consequence of methodological or conceptual concerns at their actual scope. A plausible headline is insufficient when its rationale contains a false or unresolved substantive assertion; judge the complete criticism as written, without silently repairing or discarding its explanation. Supported requires the claim and its explanatory reasoning to be established; contradicted applies when a substantive assertion is refuted, and unresolved when a necessary premise cannot be settled. Reasoned methodological judgments and explicitly conditional concerns can be supported without proving an implementation error, provided their premises and scope are justified. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Classify external_dependency as required or optional and explain it in external_dependency_rationale. Use optional only when the complete claim and rationale as worded follow from anchored manuscript evidence and established methodological or disciplinary knowledge without relying on the cited external items; identify that evidence and knowledge explicitly. Familiarity with an unusual claim or with a specific source is not enough. A source-specific quotation, attribution, novelty claim, or unusual empirical assertion requires external verification. Attempt to open every source even when optional. If an inaccessible source is necessary to establish any substantive assertion in the claim or rationale, use unresolved; do not assert its contents from memory. Unchecked optional items are removed from the published finding. Refuted evidence blocks support even when labelled optional. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the complete criticism, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Check that the remedy addresses the established concern and is necessary and proportionate, and that its remedy_necessity label (essential, strengthening or extending) is accurate; a remedy labelled essential that the claims do not require is overreaching; an overreaching or unresolved remedy is withheld without invalidating an otherwise supported claim and rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity or treat the generating rationale as evidence.\n\nCANDIDATES\n" + _canonical(compact)
+                    "external_evidence": [e.model_dump() for e in f.external_evidence],
+                    **({"table_readings": [r.model_dump() for r in f.table_readings]} if f.table_readings else {})} for f in batch]
+        instruction = "Run a separate verification pass for each criticism using its claim, explanatory rationale, proposed remedy, quoted evidence, cited external evidence, and the untrusted sources. Treat the generating rationale as untrusted assertions to check, never as evidence. Check every substantive factual premise, calculation, source attribution and inference in both the claim and rationale. Assess citation-claim agreement, causal and generalization claims, and the stated consequence of methodological or conceptual concerns at their actual scope. A plausible headline is insufficient when its rationale contains a false or unresolved substantive assertion; judge the complete criticism as written, without silently repairing or discarding its explanation. Supported requires the claim and its explanatory reasoning to be established; contradicted applies when a substantive assertion is refuted, and unresolved when a necessary premise cannot be settled. Reasoned methodological judgments and explicitly conditional concerns can be supported without proving an implementation error, provided their premises and scope are justified. Quoted evidence marked anchored=false was not found verbatim in its named source; locate the passage it refers to or disregard it. Actively seek defeating context. Open every cited external source (URL or DOI) with your tools and check that the quotation appears there and shows what is claimed; recompute any numerical claim with code. Classify external_dependency as required or optional and explain it in external_dependency_rationale. Use optional only when the complete claim and rationale as worded follow from anchored manuscript evidence and established methodological or disciplinary knowledge without relying on the cited external items; identify that evidence and knowledge explicitly. Familiarity with an unusual claim or with a specific source is not enough. A source-specific quotation, attribution, novelty claim, or unusual empirical assertion requires external verification. Attempt to open every source even when optional. If an inaccessible source is necessary to establish any substantive assertion in the claim or rationale, use unresolved; do not assert its contents from memory. Unchecked optional items are removed from the published finding. Refuted evidence blocks support even when labelled optional. For every cited external item return one external_checks entry with its URL or DOI as locator and a verdict: confirmed, refuted or not_found. Return one decision per finding_id; status must be supported, contradicted, or unresolved. Use unresolved when the sources and your checks can neither establish nor rule out the complete criticism, and state in rationale what would settle it: readers see that rationale next to unresolved concerns. Separately classify remedy_status as supported, overreaching, or unresolved and explain it in remedy_rationale. Check that the remedy addresses the established concern and is necessary and proportionate, and that its remedy_necessity label (essential, strengthening or extending) is accurate; a remedy labelled essential that the claims do not require is overreaching; an overreaching or unresolved remedy is withheld without invalidating an otherwise supported claim and rationale. Every supported claim decision must include in evidence the exact manuscript quotations, with valid source_id values, that you checked the claim against. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). Evidence may be empty for contradicted or unresolved decisions. Do not assess severity or treat the generating rationale as evidence." + self._table_instruction(run) + "\n\nCANDIDATES\n" + _canonical(compact)
         verification_instruction = instruction + "\nDISCIPLINE RULES\n" + self.profile.verification_prompt + "\n" + CLAIM_SCOPE
+        images = self._images(run, self._cited_pages(run, batch))
         inputs = {
             "upstream": _hash([f.model_dump() for f in batch]), "evidence": _hash(evidence),
-            "instruction_hash": _hash(REVIEW_GUARD + verification_instruction)}
-        return compact, verification_instruction, inputs, lambda: self.verifier_backend.generate(verification_instruction, evidence, VerificationResponse)
+            "instruction_hash": _hash(REVIEW_GUARD + verification_instruction), **self._image_inputs(run, images)}
+        return compact, verification_instruction, inputs, lambda: self._generate(self.verifier_backend, verification_instruction, evidence, VerificationResponse, images)
+
+    @staticmethod
+    def _table_instruction(run: ReviewRun) -> str:
+        if not run.page_images:
+            return ""
+        return "\n" + TABLE_VERIFICATION + "\n" + page_images.manifest_text(run.page_images) + (
+            "\nThe pages of the candidates' table readings, with their magnified quarters, are also attached to this message.")
+
+    @staticmethod
+    def _image_inputs(run: ReviewRun, images: StagedImages | None) -> dict[str, object]:
+        """Cache-key components for calls that receive page images: every rendered file and the attachments."""
+        if not run.page_images:
+            return {}
+        return {"page_images": page_images.fingerprint(run.page_images), "attached": list(images.attach) if images else []}
+
+    @staticmethod
+    def _cited_pages(run: ReviewRun, findings: list[Finding], limit: int = 8) -> list[str]:
+        """Page images to attach for the pages that the findings' table readings cite."""
+        pages = list(dict.fromkeys((r.source_id, r.page) for f in findings for r in f.table_readings))[:limit]
+        return [name for source_id, page in pages for name in page_images.page_files(run.page_images, source_id, page)]
 
     def _finalize(self, run: ReviewRun, out: Path, *, insufficient: bool = False) -> ReviewRun:
         """Verify, edit and render a draft while retaining its discovery provenance."""
@@ -386,7 +471,7 @@ class ReviewPipeline:
             jobs = []
             for module, findings in groups.items():
                 for offset in range(0, len(findings), 10):
-                    _, _, inputs, verify_call = self._verification_job(findings[offset:offset + 10], candidate_by_id, evidence)
+                    _, _, inputs, verify_call = self._verification_job(run, findings[offset:offset + 10], candidate_by_id, evidence)
                     jobs.append((f"verification-{module}-{offset // 10 + 1}", inputs, VerificationResponse, verify_call, self.verifier_backend))
             self._prefetch(out, jobs)
             for module, findings in groups.items():
@@ -395,7 +480,7 @@ class ReviewPipeline:
                     name = f"verification-{module}-{offset // 10 + 1}"
                     stage = None
                     try:
-                        compact, verification_instruction, inputs, verify_call = self._verification_job(batch, candidate_by_id, evidence)
+                        compact, verification_instruction, inputs, verify_call = self._verification_job(run, batch, candidate_by_id, evidence)
                         verification, stage = self._cached(out, name, inputs, VerificationResponse, verify_call, self.verifier_backend)
                         returned_ids = [d.finding_id for d in verification.decisions]
                         expected_ids = {f.id for f in batch}
@@ -407,8 +492,9 @@ class ReviewPipeline:
                         decisions = {d.finding_id: d.model_dump() for d in verification.decisions}
                         verified = verify_findings([candidate_by_id[f.id] for f in batch], sources, decisions,
                                                    run.metadata.verification_relationship, stage.tool_calls)
-                        verified_by_id.update({f.id: f for f in verified})
                         run.stages.append(stage)
+                        verified = self._check_tables(run, out, name, decisions, verified)
+                        verified_by_id.update({f.id: f for f in verified})
                         self._source_tasks(run, name, [candidate_by_id[f.id] for f in batch], decisions, stage.tool_calls, verified)
                         self._finish_source_tasks(run, out, name, compact, verification_instruction, evidence,
                                                   candidate_by_id, verified, verified_by_id)
@@ -551,6 +637,77 @@ class ReviewPipeline:
         self.progress("render: completed")
         return run
 
+    def _check_tables(self, run: ReviewRun, out: Path, name: str, decisions: dict[str, dict], verified: list[Finding]) -> list[Finding]:
+        """Read the table cells that supported claims rely on in a separate call, which receives the
+        page images and each cell's table, row and column but neither the claimed value nor the claim.
+        Claims whose cells are not all confirmed are held as unresolved."""
+        from .verification import apply_table_checks, compare_reading
+
+        if not run.page_images:
+            return verified
+        rendered = {s.source_id: s for s in run.page_images if not s.error}
+        sha = {image.file: image.sha256 for s in rendered.values() for image in s.images}
+        wanted: dict[str, list[tuple[str, TableReading]]] = {}
+        for finding in verified:
+            if finding.status != "llm_supported":
+                continue
+            readings = [("discovery", r) for r in finding.table_readings]
+            readings += [("verifier", TableReading.model_validate(r)) for r in decisions.get(finding.id, {}).get("table_readings") or []]
+            unique: dict[tuple, tuple[str, TableReading]] = {}  # the first origin of an identical reading is kept
+            for origin, r in readings:
+                unique.setdefault((r.source_id, r.page, r.table, tuple(r.row), tuple(r.column), r.value, r.marks, r.emphasis), (origin, r))
+            wanted[finding.id] = list(unique.values())
+        requests = [(fid, origin, reading) for fid, items in wanted.items() for origin, reading in items
+                    if reading.source_id in rendered and reading.page <= rendered[reading.source_id].pages]
+        pages = list(dict.fromkeys((r.source_id, r.page) for _, _, r in requests))
+        outcomes: dict[int, tuple[CellReading | None, str, list[str]]] = {}  # request index -> blind reading, failure, images
+        chunks = [pages[i:i + READING_PAGES_PER_CALL] for i in range(0, len(pages), READING_PAGES_PER_CALL)]
+        for number, chunk in enumerate(chunks, 1):
+            stage_name = f"{name}-tables" + (f"-{number}" if len(chunks) > 1 else "")
+            indices = [i for i, (_, _, r) in enumerate(requests) if (r.source_id, r.page) in chunk]
+            attach = [name_ for sid, page in chunk for name_ in page_images.page_files(run.page_images, sid, page)]
+            attach += [name_ for sid, page in chunk for near in (page - 1, page + 1)
+                       for name_ in page_images.page_files(run.page_images, sid, near, quarters=False) if name_ not in attach]
+            images = self._images(run, list(dict.fromkeys(attach)))
+            asked = [{"request_id": f"cell-{i}", "source_id": r.source_id, "page": r.page, "table": r.table, "row": r.row, "column": r.column}
+                     for i in indices for _, _, r in [requests[i]]]
+            inputs = {"requests": _hash(asked), "instruction_hash": _hash(REVIEW_GUARD + BLIND_READING), **self._image_inputs(run, images)}
+            stage = None
+            try:
+                result, stage = self._cached(out, stage_name, inputs, CellReadingResponse,
+                                             lambda: self._generate(self.verifier_backend, BLIND_READING, _canonical(asked), CellReadingResponse, images),
+                                             self.verifier_backend)
+                returned = [r.request_id for r in result.readings]
+                if len(returned) != len(set(returned)) or not set(returned) <= {row["request_id"] for row in asked}:
+                    raise ValueError("Cell reader returned duplicate or unknown request IDs")
+                by_request = {r.request_id: r for r in result.readings}
+                failure = ""
+                run.stages.append(stage)
+            except Exception as exc:
+                if stage and stage.artifact:
+                    Path(stage.artifact).unlink(missing_ok=True)
+                run.partial = True
+                run.stages.append(self._failed(stage_name, exc, stage))
+                by_request, failure = {}, f"The cell-reading call failed: {type(exc).__name__}: {exc}"
+            for i in indices:
+                _, _, reading = requests[i]
+                files = page_images.page_files(run.page_images, reading.source_id, reading.page)
+                outcomes[i] = (by_request.get(f"cell-{i}"), failure, [f"{file} {sha[file]}" for file in files])
+        checked = []
+        for finding in verified:
+            checks = []
+            for origin, reading in wanted.get(finding.id, []):
+                index = next((i for i, (fid, o, r) in enumerate(requests) if fid == finding.id and o == origin and r is reading), None)
+                if index is None:
+                    checks.append(TableCheck(reading=reading, origin=origin, outcome="image_unavailable",
+                                             reason="No rendered page image exists for this source and page."))
+                    continue
+                blind, failure, files = outcomes[index]
+                outcome, reason = ("not_read", failure) if failure else compare_reading(reading, blind)
+                checks.append(TableCheck(reading=reading, origin=origin, outcome=outcome, reason=reason, blind=blind, images=files))
+            checked.append(apply_table_checks(finding, checks, bool(decisions.get(finding.id, {}).get("table_dependence"))))
+        return checked
+
     @staticmethod
     def _source_tasks(run, name, candidates, decisions, calls, verified):
         from .verification import check_external, touched
@@ -587,11 +744,12 @@ class ReviewPipeline:
             "SOURCE TASKS\n" + _canonical(locators) + "\n\nCANDIDATES\n" + _canonical(rows) +
             "\nDISCIPLINE RULES\n" + self.profile.verification_prompt + "\n" + CLAIM_SCOPE)
         stage = None
+        images = self._images(run, self._cited_pages(run, [candidates[f.id] for f in retry]))
         try:
             result, stage = self._cached(out, name + "-sources", {
                 "upstream": _hash(rows), "evidence": _hash(evidence),
-                "instruction_hash": _hash(REVIEW_GUARD + task_instruction)}, VerificationResponse,
-                lambda: self.verifier_backend.generate(task_instruction, evidence, VerificationResponse), self.verifier_backend)
+                "instruction_hash": _hash(REVIEW_GUARD + task_instruction), **self._image_inputs(run, images)}, VerificationResponse,
+                lambda: self._generate(self.verifier_backend, task_instruction, evidence, VerificationResponse, images), self.verifier_backend)
             returned = [d.finding_id for d in result.decisions]
             if len(returned) != len(set(returned)) or set(returned) != retry_ids:
                 raise ValueError("Source follow-up returned duplicate, missing or unknown finding IDs")
@@ -599,8 +757,9 @@ class ReviewPipeline:
             originals = [candidates[f.id] for f in retry]
             checked = verify_findings(originals, run.sources, decisions,
                                       run.metadata.verification_relationship, stage.tool_calls)
-            by_id.update({f.id: f for f in checked})
             run.stages.append(stage)
+            checked = self._check_tables(run, out, stage.name, decisions, checked)
+            by_id.update({f.id: f for f in checked})
             self._source_tasks(run, stage.name, originals, decisions, stage.tool_calls, checked)
             run.coverage.append(f"{stage.name}: {len(retry)} claim(s) reassessed for unfinished required-source checks; "
                                 f"{sum(f.status == 'llm_supported' for f in checked)} supported under the same gates")

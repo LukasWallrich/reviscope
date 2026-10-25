@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import base64
 import functools
 import hashlib
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -14,7 +16,8 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
+from dataclasses import dataclass
+from typing import Any, Mapping, TypeVar
 
 from pydantic import BaseModel
 
@@ -137,13 +140,26 @@ def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
+# Staged page images live here inside each call's working directory.
+IMAGE_DIR = "page-images"
+
+
+@dataclass(frozen=True)
+class StagedImages:
+    """Page images copied into a call's working directory, where the model can open any of them
+    with its file or image tool. `attach` names the images also placed in the prompt itself, so
+    that the model receives them whether or not it opens a file."""
+    files: Mapping[str, Path]  # staged name, relative to IMAGE_DIR -> rendered file
+    attach: tuple[str, ...] = ()
+
+
 class Backend(ABC):
     name: str
     model: str | None
     effort: str | None = None
 
     @abstractmethod
-    def generate(self, instruction: str, evidence: str, response_model: type[T]) -> T: ...
+    def generate(self, instruction: str, evidence: str, response_model: type[T], images: StagedImages | None = None) -> T: ...
 
     @property
     def identity(self) -> str:
@@ -294,15 +310,18 @@ def parse_claude_events(stdout: str, started: datetime) -> tuple[list[ToolCall],
                 order.append(block["id"])
             elif block.get("type") == "tool_result":
                 results[block.get("tool_use_id", "")] = block
-    kinds = {"WebSearch": "search", "WebFetch": "fetch", "Bash": "exec"}
+    kinds = {"WebSearch": "search", "WebFetch": "fetch", "Bash": "exec", "Read": "view"}
     calls = []
     for position, use_id in enumerate(order):
         use, result = uses[use_id], results.get(use_id)
         arguments = use.get("input") or {}
         name = use.get("name", "unknown")
         content = result.get("content", "") if result else INCOMPLETE
+        if isinstance(content, list) and any(isinstance(b, dict) and b.get("type") == "image" for b in content):
+            content = "[image]"
         calls.append(ToolCall(backend="claude", sequence=position, timestamp=started, name=name, kind=kinds.get(name, "other"),
                               query=arguments.get("query"), url=arguments.get("url"), command=arguments.get("command"),
+                              path=arguments.get("file_path") if name == "Read" else None,
                               opened_urls=[arguments["url"]] if name == "WebFetch" and isinstance(arguments.get("url"), str) else [],
                               output=_truncate(content), result_urls=_urls(content) if name in {"WebSearch", "WebFetch"} else [],
                               error=result is None or bool(result.get("is_error"))))
@@ -386,29 +405,42 @@ class SubprocessBackend(Backend):
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout
 
+    def _attach(self, command: list[str], paths: list[Path]) -> None:
+        """Add attached images to the command line; backends that send them otherwise do nothing."""
+
+    def _stdin(self, prompt: str, paths: list[Path]) -> str:
+        if paths:
+            raise NotImplementedError(f"{self.name} cannot attach images")
+        return prompt
+
     def _record(self, calls: list[ToolCall]) -> None:
         offset = len(self._tool_calls)
         self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
 
-    def _run(self, prompt: str, response_model: type[T]) -> str:
+    def _run(self, prompt: str, response_model: type[T], images: StagedImages | None = None) -> str:
         if self.tools:
             check_managed_policy(self.binary)
+        elif images:
+            raise ValueError("tool-free calls never receive page images")
         started = datetime.now(timezone.utc)
         # A short path under /tmp: Claude Code falls back to a shared temp directory for long TMPDIR paths.
         with tempfile.TemporaryDirectory(prefix="reviscope-", dir="/tmp") as tmp_name:
             tmp = Path(tmp_name).resolve()
+            attached = _stage(tmp, images) if images else []
             command = self.command(tmp)
+            self._attach(command, attached)
             output_path = tmp / "last-message.json"
             if self.name == "codex":
                 schema_path = tmp / "schema.json"
                 schema_path.write_text(json.dumps(_strict_schema(response_model.model_json_schema())), encoding="utf-8")
                 command[-1:-1] = ["--output-schema", str(schema_path), "--output-last-message", str(output_path)]
             try:
-                returncode, stdout, stderr = _execute(command, prompt, str(tmp), self.environment(tmp), self.timeout)
+                returncode, stdout, stderr = _execute(command, self._stdin(prompt, attached), str(tmp), self.environment(tmp), self.timeout)
             except BaseException as exc:  # interrupted: keep the tool calls printed so far
-                self._record(self._parse(getattr(exc, "partial_stdout", ""), started)[0])
+                self._record(_relative(self._parse(getattr(exc, "partial_stdout", ""), started)[0], tmp))
                 raise
             calls, final = self._parse(stdout, started)
+            calls = _relative(calls, tmp)
             output = output_path.read_text(encoding="utf-8") if output_path.is_file() else final
         self._record(calls)
         if returncode is None:
@@ -420,19 +452,43 @@ class SubprocessBackend(Backend):
             raise RuntimeError(f"{self.name} failed ({returncode}): {detail}")
         return output
 
-    def generate(self, instruction: str, evidence: str, response_model: type[T]) -> T:
+    def generate(self, instruction: str, evidence: str, response_model: type[T], images: StagedImages | None = None) -> T:
         schema = json.dumps(_strict_schema(response_model.model_json_schema()), ensure_ascii=False)
         prompt = f"{self.guard}\n\nTASK\n{instruction}\n\nJSON SCHEMA\n{schema}\n\nUNTRUSTED EVIDENCE BEGIN\n{evidence}\nUNTRUSTED EVIDENCE END"
-        output = self._run(prompt, response_model)
+        output = self._run(prompt, response_model, images)
         try:
             return response_model.model_validate(_extract_json(output))
         except Exception as first:
             repair = (f"{prompt}\n\nYOUR PREVIOUS RESPONSE TO THIS TASK FAILED SCHEMA VALIDATION\nERROR\n{first}\n"
                       f"PREVIOUS RESPONSE\n{output}\n\nReturn the complete corrected JSON value only, fixing every field the error names.")
             try:
-                return response_model.model_validate(_extract_json(self._run(repair, response_model)))
+                return response_model.model_validate(_extract_json(self._run(repair, response_model, images)))
             except Exception as second:
                 raise ValueError(f"Invalid structured response after one repair: {second}") from first
+
+
+def _stage(tmp: Path, images: StagedImages) -> list[Path]:
+    """Copy page images into the call's working directory, read-only, and return the attached
+    ones. Copies, not links: the model may write in this directory, and the rendered files are
+    shared by later calls."""
+    staged = tmp / IMAGE_DIR
+    for name, source in images.files.items():
+        target = (staged / name).resolve()
+        if staged.resolve() not in target.parents:
+            raise ValueError(f"staged image name leaves the image directory: {name}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        target.chmod(0o444)
+    missing = [name for name in images.attach if name not in images.files]
+    if missing:
+        raise ValueError(f"attached images were not staged: {', '.join(missing)}")
+    return [staged / name for name in images.attach]
+
+
+def _relative(calls: list[ToolCall], tmp: Path) -> list[ToolCall]:
+    """Record opened files relative to the per-call directory, which differs between calls."""
+    prefix = f"{tmp}/"
+    return [call.model_copy(update={"path": call.path.removeprefix(prefix)}) if call.path else call for call in calls]
 
 
 def codex_permissions() -> str:
@@ -483,11 +539,17 @@ class CodexBackend(SubprocessBackend):
             cmd += ["-c", f'model_reasoning_effort="{self.effort}"']
         return [*cmd, "-"]
 
-    def _run(self, prompt: str, response_model: type[T]) -> str:
+    def _run(self, prompt: str, response_model: type[T], images: StagedImages | None = None) -> str:
         if self.tools and codex_executable() is None:
             raise PolicyError("on Linux the Codex shell sandbox hides the home directory, so tool-enabled calls need a codex "
                               "binary installed outside it and on PATH (for example a system-wide npm install)")
-        return super()._run(prompt, response_model)
+        return super()._run(prompt, response_model, images)
+
+    def _attach(self, command: list[str], paths: list[Path]) -> None:
+        command[2:2] = [part for path in paths for part in ("--image", str(path))]
+
+    def _stdin(self, prompt: str, paths: list[Path]) -> str:
+        return prompt
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_codex_events(stdout, started) if self.tools else ([], stdout)
@@ -495,19 +557,21 @@ class CodexBackend(SubprocessBackend):
 
 def claude_settings() -> str:
     """Bash sandbox: no reads under the home directory, no network, no credential variables, refuse
-    to start without the sandbox. WebFetch is refused for review-hosting domains."""
+    to start without the sandbox. WebFetch is refused for review-hosting domains, and Read under the
+    home directory as well as outside the working directory."""
     return json.dumps({
         "sandbox": {"enabled": True, "failIfUnavailable": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
                     "filesystem": {"denyRead": ["~/"]},
                     "network": {"strictAllowlist": True, "allowedDomains": []},
                     "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")]}},
-        "permissions": {"deny": [f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS]}})
+        "permissions": {"deny": [*(f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS), "Read(~/**)"]}})
 
 
 class ClaudeBackend(SubprocessBackend):
     """Claude Code in restricted safe mode (no user settings, hooks, instructions, MCP servers or saved
-    session). With tools, calls get WebSearch, WebFetch and a sandboxed Bash (claude_settings) whose
-    temporary files stay in the per-call directory. Bash is pre-approved because nobody can answer a
+    session). With tools, calls get WebSearch, WebFetch, a sandboxed Bash (claude_settings) whose
+    temporary files stay in the per-call directory, and Read for staged page images, which restricted
+    mode confines to that directory. Bash is pre-approved because nobody can answer a
     permission prompt here; the sandbox, not the prompt, confines it. tools=False is for judges and
     normalizers that must read only the supplied text."""
 
@@ -516,8 +580,12 @@ class ClaudeBackend(SubprocessBackend):
     def command(self, tmp: Path) -> list[str]:
         cmd = ["claude", "-p", "--restricted", "--safe-mode", "--no-session-persistence", "--strict-mcp-config", "--permission-prompts", "none"]
         if self.tools:
-            cmd += ["--output-format", "stream-json", "--verbose", "--tools", "Bash,WebSearch,WebFetch",
-                    "--allowedTools", "Bash,WebSearch,WebFetch", "--settings", claude_settings()]
+            # Read opens staged page images; --restricted confines it to the working directory and
+            # refuses symlinks that lead outside it. The prompt arrives as a stream-json message,
+            # which can carry attached images.
+            cmd += ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+                    "--tools", "Bash,WebSearch,WebFetch,Read", "--allowedTools", "Bash,WebSearch,WebFetch",
+                    "--settings", claude_settings()]
         else:
             cmd += ["--output-format", "text", "--tools", ""]
         if self.model:
@@ -529,6 +597,14 @@ class ClaudeBackend(SubprocessBackend):
     def environment(self, tmp: Path) -> dict[str, str]:
         return {**super().environment(tmp), "CLAUDE_CODE_TMPDIR": str(tmp)}
 
+    def _stdin(self, prompt: str, paths: list[Path]) -> str:
+        if not self.tools:
+            return super()._stdin(prompt, paths)
+        content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+        content += [{"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                                                 "data": base64.b64encode(path.read_bytes()).decode()}} for path in paths]
+        return json.dumps({"type": "user", "message": {"role": "user", "content": content}}) + "\n"
+
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_claude_events(stdout, started) if self.tools else ([], stdout)
 
@@ -538,7 +614,7 @@ class FixtureBackend(Backend):
 
     name, model = "fixture", "deterministic-demo"
 
-    def generate(self, instruction: str, evidence: str, response_model: type[T]) -> T:
+    def generate(self, instruction: str, evidence: str, response_model: type[T], images: StagedImages | None = None) -> T:
         from .schemas import Evidence, Finding, Study, StudyMap
 
         fields = response_model.model_fields

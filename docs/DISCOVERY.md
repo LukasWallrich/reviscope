@@ -142,9 +142,10 @@ from the manuscript exists, from the generating model or from the verifier.
 Supplements and preregistrations add support but cannot carry a finding alone. A
 finding with no anchored manuscript quotation is `unresolved`.
 
-When the verifier judges a claim unresolved on the evidence, and the finding has an
+When the verifier judges a claim unresolved on the evidence, or supports a claim whose
+table cells were not confirmed against the page images (see below), and the finding has an
 anchored manuscript quotation, the report shows it under “Concerns the verifier could
-not confirm” with the verifier's reason. It keeps status `unresolved` and is not part
+not confirm” with the reason. It keeps status `unresolved` and is not part
 of the findings list. Contradicted findings, and findings left unresolved by quote
 anchoring or external-source checks, are listed only in the set-aside audit.
 
@@ -169,6 +170,65 @@ with its finding id and module. Reports show these under “Also raised by other
 No new prose is generated for a merge. Unresolved, unverified and contradicted sources
 are not folded, and every original finding remains in the audit. Older stored findings
 default to an empty `merged_points` list.
+
+## Page images and table cells
+
+Extracted PDF text anchors quotations but can misplace table cells, join neighbouring
+numbers (3.28 and a reference marker 1 read as 3.281), drop minus signs and lose
+significance stars, bold type and spanning headers. Every page of each PDF source,
+supplements included, is therefore rendered once per run directory with PDFium
+(pypdfium2): a whole-page colour view with a long edge of 1,600 pixels, four overlapping
+greyscale quarters at 240 dpi for small print, and upright copies of pages whose text is
+mostly sideways. Availability does not depend on detecting a caption, so right-column
+captions, continuation pages without a repeated label and rotated tables are all
+reachable. `page-images/<configuration>/<source>/manifest.json` records the source
+hash, page, view, render configuration (including the pypdfium2 and PDFium versions)
+and each image's SHA-256. A rendering is reused only while all of these match; image
+stages include the fingerprint in their cache keys, so a change of renderer or
+configuration reruns discovery and verification but not the study map.
+
+Each tool-enabled call copies the images, read-only, into its own working directory.
+Claude opens them with Read, which restricted mode confines to that directory (paths
+elsewhere, and symlinks leading out of it, are refused); Codex uses its image viewer
+under the same permission profile as its shell, which denies the home directory. Images
+named for a call are also attached to the prompt itself: as image blocks in Claude's
+stream-json input, or with `codex exec --image`. Tool-free judges and normalizers never
+receive images.
+
+The specialist modules, including the whole-paper overview and the blind-spot pass,
+receive a short manifest and can open any page on demand; nothing is attached up front.
+When a point depends on what a table prints, the module records each relied-on cell in
+`table_readings`: source, page, table label, row labels and column headers from the
+outermost spanning header down, the value as printed, its marks, typeface when relied
+on, and unit. These readings are separate from quotations: they have no character
+offsets, and evidence quotations must still be verbatim extracted text such as the
+caption or the related prose.
+
+The verifier receives the cited pages, with their quarters, attached, and can open any
+other page. It reports whether the claim rests on PDF table cells (`table_dependence`)
+and adds its own readings of the relied-on cells. For every supported claim with
+readings, a separate call to the verifier backend then reads each cell from the
+attached page images and neighbouring pages. It is given the table, row and column, but
+neither the claimed value nor the claim. Code compares the readings: values after
+normalising minus signs, spaces and a leading decimal point; marks exactly; typeface
+when the claim relies on it. A claim that rests on table cells is published only when
+every relied-on cell matches. Otherwise it stays `unresolved` and appears under the
+concerns the verifier could not confirm, with the reason. This covers a mismatched
+value or star, a cell the reader cannot locate at that row and column, an illegible
+cell, a page without images, a failed reading call and a claim the verifier marks as
+table-dependent with no reading. An anchored caption or prose quotation does not
+substitute for the reading.
+
+The separate reading is blind to the claimed value, not to the row and column, and uses
+the same backend as the verifier. A match supports the value at the stated position; it
+does not certify cells the claim did not name or the inference drawn from them. The
+claim and rationale are still judged by the verifier. Reports show each reading as
+“Read from the page image, not a text quotation” with its outcome and a link to the page
+image; the coverage section links each source's manifest. Claude's Read calls are
+recorded as `view` tool calls; Codex does not report its image views, so for Codex only
+the attachments are known. Text, DOCX and Markdown sources have no page images; their
+table text is used as extracted. Scanned PDFs without any extractable text are still
+rejected at intake.
 
 ## Tool use
 
