@@ -262,6 +262,44 @@ corrected that. Opus rated no criticism of this paper as material in any arm. Th
 subsequent author ratings above show that this understated importance for the
 critiques in the packet.
 
+## Provisional-concern discovery trial (25 October 2026)
+
+Discovery now asks for provisional `concerns`, typed as `CandidateConcern`, and retains
+an explicit `counterargument` for independent verification. The brief favours recall of
+concrete, evidence-grounded objections and passes plausible unresolved gaps forward.
+Verification checks the concern and its defeating context; publication gates are unchanged.
+
+A single owner-manuscript development trial used frozen commit `587f229` on base
+`49a56e2`, the exact earlier PDF bytes and extracted review input, and the original
+study map. Review used GPT-6.1-Sol/high and verification Claude Opus 5.5/high. No earlier
+critiques or owner ratings were supplied to these stages. The baseline is the earlier
+captured discovery and verification with the supplement gate corrected and editorial
+rerun, rather than a fresh control.
+
+| Measure | Gate-corrected baseline | Concern trial |
+| --- | ---: | ---: |
+| Candidate concerns | 13 | 21 |
+| Supported verifier decisions, including duplicates | 11 | 18 |
+| Published headlines | 7 | 10 |
+| Earlier topics represented in the supported report | 6 | 9 |
+| Earlier would-act topics represented in the supported report | 6 | 8 |
+
+Four of the five previously missing fully-correct/material topic groups reached
+discovery. Three have supported counterparts, one at narrower scope; the fourth remains
+unconfirmed because a necessary original-source passage was inaccessible. The fifth
+was not raised. One previously delivered topic was lost. A topic corresponding to an
+earlier partly-correct critique on which the owner would not act was also returned and
+labelled major. Those earlier ratings do not transfer to new wording. Different variants
+of two topics received different verifier judgments, retained in the report audit.
+
+This is evidence of improved coverage in this run, with unresolved usefulness and
+calibration questions. It does not isolate the word change from the recall brief,
+counterargument capture and assessment, or run-to-run variation. The trial also includes
+the supplement-quotation wording correction since the captured baseline. Concurrent
+PDF-image changes were excluded from the frozen trial; software integration with them
+was checked separately. The original run, new concerns, topic matches and comparison
+report are private artifacts under `runs/owner-concerns-20261025/`.
+
 ## What the evidence does not show
 
 It does not show that the specialist pipeline is worse than plain review for an author,
