@@ -2,14 +2,80 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections import Counter
 from pathlib import Path
 
 from .schemas import PageText, SourceDocument
 
 
 SUPPORTED = {".pdf", ".docx", ".md", ".markdown", ".txt"}
-# A line-leading label avoids duplicating pages for inline table references.
-_TABLE_CAPTION = re.compile(r"^[^\S\r\n]*Table\s+(?:[A-Z]\s*)?\d+\b", re.IGNORECASE | re.MULTILINE)
+# A caption starts a line (after an optional manuscript line number) and is followed by
+# punctuation, a capitalised title or the line end; "Table 4 of the supplement" is a reference.
+_TABLE_CAPTION = re.compile(r"^[^\S\r\n]*(?:\d{1,4}[^\S\r\n]+)?(?:Table|TABLE)\s+(?:[A-Z][^\S\r\n]*)?\d+[a-z]?"
+                            r"(?=[^\S\r\n]*(?:$|[.:|(\u2013\u2014-]|[A-Z]))", re.MULTILINE)
+# A number with what is written directly against it, with no space between: a sign (minus,
+# en dash or plus-minus), a leading decimal point, an exponent and a percent sign. A dash or
+# point right after a letter, digit, closing bracket or percent sign is a hyphen, range or
+# full stop ("COVID-19", "1-3", "(n = 19).2"), so cells joined as "0.5-0.3" differ from
+# "0.5 -0.3". Superscript digits count separately.
+_STARTS = r"(?<![^\W_]|[)\]}%])"
+_NUMBER = re.compile(rf"(?:{_STARTS}[-+\u2212\u2013\u00b1])?(?:{_STARTS}\.)?\d+(?:[.,]\d+)*(?:[eE][-+\u2212]?\d+)?%?"
+                     r"|[\u207a\u207b]?[\u2070\u00b9\u00b2\u00b3\u2074-\u2079]+")
+# pypdf places each text run at column x // char_width; when runs are narrower than the
+# page average, a run can overrun the next one's column and be joined to it. Smaller
+# character widths (higher scale weights) leave more room.
+_LAYOUT_SCALE_WEIGHTS = (None, 2.5, 5.0)
+
+
+def _glyphs(text: str) -> Counter[str]:
+    return Counter(ch for ch in text if ch.isprintable() and not ch.isspace())
+
+
+def _new_numbers(text: str, normal: str) -> list[str]:
+    """Numbers written in `text` but not in the normal text, e.g. 3.28 and 1 joined as 3.281."""
+    return list((Counter(_NUMBER.findall(text)) - Counter(_NUMBER.findall(normal))).elements())
+
+
+def _layout_text(page, weight: float | None) -> str:
+    kwargs = {} if weight is None else {"layout_mode_scale_weight": weight}
+    try:
+        return page.extract_text(extraction_mode="layout", **kwargs) or ""
+    except ZeroDivisionError:  # pypdf, when an orientation has only zero-width text
+        return ""
+
+
+def _table_layout(page, normal: str) -> tuple[str | None, str | None]:
+    """Return a full-page layout copy, or the reason it is unsafe to show.
+
+    A copy is kept only if it contains exactly the normal text's characters, so that it
+    rearranges the page without omitting or adding content, and groups no digits into
+    numbers that the normal text separates (or the reverse) or moves a sign, decimal point,
+    exponent or percent sign between numbers.
+    """
+    want, parts = _glyphs(normal), []
+    for turn in (0, 90, 180):  # Cumulative turns: upright text, then text rotated either way.
+        if turn:
+            from pypdf import PdfWriter, Transformation
+            if turn == 90:  # Turn a copy; the source page is left unchanged.
+                page = PdfWriter(clone_from=page.pdf).pages[page.page_number]
+            page.add_transformation(Transformation().rotate(turn))
+        for weight in _LAYOUT_SCALE_WEIGHTS:
+            text = _layout_text(page, weight)
+            if not _new_numbers(text, normal):
+                break
+        parts.append(text)
+        if sum(map(_glyphs, parts), Counter()) == want:
+            break
+    else:
+        return None, "layout mode did not reproduce the normal text (for example, form XObject or obliquely rotated content)"
+    upright, *turned = parts
+    layout = "\n\n".join([upright] * bool(upright.strip()) + [
+        f"[Rotated text on this page, turned upright]\n{part}" for part in turned if part.strip()])
+    if changed := _new_numbers(layout, normal):  # With the same digits, a lost number implies a new one.
+        lost = _new_numbers(normal, layout)
+        return None, (f"layout mode writes numbers differently from the normal text "
+                      f"(layout {', '.join(changed[:3])}; normal {', '.join(lost[:3])})")
+    return layout, None
 
 
 def _pdf(path: Path) -> tuple[str, list[PageText], list[str]]:
@@ -21,13 +87,11 @@ def _pdf(path: Path) -> tuple[str, list[PageText], list[str]]:
         page = PageText(page=i, text=(p.extract_text() or ""))
         if _TABLE_CAPTION.search(page.text):
             try:
-                layout = p.extract_text(extraction_mode="layout") or ""
-                if layout.strip():
-                    page.table_layout = layout
-                else:
-                    warnings.append(f"No table layout text on PDF page {i}; normal text is retained.")
+                page.table_layout, problem = _table_layout(p, page.text)
             except Exception as exc:
-                warnings.append(f"Table layout extraction failed on PDF page {i}: {type(exc).__name__}: {exc}; normal text is retained.")
+                problem = f"layout extraction failed: {type(exc).__name__}: {exc}"
+            if problem:
+                warnings.append(f"Table layout copy skipped on PDF page {i}: {problem}; normal text is retained.")
         pages.append(page)
     return "\n\n".join(f"[Page {p.page}]\n{p.text}" for p in pages), pages, warnings
 

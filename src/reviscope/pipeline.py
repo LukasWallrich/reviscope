@@ -140,7 +140,9 @@ class ReviewPipeline:
         if not layouts:
             return source.text
         return (source.text + "\n\nTABLE LAYOUT COPIES\n"
-                "Column-reading aids; evidence quotations must come from the normal text above.\n\n"
+                "Full-page layout copies of pages with a table caption, to help read table columns. "
+                "Each copy contains the whole page, so text from neighbouring columns or prose can share "
+                "a line with table cells. Evidence quotations must come from the normal text above.\n\n"
                 + "\n\n".join(layouts))
 
     @staticmethod
