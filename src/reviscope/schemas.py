@@ -62,11 +62,12 @@ class ToolCall(BaseModel):
     stage: str = ""
     backend: str
     sequence: int = Field(ge=0)
-    kind: Literal["search", "fetch", "exec", "other"]
+    kind: Literal["search", "fetch", "exec", "view", "other"]
     name: str
     query: str | None = None
     url: str | None = None
     command: str | None = None
+    path: str | None = None  # file a view opened, relative to the call's working directory
     output: str = ""
     opened_urls: list[str] = Field(default_factory=list)  # pages a fetch actually opened
     result_urls: list[str] = Field(default_factory=list)  # every URL mentioned in the output, including links inside pages
@@ -77,7 +78,66 @@ class ToolCall(BaseModel):
 class PageText(BaseModel):
     page: int = Field(ge=1)
     text: str
-    table_layout: str | None = None  # Reading aid only; quotations anchor in text.
+
+
+class PageImage(BaseModel):
+    page: int = Field(ge=1)
+    view: str  # page, upper-left, upper-right, lower-left, lower-right; turned... for upright copies
+    file: str  # relative to the rendering directory and to the staged page-images directory
+    rotation: int = 0  # clockwise degrees applied to set sideways text upright
+    sha256: str
+    width: int
+    height: int
+
+
+class PageImageSet(BaseModel):
+    """Rendered images of every page of one PDF source, with the configuration that produced them."""
+    source_id: str
+    source_sha256: str
+    pages: int
+    config: dict[str, Any]
+    config_hash: str
+    directory: str
+    images: list[PageImage] = Field(default_factory=list)
+    error: str | None = None
+
+
+Emphasis = Literal["none", "bold", "italic", "other"]
+
+
+class TableReading(BaseModel):
+    """One table cell as printed on a rendered page image. It is not a text quotation and has no
+    character offsets; extracted text of the same cell can differ."""
+    source_id: str
+    page: int = Field(ge=1)
+    table: str = Field(min_length=1)  # label as printed, for example "Table 2"
+    row: list[str] = Field(min_length=1)  # row labels, outermost group first
+    column: list[str] = Field(min_length=1)  # column headers, outermost spanning header first
+    value: str = Field(min_length=1)  # exactly as printed, sign and decimal point included, without marks
+    marks: str = ""  # significance stars, footnote letters or symbols printed with the value
+    emphasis: Emphasis | None = None  # typeface of the value; None when the claim does not rely on it
+    unit: str = ""  # unit or scale stated for the value, if any
+
+
+class CellReading(BaseModel):
+    """A separate reader's reading of a cell located by table, row and column, without the claimed value."""
+    request_id: str
+    located: bool  # exactly one cell sits at this row and column of this table
+    legible: bool
+    value: str
+    marks: str
+    emphasis: Emphasis
+    unit: str
+    note: str
+
+
+class TableCheck(BaseModel):
+    reading: TableReading
+    origin: Literal["discovery", "verifier"]
+    outcome: Literal["matched", "mismatched", "not_located", "illegible", "image_unavailable", "not_read"]
+    reason: str
+    blind: CellReading | None = None
+    images: list[str] = Field(default_factory=list)  # "file sha256" of the images attached for the reading
 
 
 class SourceDocument(BaseModel):
@@ -120,6 +180,7 @@ class CandidateConcern(BaseModel):
     kind: Literal["defect", "specification_conflict", "clarification_request"] = "defect"
     evidence: list[Evidence] = Field(default_factory=list)
     external_evidence: list[ExternalCitation] = Field(default_factory=list)
+    table_readings: list[TableReading] = Field(default_factory=list)
     study_id: str | None = None
 
 
@@ -146,6 +207,10 @@ class Finding(CandidateConcern):
     external_dependency_rationale: str | None = None
     remedy_status: Literal["supported", "overreaching", "unresolved"] | None = None
     remedy_verification: str | None = None
+    # Whether the verifier found that the claim rests on what a PDF table prints, and the separate
+    # reading of each relied-on cell from the page images.
+    table_dependence: bool | None = None
+    table_checks: list[TableCheck] = Field(default_factory=list)
     editorial_disposition: Literal["publish", "merged", "rejected", "needs_review"] = "publish"
     editorial_reason: str | None = None
     merged_into: str | None = None
@@ -237,6 +302,7 @@ class ReviewRun(BaseModel):
     stages: list[StageRecord] = Field(default_factory=list)
     coverage: list[str] = Field(default_factory=list)
     metacheck: MetacheckRecord | None = None
+    page_images: list[PageImageSet] = Field(default_factory=list)
     source_tasks: list[ExternalSourceTask] = Field(default_factory=list)
     partial: bool = False
 

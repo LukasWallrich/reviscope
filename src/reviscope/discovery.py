@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .schemas import CandidateConcern, Evidence, SourceDocument
+from .schemas import CandidateConcern, Evidence, PageImageSet, SourceDocument
 from .verification import verify_quote
 from .reasoning import ARGUMENT_ASSESSMENT, LITERATURE_ASSESSMENT, MATERIAL_ASSESSMENT
 
@@ -34,6 +34,20 @@ BLIND_SPOT_PROMPT = ('Perform one blind-spot audit of the full manuscript agains
                      'new concerns; do not paraphrase existing issues. Do not manufacture problems to fill gaps.')
 
 _CHECKS_LINE = 'Return exactly one checks entry for each of: '
+
+# Added to every module's instruction when the sources include rendered PDF pages.
+TABLE_READING_GUIDANCE = """When a point depends on what a table in a PDF source prints (a value, its sign,
+significance marks, bold or italic type, or which row or column a value belongs to), read it from the
+page images rather than the extracted text, and record each cell the point relies on in
+table_readings: source_id, page, the table label as printed, the row labels (outermost group first;
+for a row without a label of its own, the label it falls under and its position, such as "second row"),
+the column headers from the outermost spanning header down to the cell's own header, the value exactly
+as printed without marks, the marks printed with it, emphasis when the point relies on typeface
+(otherwise null) and the unit exactly as printed, without expanding abbreviations. A separate reader checks each recorded cell against the page images
+without seeing your value; a point whose cells it cannot confirm is not published. Evidence quotations
+stay verbatim extracted text: quote the table caption or label or the related prose, and never quote a
+value reconstructed from an image. Where the extracted text of a table differs from the printed page,
+rely on the page and say so."""
 
 
 class CoverageCheck(BaseModel):
@@ -113,12 +127,16 @@ def requested_checks(instruction: str) -> list[str]:
     return [name.strip() for name in match.group(1).split(',')] if match else DEFAULT_TOPICS
 
 
-def validate_discovery(result: DiscoveryResponse, module: str, sources: list[SourceDocument]):
+def validate_discovery(result: DiscoveryResponse, module: str, sources: list[SourceDocument],
+                       page_images: list[PageImageSet] | None = None):
     """Repair the coverage ledger without throwing away independent findings.
 
     A defective coverage claim is not evidence that a candidate criticism is false.
-    The raw model response is retained by the caller before this normalization.
+    The raw model response is retained by the caller before this normalization. Table readings
+    are dropped when no source has page images, since there was no printed page to read.
     """
+    if page_images is not None and not page_images and any(f.table_readings for f in result.concerns):
+        result = result.model_copy(update={"concerns": [f.model_copy(update={"table_readings": []}) for f in result.concerns]})
     expected = TOPICS.get(module, DEFAULT_TOPICS)
     by_name = {}
     for row in result.checks:

@@ -7,7 +7,7 @@ import re
 import unicodedata
 from typing import Any, Iterable, Literal, Mapping, Sequence
 
-from .schemas import Evidence, ExternalEvidence, Finding, SourceDocument, ToolCall
+from .schemas import CellReading, Evidence, ExternalEvidence, Finding, SourceDocument, TableCheck, TableReading, ToolCall
 
 @dataclass(frozen=True)
 class QuoteVerification:
@@ -294,3 +294,76 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
                                                    "remedy_status": remedy_status,
                                                    "remedy_verification": remedy_verification}))
     return verified
+
+
+# Dash-like characters that print as a minus sign.
+_MINUS = dict.fromkeys(map(ord, "\u2212\u2013\u2012\u2010\u2011\ufe63\uff0d"), "-")
+
+
+def _printed(text: str) -> str:
+    """Normalize spacing, minus glyphs and leading zeros without changing numeric notation.
+
+    Compatibility normalization must preserve numeric glyphs such as superscripts: 10³ and
+    103 are different values. Missing-value labels are values too, not empty readings.
+    """
+    text = "".join(char if unicodedata.category(char) == "No" else unicodedata.normalize("NFKC", char)
+                   for char in text)
+    text = "".join(text.translate(_MINUS).replace("\u2217", "*").split())
+    text = re.sub(r"(?<![\d.])\.(?=\d)", "0.", text)
+    return text
+
+
+def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:
+    """Outcome of a separate reading of the same table cell, located by table, row and column
+    without the claimed value. A match supports the value at that row and column; it says nothing
+    about cells the claim did not name."""
+    if blind is None:
+        return "not_read", "The separate reader returned no reading for this cell."
+    if not blind.located:
+        return "not_located", f"The separate reader found no single cell at this row and column: {blind.note or 'no reason given'}"
+    if not blind.legible:
+        return "illegible", f"The separate reader could not read this cell: {blind.note or 'no reason given'}"
+    differences = [f"{label} claimed “{mine}”, read “{theirs}”" for label, mine, theirs in (
+        ("value", claimed.value, blind.value), ("marks", claimed.marks, blind.marks),
+        ("unit", claimed.unit, blind.unit)) if _printed(mine) != _printed(theirs)]
+    if claimed.emphasis is not None and claimed.emphasis != blind.emphasis:
+        differences.append(f"emphasis claimed {claimed.emphasis}, read {blind.emphasis}")
+    if differences:
+        return "mismatched", "The separate reading differs: " + "; ".join(differences) + "."
+    return "matched", "The separate reader, given only the table, row and column, read the same value, marks and unit."
+
+
+def table_gate_reason(finding: Finding) -> str | None:
+    """Why a claim resting on PDF table cells is not established by the page images; None when it
+    does not rest on table cells or every relied-on cell was read the same way by the separate reader."""
+    if not (finding.table_dependence or finding.table_checks or finding.table_readings):
+        return None
+    if not finding.table_checks:
+        return ("The claim rests on table cells, but no cell reading from the page images was recorded, so its "
+                "row, column and value assignments are unchecked.")
+    failed = [check for check in finding.table_checks if check.outcome != "matched"]
+    if not failed:
+        return None
+    return "Table cells could not be confirmed against the page images: " + " ".join(
+        f"{check.reading.table}, row {' › '.join(check.reading.row)}, column {' › '.join(check.reading.column)} "
+        f"(page {check.reading.page}): {check.reason}" for check in failed)
+
+
+def held_for_tables(finding: Finding) -> str | None:
+    """The reason a verifier-supported claim was held by the table gate, if it was."""
+    reason = table_gate_reason(finding)
+    return reason if reason and f"claim=unresolved: {reason}" in (finding.verification or "") else None
+
+
+def apply_table_checks(finding: Finding, checks: list[TableCheck], dependence: bool) -> Finding:
+    """Hold a supported claim that rests on PDF table cells unless every relied-on cell was
+    confirmed by the separate reading. Anchored text quotations alone cannot carry such a claim."""
+    finding = finding.model_copy(update={"table_checks": checks, "table_dependence": dependence})
+    reason = table_gate_reason(finding)
+    trace = [f"table_cell[{index}]={check.outcome} ({check.origin}): {check.reason}" for index, check in enumerate(checks)]
+    if finding.status in {"llm_supported", "supported"} and reason:
+        finding = finding.model_copy(update={"status": "unresolved"})
+        trace.append(f"claim=unresolved: {reason}")
+    if trace:
+        finding = finding.model_copy(update={"verification": "; ".join(filter(None, [finding.verification, *trace]))})
+    return finding
