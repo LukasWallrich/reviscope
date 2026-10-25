@@ -67,7 +67,7 @@ A quotation match establishes provenance; it does not establish the criticism's 
 
 Exit status is 0 for successful commands, 1 for invalid input, and 2 for a partial review or evaluation. Partial reports explicitly identify failed or unavailable stages. Empty findings do not establish that a paper is sound.
 
-PDF extraction includes embedded CFF font support. Cache identity includes the extracted text as well as the source bytes, so an extraction change invalidates the descriptive study map and dependent review stages.
+PDF extraction includes embedded CFF font support. Cache identity includes the extracted text as well as the source bytes, so an extraction change invalidates the descriptive study map and dependent review stages. DOCX extraction follows the document order of paragraphs and tables, including tables nested inside table cells (as in Quarto's captioned tables), writes each row as `cell | cell | cell` with merged cells once, and includes Office math, text boxes and footnote or endnote text (appended under a Footnotes heading, with numbered markers in the body). Headers, footers and comments are not extracted. Because this extraction changed, cached stages from earlier DOCX runs are not reused.
 
 Candidates distinguish claimed defects, conflicting specifications and reporting clarification requests. Verification evaluates the complete claim at its stated scope. A source-task ledger identifies unfinished required-source checks; supported claims held for an unperformed lookup receive one full re-verification with its own evidence and tool record. The same publication gates apply to that attempt. Reports place machine verification traces in the audit, while keeping the criticism, proportionate remedy and quoted evidence together.
 
@@ -165,6 +165,9 @@ LLM judging, known-error detection, and sampled human auditing answer different 
 The project is named **ReviScope**: evidence-grounded manuscript review for authors and peer reviewers, across disciplines. [Naming exploration](docs/naming/SHORTLIST.md) lists the candidate names that were considered. The name records a product decision, not trademark or package-name clearance.
 
 ## Development and checks
+
+Use `main` for the broad-review pipeline and `test` for specialist experiments.
+See [branch layout and archived work](docs/BRANCHES.md).
 
 ```bash
 uv run pytest -q
