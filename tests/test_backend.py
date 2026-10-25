@@ -128,7 +128,7 @@ def test_schema_repair_repeats_the_original_task_and_the_validation_error():
     prompts = []
 
     class Repairing(ScriptBackend):
-        def _run(self, prompt, response_model):
+        def _run(self, prompt, response_model, images=None):
             prompts.append(prompt)
             return '{"value": "not a number"}' if len(prompts) == 1 else '{"value": 3}'
 

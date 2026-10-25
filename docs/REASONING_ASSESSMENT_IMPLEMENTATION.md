@@ -74,8 +74,10 @@ separate remedy checks, bounded reporting requests and an independent optional a
 already existed. This change makes reasoning connections and contribution relations
 more explicit within those contracts rather than replacing them.
 
-Visual reasoning beyond extracted text is deferred: ingestion supplies PDF text, not
-readable page-image evidence. Questions requiring images remain unresolved. A graph
+Every page of a PDF source is rendered as images that the specialist modules and the
+verifier can open (see [page images](DISCOVERY.md#page-images-and-table-cells)). Text,
+DOCX and Markdown sources have no page images, so questions requiring images remain
+unresolved there. A graph
 engine or new mandatory audit is deferred pending marginal-quality and cost evidence.
 A manuscript revision quality gate is deferred because manuscript editing is not a
 pipeline capability. AI-authorship classification, aggregate slop scores, PMI/sentence
