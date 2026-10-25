@@ -34,6 +34,8 @@ For example, inspect that experiment with:
 git show archive/2026-10-25/argument-coherence:docs/ARGUMENT_COHERENCE_RESULTS.md
 ```
 
-Retired worktrees containing local inputs or run artifacts are retained at their
-original paths with detached HEADs. Their untracked and ignored files are local
-artifacts, not part of the archive tags.
+Local inputs and run artifacts are not part of the archive tags. Files from removed
+worktrees are preserved in private cloud storage under
+`reviscope/worktree-archive/2026-10-25/`, with file checksums and original commit IDs
+in `manifest.json`. Worktrees serving active previews are retained at their original
+paths.
