@@ -1,5 +1,11 @@
 # Reasoning assessment implementation
 
+Historical implementation record from 5 October 2026. The current specialist pipeline
+retains the shared reasoning guidance in discovery, the whole-paper overview and
+verification. The broad-review and optional audit modes, including the `AuditOperation`
+records described below, are retired; use tag `pre-specialist-only-0.4.3` to reproduce
+them. See [the current discovery flow](DISCOVERY.md).
+
 Implemented against `known-error-benchmark` at `a977767` on 5 October 2026 in
 `/home/lukas/Documents/Coding/reviscope-reasoning-assessment`, branch
 `reasoning-assessment`. A repository fetch confirmed that upstream main remained

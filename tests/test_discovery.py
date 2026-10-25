@@ -57,7 +57,7 @@ class DiscoveryBackend(Backend):
         if kind == 'EditorialResponse':
             findings = json.loads(instruction.split('FINDINGS\n')[1])
             return response_model.model_validate({'decisions': [{
-                'finding_id': row['id'], 'disposition': 'keep', 'reason': 'Distinct', 'target_id': None,
+                'finding_id': row['id'], 'disposition': 'keep', 'reason': 'Distinct', 'target_id': None, 'severity': row['severity'],
             } for row in findings], 'reconciled_overview': {
                 'design_summary': 'd', 'contribution_summary': 'c', 'strengths': [],
             }})

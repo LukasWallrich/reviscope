@@ -2,15 +2,16 @@
 
 The repository uses two ongoing branches:
 
-- `main` retains the broad-review and optional evidence-audit pipeline, including the
-  reasoning-assessment work and the DOCX extraction fix.
-- `test` continues the specialist pipeline from `specialist-iter4`, including its
-  overview module, editorial severity and folded findings. It also includes `main`.
+- `main` contains the current specialist pipeline, including the expert-critique
+  brief, whole-paper overview, editorial severity and folded findings from
+  `specialist-iter4`, plus the reasoning guidance and DOCX/PDF extraction fixes.
+- `test` is available for further experiments. Its specialist development history
+  was merged into `main` on 25 October 2026; it no longer defines a separate product.
 
 Use `test` for further experiments and merge selected, verified changes into `main`.
 Passing software tests does not establish review quality or scientific validity. The
-specialist development results and remaining decisions are recorded in
-`docs/SPECIALIST_DEVELOPMENT.md` on `test`.
+specialist development results, first author ratings and remaining decisions are
+recorded in [SPECIALIST_DEVELOPMENT.md](SPECIALIST_DEVELOPMENT.md).
 
 ## Archived work
 

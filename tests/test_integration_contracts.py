@@ -99,7 +99,7 @@ def test_corrected_verifier_quotes_reach_editorial_and_published_output(tmp_path
         findings = json.loads(instruction.split("\nFINDINGS\n", 1)[1])
         assert findings[0]["status"] == "llm_supported"
         assert findings[0]["evidence"][0]["quote"] == "Quoted source sentence."
-        return [{"finding_id": findings[0]["id"], "disposition": "keep", "reason": "Supported"}]
+        return [{"finding_id": findings[0]["id"], "disposition": "keep", "reason": "Supported", "severity": "major"}]
 
     generator = ScriptedBackend(modules={"RUN a": rows}, editorial=editorial)
     run = ReviewPipeline(generator, profile("a"), ScriptedBackend(verify=support_all)).run(
@@ -154,7 +154,7 @@ def test_overreaching_remedy_is_withheld_without_discarding_supported_claim(tmp_
             decision.update({"remedy_status": "overreaching", "remedy_rationale": "The requested fix exceeds the evidenced concern."})
         return decisions
     generator = ScriptedBackend(modules={"RUN a": rows}, editorial=lambda _instruction: [
-        {"finding_id": "a:0:same", "disposition": "keep", "reason": "Valid claim", "target_id": None}
+        {"finding_id": "a:0:same", "disposition": "keep", "reason": "Valid claim", "target_id": None, "severity": "major"}
     ])
     run = ReviewPipeline(generator, profile("a"), ScriptedBackend(model="verifier", verify=verifier)).run(
         paper, output_dir=tmp_path / "out")

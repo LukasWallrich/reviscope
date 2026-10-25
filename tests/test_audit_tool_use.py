@@ -88,6 +88,20 @@ def test_audit_checks_pages_opened_by_reference_and_unresolved_fetches(tmp_path)
                                  "review-contribution#1: fetch without a recorded page URL"]
 
 
+
+def test_criticism_judge_results_are_audited_through_their_grouped_stages(tmp_path):
+    import runpy
+    from pathlib import Path as _Path
+    audit = runpy.run_path(str(_Path(__file__).parents[1] / "eval" / "audit_tool_use.py"))
+    result = {"sources": [{"sha256": "abc"}], "stages": {"judge codex": [{"name": "judge", "status": "completed", "cache_key": "k",
+              "tool_calls": [{"kind": "search", "query": "the paper title openreview reviews", "sequence": 0}]}]}}
+    (tmp_path / "result.json").write_text(json.dumps(result))
+    args = type("Args", (), {"paper": None, "title": "the paper title", "block": [], "planted_errors": False})()
+    verdict = audit["audit_run"](tmp_path, [], args)
+    assert verdict["tool_calls"] == 1 and verdict["run"].endswith("result.json")
+    assert verdict["verdict"] == "flagged" and "search for reviews of this paper" in verdict["reasons"][0]
+
+
 def test_curated_training_papers_are_identified_and_all_review_routes_flagged(tmp_path):
     papers = AUDIT["load_papers"](AUDIT["DEFAULT_MANIFESTS"])
     manifest = json.loads((Path(__file__).parents[1] / "eval/corpus/open_peer_review_curated.v1.json").read_text())

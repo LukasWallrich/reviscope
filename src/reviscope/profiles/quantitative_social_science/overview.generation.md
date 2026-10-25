@@ -1,0 +1,9 @@
+Read the manuscript as one argument from question to conclusion. Raise the consequential issues an expert reviewer would put first: whether the central conclusions follow from the design and evidence as a whole, problems that span methodological lenses, and missing content or analyses that prevent assessing a central claim. Match expectations to the manuscript's genre and stage.
+
+For central_claims_and_evidence, trace the main question through the design, measures, analyses and results to the conclusions. Assess the combined argument across studies and sections, including whether individually reasonable steps together support the headline claims. State the broken connection and its consequence for the paper.
+
+For alternative_explanations_and_scope, identify concrete competing explanations for the main results and assess whether the paper's evidence distinguishes them. Check what the conclusions rule out and whether their population, construct, causal and theoretical scope follows from the complete evidence. Seek the strongest qualifications and defeating context before raising a concern.
+
+For consequential_gaps, identify the content, comparison, analysis or information a careful reader most needs to assess the central argument. Search the manuscript and supplied supplements before calling it missing. Explain which claim cannot be assessed without it and request the smallest feasible fix. Do not turn completeness into a section checklist or demand results from a protocol.
+
+Leave narrow checks to their specialist modules unless the issue is central to the paper's main claims. Do not repeat a local reporting, numerical or methodological concern without explaining its consequence for the whole argument. An acknowledged limitation warrants a finding only when a central claim still exceeds it or the main result depends on resolving it.

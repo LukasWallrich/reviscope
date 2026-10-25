@@ -61,8 +61,30 @@ def without_category_list(prompt: str) -> str:
     return prompt[:start] + prompt[end:]
 
 
+GENERAL_PROMPT = """You are an expert peer reviewer for a quantitative social psychology journal, with strong \
+methodological and statistical expertise. Review the complete manuscript, including any supplements, as you would \
+for the editor. Identify every substantive problem with the theory and claimed contribution, the design, measurement, \
+statistical analysis, internal consistency, interpretation and reporting. Recompute reported numbers with code where \
+the manuscript gives enough information, and open cited sources when a criticism depends on what they say. Make every \
+point specific to this manuscript and explain its consequence for the paper's conclusions; do not add generic advice \
+or repeat limitations the authors already acknowledge unless a claim goes beyond them. Recommend the smallest remedy \
+that resolves each problem and say whether it is essential to support the claims as stated, would strengthen the \
+paper, or would extend it beyond its current scope.
+
+For each issue, provide:
+- category: a brief label for the type of issue
+- description: the problem, the evidence for it, and why it matters
+- remedy: what the authors should do
+- remedy_necessity: one of [essential, strengthening, extending]
+- quote: the exact text from the manuscript that contains or demonstrates the issue
+- location: which section or table
+- severity: one of [critical, major, moderate, minor]
+
+Return ONLY a JSON object: {"issues": [...]}"""
+
 PROMPT_LABELS = {REVIEW_PROMPT: "Dawes benchmark REVIEW_PROMPT (taxonomy-guided)",
-                 without_category_list(REVIEW_PROMPT): "Dawes benchmark REVIEW_PROMPT without the 'Look carefully for:' category list"}
+                 without_category_list(REVIEW_PROMPT): "Dawes benchmark REVIEW_PROMPT without the 'Look carefully for:' category list",
+                 GENERAL_PROMPT: "General one-call review (0.5.0 development baseline)"}
 
 
 class Issue(BaseModel):
@@ -80,22 +102,50 @@ class Issues(BaseModel):
     issues: list[Issue]
 
 
-def review(manuscript: Path, backend: Backend, prompt: str = REVIEW_PROMPT) -> dict[str, object]:
+class GeneralIssue(BaseModel):
+    category: str
+    description: str
+    remedy: str
+    remedy_necessity: Literal["essential", "strengthening", "extending"]
+    quote: str
+    location: str
+    severity: Literal["critical", "major", "moderate", "minor"]
+
+
+class GeneralIssues(BaseModel):
+    issues: list[GeneralIssue]
+
+
+def manuscript_text(manuscript: Path, supplements: list[Path]) -> tuple[str, list[dict[str, str]]]:
+    """Plain text stays verbatim (as in earlier baseline runs); other formats and supplements use the
+    pipeline's ingestion and SOURCE_ID framing."""
+    if not supplements and manuscript.suffix.lower() in {".md", ".txt"}:
+        raw = manuscript.read_bytes()
+        return raw.decode("utf-8"), [{"id": "manuscript", "path": str(manuscript.resolve()), "kind": "manuscript",
+                                      "sha256": hashlib.sha256(raw).hexdigest()}]
+    from reviscope.ingest import ingest
+    from reviscope.pipeline import ReviewPipeline
+    sources = [ingest(manuscript)] + [ingest(path, "supplement") for path in supplements]
+    return ReviewPipeline._evidence(sources), [{"id": s.id, "path": str(Path(s.path).resolve()), "kind": s.kind,
+                                               "sha256": s.sha256} for s in sources]
+
+
+def review(manuscript: Path, backend: Backend, prompt: str = REVIEW_PROMPT, supplements: list[Path] | None = None) -> dict[str, object]:
     """Run the one-call review and return the review.json payload, failed or not."""
-    raw = manuscript.read_bytes()
+    text, sources = manuscript_text(manuscript, supplements or [])
+    schema = GeneralIssues if prompt == GENERAL_PROMPT else Issues
     stage: dict[str, object] = {"name": STAGE, "status": "completed"}
     started = time.monotonic()
     issues: list[dict[str, object]] = []
     try:
-        issues = [item.model_dump() for item in backend.generate(prompt, raw.decode("utf-8"), Issues).issues]
+        issues = [item.model_dump() for item in backend.generate(prompt, text, schema).issues]
     except Exception as exc:  # keep the provenance of a failed call
         stage.update(status="failed", error=f"{type(exc).__name__}: {exc}")
     calls = [call.model_copy(update={"stage": STAGE}).model_dump(mode="json") for call in backend.take_tool_calls()]
     stage.update(duration_seconds=round(time.monotonic() - started, 1), tool_calls=calls)
     return {"generator": backend.identity, "generator_version": backend.version, "prompt": PROMPT_LABELS[prompt],
             "partial": stage["status"] == "failed",
-            "sources": [{"id": "manuscript", "path": str(manuscript.resolve()), "kind": "manuscript",
-                         "sha256": hashlib.sha256(raw).hexdigest()}],
+            "sources": sources,
             "stages": [stage], "issues": issues}
 
 
@@ -107,10 +157,16 @@ def main() -> int:
     parser.add_argument("--effort", default="high")
     parser.add_argument("--timeout", type=int, default=3600, help="per-call timeout in seconds")
     parser.add_argument("--no-category-list", action="store_true", help='remove the "Look carefully for:" category list from the prompt')
+    parser.add_argument("--prompt", choices=["dawes", "general"], default="dawes",
+                        help="dawes: the benchmark's prompt (archived baselines); general: the 0.5.0 development baseline")
+    parser.add_argument("--supplement", action="append", type=Path, default=[])
     args = parser.parse_args()
 
-    prompt = without_category_list(REVIEW_PROMPT) if args.no_category_list else REVIEW_PROMPT
-    payload = review(args.manuscript, MODELS[args.model](args.model, args.timeout, args.effort), prompt)
+    if args.prompt == "general":
+        prompt = GENERAL_PROMPT
+    else:
+        prompt = without_category_list(REVIEW_PROMPT) if args.no_category_list else REVIEW_PROMPT
+    payload = review(args.manuscript, MODELS[args.model](args.model, args.timeout, args.effort), prompt, args.supplement)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

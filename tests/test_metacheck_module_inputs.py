@@ -68,6 +68,6 @@ def test_real_package_module_retains_missing_and_inconsistent_checks(tmp_path, t
         assert counts["skipped_missing_input"] == 1
         module = MetacheckModule(module="stat_effect_size", status=status, error=payload["error"])
         record = MetacheckRecord(status="partial", modules=[module], output_dir=str(tmp_path))
-        assert "could not check" in metacheck.holistic_leads(record)
+        assert "could not check" in metacheck.leads(record, ["statistical_inference", "blind_spots"])["statistical_inference"]
     else:
         assert payload["table"] == [] and "Join columns" in payload["error"]

@@ -2,30 +2,17 @@
 
 Status: implemented for every profile; scientific benefit not yet established.
 
-## Holistic discovery and optional evidence audit
+## Retired strategies
 
-`--strategy holistic` uses one broad tool-enabled read of the manuscript and all
-retained metacheck leads. It returns candidates and a descriptive study map in the
-same call, without receiving a separate overview or specialist inventory. It asks
-for methodological, statistical and conceptual criticism rather than named category
-quotas. The broad read does not manufacture a coverage ledger.
-
-`--evidence-audit` adds a separate tool-enabled source read with concrete operations:
-reported quantities, analysis/scoring recipes, categorical agreement and inferential
-targets. It receives full sources and all retained screening leads, without the
-broad review's candidates, overview or coverage. Its separate input does not establish
-independent-model evidence when the same model performs both reads. Every operation
-records evidence, reported inputs, assumptions, method, result and unfinished work.
-Calculations include code and the short printed result. The pipeline labels code/output
-as recorded only when both match the audit's own successful shell trace. This proves
-recording, not mathematical correctness or independent reproduction. The complete
-operation ledger remains in the stage artifact; coverage reports every operation.
-
-The audit is optional so its marginal findings and work can be measured. Origin-based
-verification batches and content-keyed caches reuse broad discovery and broad
-verification when the audit is added. Editorial reconciles the combined findings.
-The specialist strategy is the default comparison path; holistic discovery and the
-optional audit are experimental. Both use the same verification and publication gates.
+Engine 0.4.3 also offered `--strategy holistic`, one broad tool-enabled read, and an
+optional `--evidence-audit`. Both were retired in 0.5.0: on development papers the
+broad read did not plausibly add to a plain prompt a user can run, and the audit's
+operations already belong to the specialist modules. Its scoring-recipe, categorical
+and recomputation operations are in `measurement`, `consistency` and
+`statistical_inference`; decision-rule reconstruction for central claims is now part of
+`interpretation`. Archived runs remain readable; the tag `pre-specialist-only-0.4.3`
+reproduces them. Metacheck leads that no specialist module owns now reach the
+blind-spot pass rather than being dropped.
 
 Discovery owns a lean candidate schema, including claim type, wording, severity,
 remedy and evidence. It does not assign evidential status, confidence, editorial
@@ -34,8 +21,10 @@ specification conflict compares incompatible reported specifications; a clarific
 request identifies missing information and the particular assessment or reproduction
 it prevents. Kind does not override the complete wording or discipline criteria.
 Verification assesses the claim at that scope, and essential inaccessible material
-leaves the claim unresolved. Severity stays immutable during editorial. Classification
-does not automatically support an omission or change its severity.
+leaves the claim unresolved. Discovery severity is provisional and retained as
+`discovery_severity` for audit.
+Editorial assigns final severity with all findings in view. Classification does not
+automatically support an omission or change its severity.
 
 ## Discovery
 
@@ -64,9 +53,18 @@ named coverage check, so the coverage ledger shows whether the owner assessed it
 | `contribution` | `question_and_claims`, `theoretical_argument`, `design_addresses_question` | theoretical and conceptual problems |
 | `design` | `confounds_and_controls`, `sampling_and_assignment`, `timing_and_dependence`, `attrition_and_missing_data` | methodological design; attrition and missing data |
 | `measurement` | `construct_validity`, `scoring_and_denominators`, `comparability_and_validity` | construct validity |
-| `statistical_inference` | `hypothesis_test_alignment`, `statistical_errors`, `power_and_sensitivity`, `analytic_flexibility`, `uncertainty_and_estimates` | statistical errors; analytic flexibility |
+| `statistical_inference` | `hypothesis_test_alignment`, `statistical_errors`, `power_and_sensitivity`, `analytic_flexibility`, `robustness_of_central_conclusions`, `uncertainty_and_estimates` | statistical errors; analytic flexibility; dependence of central conclusions on modelling choices |
 | `interpretation` | `causal_inference`, `generalizability`, `theory_and_mechanism_claims`, `claim_evidence_consistency` | causal inference; generalizability |
+| `overview` | `central_claims_and_evidence`, `alternative_explanations_and_scope`, `consequential_gaps` | the whole argument; central conclusions, competing explanations and consequential gaps |
 | `consistency` | `cross_section_agreement`, `sample_counts_through_stages`, `planned_versus_reported_analyses` | internal consistency; reporting completeness |
+
+`overview` reads the manuscript as one argument from question to conclusion and raises
+the issues an expert reviewer would put first. It covers problems spanning methodological
+lenses and missing content or analyses needed to assess central claims. It leaves narrow
+checks to their owners unless they are central to the main claims. It runs in parallel
+with the other modules and uses the same verification and editorial gates. Both
+`social_psychology` and `education` inherit it. Metacheck lead routing is unchanged;
+no leads are routed to overview. The blind-spot pass still follows all modules.
 
 `consistency` checks agreement across the whole manuscript: numbers and statements
 across sections (abstract against results, text against tables and figures), sample
@@ -152,7 +150,25 @@ anchoring or external-source checks, are listed only in the set-aside audit.
 
 Editorial selection merges duplicates and sets aside findings that verification does
 not support or that no candidate states proportionately. It never sets a finding aside
-because of how many there are. Published findings are ordered critical, major, minor.
+because of how many there are. Every keep decision must return final severity and is
+asked for a positive integer priority. Published findings are ordered critical, major,
+minor, then by editorial priority within each severity (lower numbers first). Missing
+priorities follow assigned ones; ties retain pipeline order. Older stored findings remain
+readable with `discovery_severity` and `priority` defaulting to null.
+
+Critical means a demonstrated error that invalidates a central result. Major means a
+supported issue that could change a central conclusion or its interpretation, an internal
+inconsistency affecting a reported result, or missing analysis or information without
+which a central claim cannot be assessed. Minor covers local, presentational or reporting
+issues without such consequence. Missing information is major only when a central claim
+cannot be assessed without it. Severity never overrides verification status.
+
+After publication gates and merge-target checks, supported merged findings contribute
+their unchanged claims and anchored quotations to the survivor's `merged_points`, each
+with its finding id and module. Reports show these under “Also raised by other modules:”.
+No new prose is generated for a merge. Unresolved, unverified and contradicted sources
+are not folded, and every original finding remains in the audit. Older stored findings
+default to an empty `merged_points` list.
 
 ## Tool use
 

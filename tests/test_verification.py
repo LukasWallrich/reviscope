@@ -229,6 +229,25 @@ def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source()
         Finding(id="x", module="m", claim="c", rationale="r", remedy="x", external_evidence=[{"quote": "q", "shows": "s"}])
 
 
+def test_verdict_reported_under_the_doi_confirms_an_item_cited_by_url():
+    """Satrevik regression: the verifier opened the cited URL but reported the check under the DOI."""
+    from datetime import datetime, timezone
+    from reviscope.schemas import ToolCall
+    quote = "The multilevel estimate was -0.25"
+    external = {"url": "https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6494.2010.00639.x",
+                "doi": "10.1111/j.1467-6494.2010.00639.x", "quote": "Only individuals high in PNS responded.", "shows": "s"}
+    cited = Finding(id="e", module="m", claim="c", rationale="r", remedy="x", evidence=[Evidence(source_id="main", quote=quote)],
+                    external_evidence=[external])
+    decision = {"status": "supported", "rationale": "ok", "remedy_status": "supported", "remedy_rationale": "",
+                "evidence": [{"source_id": "main", "quote": quote}],
+                "external_checks": [{"locator": external["doi"], "verdict": "confirmed", "rationale": "opened"}]}
+    fetch = ToolCall(backend="t", sequence=0, kind="fetch", name="WebFetch", url=external["url"],
+                     timestamp=datetime.now(timezone.utc))
+    result = verify_findings([cited], [source()], {"e": decision}, verifier_calls=[fetch])[0]
+    assert result.status == "llm_supported" and result.external_evidence[0].check == "confirmed"
+    assert verify_findings([cited], [source()], {"e": decision}, verifier_calls=[])[0].status == "unresolved"
+
+
 def test_external_source_counts_as_checked_only_when_opened_or_named_in_a_query():
     from datetime import datetime, timezone
     from reviscope.schemas import ToolCall

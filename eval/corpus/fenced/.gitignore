@@ -1,0 +1,4 @@
+# Fenced validation downloads: raw files only. Never commit, extract or open
+# them before the single human validation (see docs/CORPUS_SPLITS.md).
+*
+!.gitignore

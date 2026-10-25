@@ -166,6 +166,9 @@ def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
         if shutil.which(tool) is None:
             raise MetacheckError(f"{tool} not found on PATH; needed to convert {manuscript.suffix} input")
     text = manuscript.read_text(encoding="utf-8")
+    # PDF extraction can leave C0 control characters, which TeX cannot typeset.
+    controls = sum(1 for ch in text if ord(ch) < 32 and ch not in "\t\n\r")
+    text = "".join(" " if ord(ch) < 32 and ch not in "\t\n\r" else ch for ch in text)
     marked = 0
     if manuscript.suffix.lower() == ".txt":
         lines = []
@@ -185,7 +188,8 @@ def text_to_pdf(manuscript: Path, directory: Path) -> tuple[Path, str]:
                             capture_output=True, text=True, timeout=R_TIMEOUT, cwd=directory)
     if result.returncode or not pdf.is_file():
         raise MetacheckError(f"pandoc could not typeset {manuscript.name}: {result.stderr[-500:].strip()}")
-    return pdf, f"pandoc Markdown to PDF (tectonic){f', {marked} section headings marked' if marked else ''}"
+    notes = [f"{marked} section headings marked"] * bool(marked) + [f"{controls} control characters replaced"] * bool(controls)
+    return pdf, "pandoc Markdown to PDF (tectonic)" + "".join(f", {note}" for note in notes)
 
 
 def _converter(suffix: str, log: str) -> str:
@@ -389,8 +393,8 @@ def route(module: str, review_modules: list[str]) -> list[str]:
         target = first("contribution", "social_psychology_context", "interpretation")
     elif module in TRANSPARENCY:
         target = next((name for name in review_modules if "transparency" in name), None) or first("design", "interpretation")
-    else:
-        target = None
+    else:  # no owning module: the blind-spot pass reads every manuscript-wide lead
+        target = first("blind_spots")
     return [target] if target else []
 
 
@@ -413,7 +417,7 @@ def _rubric_excerpt(name: str) -> str:
     return f"RUBRIC {name} (excerpt)\n{excerpt.strip()}"
 
 
-def leads(record: MetacheckRecord | None, review_modules: list[str] | None) -> dict[str, str]:
+def leads(record: MetacheckRecord | None, review_modules: list[str]) -> dict[str, str]:
     """Lead text per review module.
 
     Modules are taken red first, then yellow, failed, info, green; each adds its header, the
@@ -425,7 +429,7 @@ def leads(record: MetacheckRecord | None, review_modules: list[str] | None) -> d
     texts: dict[str, list[str]] = {}
     ordered = sorted(record.modules, key=lambda m: LIGHT_ORDER.get(m.traffic_light if m.status in {"ok", "partial"} else None, 2))
     for item in ordered:
-        for target in (["holistic"] if review_modules is None else route(item.module, review_modules)):
+        for target in route(item.module, review_modules):
             parts = texts.setdefault(target, [LEADS_HEADER])
             checked = item.module in candidates
             rows, filtered, rule = candidates.get(item.module, ([], 0, None))
@@ -448,7 +452,3 @@ def leads(record: MetacheckRecord | None, review_modules: list[str] | None) -> d
             parts.append("\n".join(block))
     return {target: "\n\n".join(parts) for target, parts in texts.items()}
 
-
-def holistic_leads(record: MetacheckRecord | None) -> str:
-    """Every retained screening row once, including modules without a specialist route."""
-    return leads(record, None).get("holistic", "")

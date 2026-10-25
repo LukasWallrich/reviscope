@@ -290,7 +290,7 @@ def test_preregistration_leads_reach_both_owners_in_full(tmp_path, monkeypatch):
     assert "61 candidate row(s)" in routed["consistency"]
 
 
-def test_holistic_leads_include_unrouted_modules_and_preregistration_once(tmp_path):
+def test_unowned_leads_reach_the_blind_spot_pass_and_preregistration_its_owners(tmp_path):
     from reviscope.schemas import MetacheckModule, MetacheckRecord
 
     (tmp_path / "modules").mkdir()
@@ -300,6 +300,8 @@ def test_holistic_leads_include_unrouted_modules_and_preregistration_once(tmp_pa
         (tmp_path / "modules" / f"{name}.json").write_text(json.dumps(module(name, "ok", "yellow", rows)))
         modules.append(MetacheckModule(module=name, status="ok", n_rows=count))
     record = MetacheckRecord(status="completed", output_dir=str(tmp_path), modules=modules)
-    text = metacheck.holistic_leads(record)
-    assert text.count('"candidate_id": "p:prereg_check:r0"') == 1
-    assert text.count('"candidate_id": "p:unrouted_screen:') == 55
+    routed = metacheck.leads(record, ["consistency", "statistical_inference", "blind_spots"])
+    assert set(routed) == {"consistency", "statistical_inference", "blind_spots"}
+    assert routed["blind_spots"].count('"candidate_id": "p:unrouted_screen:') == 55
+    assert '"candidate_id": "p:prereg_check:r0"' not in routed["blind_spots"]
+    assert routed["consistency"].count('"candidate_id": "p:prereg_check:r0"') == 1

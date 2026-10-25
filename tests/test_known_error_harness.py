@@ -114,76 +114,29 @@ def test_trace_places_each_missed_error_at_the_stage_that_lost_it():
     assert where_lost(judged("detected", ids=("d",)), findings) == "unresolved: cited external source refuted by the verifier"
 
 
-def test_development_runner_preserves_case_profile_in_both_nested_arms(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
-    manuscript = tmp_path / "tutorial.txt"
-    manuscript.write_text("Tutorial source.")
-    commands = []
+def test_general_baseline_reads_supplements_and_asks_for_remedy_necessity(tmp_path):
+    plain = runpy.run_path(str(EVAL / "plain_review.py"))
 
-    def complete(command, **kwargs):
-        commands.append(command)
-        working = Path(command[command.index("--out") + 1])
-        for name in ("review.json", "review.md", "review.html", "run.log"):
-            (working / name).write_text(json.dumps({"partial": False, "metadata": {"profile": "education",
-                "evidence_audit": "--evidence-audit" in command}}) if name == "review.json" else "fixture")
-        return SimpleNamespace(returncode=0)
+    class GeneralBackend:
+        name, model, effort, identity, version = "stub", "m", "high", "stub:m:high", None
 
-    monkeypatch.setattr(runner["subprocess"], "run", complete)
-    root = tmp_path / "assessment"
-    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root),
-                                               "--case", "tutorial", "--profile", "education"])
-    assert runner["main"]() == 0
-    assert len(commands) == 2
-    assert all(command[command.index("--profile") + 1] == "education" for command in commands)
-    assert "--evidence-audit" not in commands[0] and "--evidence-audit" in commands[1]
-    records = json.loads((root / "reviews" / "working" / "tutorial" / "arms.json").read_text())
-    assert all(record["profile"] == "education" for record in records)
-    assert (root / "reviews" / "holistic" / "tutorial" / "review.json").exists()
-    assert (root / "reviews" / "audit" / "tutorial" / "review.json").exists()
-    commands.clear()
-    assert runner["main"]() == 0
-    assert not commands
-    assert json.loads((root / "reviews" / "working" / "tutorial" / "arms.json").read_text()) == records
-    monkeypatch.setitem(runner["main"].__globals__, "code_digest", lambda _: "changed-code")
-    with pytest.raises(ValueError, match="frozen provenance"):
-        runner["main"]()
+        def generate(self, instruction, evidence, response_model):
+            assert response_model.__name__ == "GeneralIssues" and "remedy_necessity" in instruction
+            assert "SOURCE_ID: " in evidence and "Appendix detail." in evidence
+            return response_model.model_validate({"issues": [{"category": "measurement", "description": "d",
+                "remedy": "r", "remedy_necessity": "essential", "quote": "Main text.", "location": "Methods",
+                "severity": "minor"}]})
 
+        def take_tool_calls(self):
+            return []
 
-def test_development_runner_never_archives_stale_report_on_usage_failure(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
-    manuscript = tmp_path / "paper.txt"
-    manuscript.write_text("Source.")
-    root = tmp_path / "assessment"
-    working = root / "reviews" / "working" / "case"
-    working.mkdir(parents=True)
-    (working / "review.json").write_text('{"partial": false, "metadata": {"evidence_audit": false}}')
-    monkeypatch.setattr(runner["subprocess"], "run", lambda *a, **k: SimpleNamespace(returncode=2))
-    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root), "--case", "case", "--profile", "social_psychology"])
-    assert runner["main"]() == 2
-    assert not (root / "reviews" / "holistic" / "case" / "review.json").exists()
-    assert not (working / "review.json").exists()
-
-
-def test_development_runner_rejects_mislabeled_arm_output(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-    runner = runpy.run_path(str(EVAL / "run_development_review.py"))
-    manuscript = tmp_path / "paper.txt"
-    manuscript.write_text("Source.")
-    root = tmp_path / "assessment"
-
-    def wrong_arm(command, **kwargs):
-        working = Path(command[command.index("--out") + 1])
-        (working / "review.json").write_text(json.dumps({"partial": False,
-            "metadata": {"profile": "social_psychology", "evidence_audit": True}}))
-        return SimpleNamespace(returncode=0)
-
-    monkeypatch.setattr(runner["subprocess"], "run", wrong_arm)
-    monkeypatch.setattr(runner["sys"], "argv", ["runner", str(manuscript), "--root", str(root), "--case", "case", "--profile", "social_psychology"])
-    with pytest.raises(ValueError, match="requested audit arm"):
-        runner["main"]()
-    assert not (root / "reviews" / "holistic" / "case" / "review.json").exists()
+    manuscript, supplement = tmp_path / "paper.md", tmp_path / "appendix.md"
+    manuscript.write_text("Main text. " * 50, encoding="utf-8")
+    supplement.write_text("Appendix detail. " * 50, encoding="utf-8")
+    payload = plain["review"](manuscript, GeneralBackend(), plain["GENERAL_PROMPT"], [supplement])
+    assert not payload["partial"] and payload["issues"][0]["remedy_necessity"] == "essential"
+    assert [source["kind"] for source in payload["sources"]] == ["manuscript", "supplement"]
+    assert payload["prompt"].startswith("General one-call review")
 
 
 def test_planted_error_scores_refuse_mixed_judging_conditions():

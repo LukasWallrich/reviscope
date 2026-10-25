@@ -1,4 +1,5 @@
 .venv/
+.venv
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -11,3 +12,7 @@ runs/
 .DS_Store
 eval/corpus/cache/
 eval/corpus/cache/
+eval/probes/sources/
+
+# Probes quoting unpublished manuscripts; never commit
+eval/probes/private/

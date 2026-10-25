@@ -14,6 +14,9 @@ class Severity(str, Enum):
     critical = "critical"
 
 
+SUPPORTED_STATUSES = frozenset({"llm_supported", "supported", "recomputed", "verified_deterministic"})
+
+
 class Evidence(BaseModel):
     source_id: str
     quote: str = Field(min_length=1)
@@ -109,6 +112,8 @@ class CandidateFinding(BaseModel):
     claim: str
     rationale: str
     remedy: str
+    # COPE: say whether a request is essential to support the claims or would strengthen or extend the work.
+    remedy_necessity: Literal["essential", "strengthening", "extending"] | None = None
     severity: Severity = Severity.major
     kind: Literal["defect", "specification_conflict", "clarification_request"] = "defect"
     evidence: list[Evidence] = Field(default_factory=list)
@@ -116,7 +121,17 @@ class CandidateFinding(BaseModel):
     study_id: str | None = None
 
 
+class MergedPoint(BaseModel):
+    finding_id: str
+    module: str
+    claim: str
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
 class Finding(CandidateFinding):
+    discovery_severity: Severity | None = None
+    priority: int | None = Field(default=None, ge=1)
+    merged_points: list[MergedPoint] = Field(default_factory=list)
     external_evidence: list[ExternalEvidence] = Field(default_factory=list)
     status: Literal["candidate", "verified_deterministic", "recomputed", "llm_supported", "supported", "contradicted", "unresolved", "unverified", "merged", "rejected"] = "candidate"
     confidence: float | None = Field(default=None, ge=0, le=1)
@@ -194,7 +209,8 @@ class RunMetadata(BaseModel):
     profile_hash: str
     input_hash: str
     output_dir: str
-    engine_version: str = "0.4.3a1"
+    engine_version: str = "0.5.0a1"
+    # "holistic" and evidence_audit=True occur only in runs archived before 0.5.0 (tag pre-specialist-only-0.4.3).
     discovery_strategy: Literal["specialist", "holistic"] = "specialist"
     evidence_audit: bool = False
 

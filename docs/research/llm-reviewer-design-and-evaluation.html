@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Designing and evaluating an LLM manuscript reviewer</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#5d5b55;--rule:#dcd8cf;--accent:#7a3b1d;--panel:#f2efe8;--link:#1f4e79}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#e8e6e1;--muted:#a19e96;--rule:#3a3833;--accent:#e0a37a;--panel:#211f1c;--link:#8cb8e6}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.62 Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif}
+main{max-width:46rem;margin:0 auto;padding:3rem 1.4rem 5rem}
+.masthead{border-bottom:2px solid var(--fg);padding-bottom:1.2rem;margin-bottom:1.6rem}
+.kicker{font:600 .78rem/1.2 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 .6rem}
+h1{font-size:2.2rem;line-height:1.15;margin:0 0 .6rem;font-weight:700}
+.dek{font-size:1.12rem;color:var(--muted);margin:0}
+h2{font-size:1.45rem;margin:3rem 0 .8rem;padding-top:.6rem;border-top:1px solid var(--rule)}
+h3{font:600 1.02rem/1.3 system-ui,sans-serif;margin:1.9rem 0 .5rem}
+a{color:var(--link)}
+.cite{font-size:.82em;white-space:nowrap}
+.cite a{text-decoration:none}
+.toc{background:var(--panel);padding:.9rem 1.2rem;border-radius:4px;font:.92rem/1.5 system-ui,sans-serif}
+.toc ol{margin:0;padding-left:1.3rem;columns:2;column-gap:2rem}
+.callout{background:var(--panel);border-left:4px solid var(--accent);padding:1rem 1.3rem;margin:1.4rem 0}
+.callout-title{font:600 .8rem/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin:0 0 .6rem}
+.callout ol{margin:0;padding-left:1.2rem}.callout li{margin:.45rem 0}
+.note{font-size:.95rem;color:var(--muted);border-left:2px solid var(--rule);padding-left:1rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font:.86rem/1.45 system-ui,sans-serif}
+th,td{text-align:left;vertical-align:top;padding:.5rem .55rem;border-bottom:1px solid var(--rule)}
+th{font-weight:600;border-bottom:2px solid var(--fg)}
+table.compact{font-size:.8rem}
+.table-wrap{overflow-x:auto;margin:0 -1rem;padding:0 1rem}
+@media (min-width:1100px){.table-wrap{margin:0 -8rem;padding:0}}
+ol.refs{list-style:none;padding:0;font-size:.86rem;line-height:1.5}
+ol.refs li{margin:.5rem 0;padding-left:2.2rem;text-indent:-2.2rem}
+ol.refs a{word-break:break-all}
+.refnum{display:inline-block;width:2.2rem;text-indent:0;color:var(--muted)}
+li:target{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+@media print{.toc{display:none}body{font-size:11pt}}
+</style></head>
+<body><main>
+<header class="masthead">
+  <p class="kicker">ReviScope · research note · 8 October 2026</p>
+  <h1>Designing and evaluating an LLM manuscript reviewer</h1>
+  <p class="dek">A survey of reviewer architectures, evaluation methods and dimensions of review quality, and what they imply for the specialist pipeline and its validation.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#evidence">What ReviScope has measured so far</a></li>
+    <li><a href="#targets">Four outcomes that are being conflated</a></li>
+    <li><a href="#designs">What other reviewer designs show</a></li>
+    <li><a href="#quality">Dimensions of review quality</a></li>
+    <li><a href="#methods">Evaluation methods and their failure modes</a></li>
+    <li><a href="#stats">Experimental design and statistics</a></li>
+    <li><a href="#programme">A proposed evaluation programme</a></li>
+    <li><a href="#pipeline">Hypotheses for the specialist pipeline</a></li>
+    <li><a href="#debates">Open questions</a></li>
+    <li><a href="#method">How this note was produced</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</nav>
+
+<section id="summary">
+<h2>1. Summary</h2>
+
+<p>ReviScope's evaluations so far are hard to act on, and the literature suggests that much of the difficulty lies in the measurement. Four outcomes are being read off instruments that each capture one of them partially: recovery of known errors, validity of the criticisms produced, usefulness to authors and editors, and agreement with human reviewers. Each needs its own instrument. In addition, existing evidence does not yet evaluate the specialist product's criticism validity and usefulness on real submissions: the comparisons against human reviews used the holistic arms, and the specialist pipeline has only been compared with plain review on two planted-error papers, one run each (<a href="#evidence">section 2</a>).</p>
+
+<div class="callout">
+<p class="callout-title">Main conclusions</p>
+<ol>
+<li><strong>The current comparisons cannot rank configurations, though they do reveal failure mechanisms.</strong> Independent runs of the same model rarely rediscover the same real errors <span class="cite">[<a href="#ref-1">1</a>]</span>, and one run on two papers cannot separate a stage effect from run-to-run variation. Papers, not findings, judgments or runs, are the sampling unit <span class="cite">[<a href="#ref-2">2</a>, <a href="#ref-3">3</a>]</span>.</li>
+<li><strong>Several staged reviewers beat their chosen baselines, but none isolates specialist decomposition.</strong> The strongest recall evidence is AAAI-26's five-stage pipeline, which beat a single prompt on planted-error detection in every aspect, at a much larger budget <span class="cite">[<a href="#ref-4">4</a>]</span>. Other systems report author-rated or judge-rated gains <span class="cite">[<a href="#ref-5">5</a>, <a href="#ref-6">6</a>, <a href="#ref-7">7</a>]</span>. On general reasoning tasks, strong single agents often match multi-agent systems at equal compute <span class="cite">[<a href="#ref-8">8</a>, <a href="#ref-9">9</a>]</span>. This motivates testing decomposition against a budget-matched baseline but does not settle it, and nearly all the evidence comes from computer science.</li>
+<li><strong>Discovery and finalization can both limit performance.</strong> ReviScope's specialist trace identifies discovery as the main loss of planted targets. Elsewhere, selection is the documented weak point: on ten papers, selectors that saw only the paper achieved 40–44% weighted coverage of human concerns, against 79.3% for an oracle choosing from the same candidate pool <span class="cite">[<a href="#ref-10">10</a>]</span>. Drops from candidates to published findings mix useful filtering, deduplication and harmful loss, so each stage transition needs adjudication before effort is redirected.</li>
+<li><strong>Precision needs adjudication of the findings themselves.</strong> Closed answer keys count every valid unmatched criticism as a false positive. The strongest precedents pool findings from all systems and humans and have experts adjudicate them blind to origin <span class="cite">[<a href="#ref-11">11</a>, <a href="#ref-12">12</a>, <a href="#ref-13">13</a>]</span>. Adjudication must cover each system's version of a criticism, including its rationale and remedy, not just the shared issue.</li>
+<li><strong>Utility rubrics do not measure correctness.</strong> RQI, ARCADIA, RevUtil and the 2026 editors' Delphi dimensions score coverage, specificity, actionability and manner <span class="cite">[<a href="#ref-14">14</a>, <a href="#ref-15">15</a>, <a href="#ref-16">16</a>, <a href="#ref-17">17</a>]</span>. Fluent, specific and wrong criticism scores well on all of them.</li>
+<li><strong>The characteristic LLM-reviewer harm is unnecessary or out-of-scope requests</strong>, the largest category (30.49%) of deficient LLM review segments in ReviewCritique <span class="cite">[<a href="#ref-18">18</a>]</span>. COPE's distinction between work that is <em>essential to support claims</em> and work that would <em>strengthen or extend</em> it <span class="cite">[<a href="#ref-19">19</a>]</span> gives a citable basis for scoring remedy necessity.</li>
+<li><strong>Whole-report preference by LLM judges is confounded by length and style.</strong> Padding reviews with non-informative text raised human quality ratings from 3.73 to 4.29 <span class="cite">[<a href="#ref-20">20</a>]</span>; 23 of 29 LLM review-quality metrics shifted under faithful rewrites <span class="cite">[<a href="#ref-21">21</a>]</span>; AI review scores correlate more with each other (r = 0.49) than with human scores (0.15) <span class="cite">[<a href="#ref-22">22</a>]</span>. Validity and contribution should be assessed on atomic criticisms; the delivered report still needs its own assessment for prioritisation, burden and clarity.</li>
+</ol>
+</div>
+
+<p>The practical consequence is a change of primary outcomes. Instead of asking which configuration a judge prefers, or how many planted targets were matched, ask per paper: <em>how many adjudicated-valid, consequential criticisms and valid, beneficial suggestions does a configuration produce; how many incorrect or disproportionate ones; and at what compute?</em> Planted-error recovery and report preference remain useful secondary and diagnostic outcomes.</p>
+</section>
+
+<section id="evidence">
+<h2>2. What ReviScope has measured so far</h2>
+
+<p>The project's results come from different configurations, engine versions and instruments. Summarised from <a href="../KNOWN_ERROR_RESULTS.md">KNOWN_ERROR_RESULTS.md</a> and <a href="../PIPELINE_DEVELOPMENT_RESULTS.md">PIPELINE_DEVELOPMENT_RESULTS.md</a>:</p>
+
+<div class="table-wrap">
+<table class="compact">
+<thead><tr><th>Comparison</th><th>Configuration</th><th>Instrument</th><th>Result</th><th>What it can show</th></tr></thead>
+<tbody>
+<tr><td>Planted errors, papers 5 and 9 (engine 0.4.1)</td><td><strong>Specialist</strong>, Sol/high, vs saved plain Sol</td><td>Strict LLM-matched recall; audited demonstrable subset</td><td>Published 7/20 vs 12/20; demonstrable 6/8 vs 6/8, the same six targets. Sol had no candidate match for ten targets. In a separate Luna diagnostic, all misses were discovery misses (Luna's paper 5 was flagged for contamination and excluded from headline recall).</td><td>Where specialist targets were lost (mostly discovery). Not a ranking: one run, two papers.</td></tr>
+<tr><td>Planted errors, papers 5 and 9 (engine 0.4.3)</td><td>Holistic (broad-first), Sol discovery, Opus verifier, vs saved plain</td><td>Same</td><td>12/20 vs 12/20; demonstrable 7/8 vs 6/8.</td><td>Observed strict recovery matched the saved baseline, and demonstrable-target recovery was one higher. Two development papers with saved controls do not establish non-inferiority. Says nothing about specialist.</td></tr>
+<tr><td>Two submitted manuscripts with expert reports</td><td>Plain, holistic, holistic + evidence audit</td><td>Whole-report pairwise preference; Opus primary, Sol sensitivity; both orders</td><td>Opus preferred plain to both holistic arms on both papers; Sol preferred plain on the indirect-harm paper; on group membership, holistic versus plain was order-discordant, and audit versus plain produced tie or audit judgments. Both judges preferred adding the audit to holistic alone.</td><td>Judge preferences on two papers, confounded by length and presentation. <strong>The specialist pipeline was not in this comparison.</strong></td></tr>
+<tr><td>Seven selected numerical checks</td><td>Plain, holistic, holistic + audit</td><td>Independent arithmetic</td><td>Plain and holistic + audit covered all seven; holistic alone missed one.</td><td>Specific reporting mismatches, conditional on the checked inputs and assumptions (the demographic checks depend on assumed denominators); not an estimate of overall precision or coverage.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">Papers 5 and 9 are development cases shaped by earlier feedback. Plain baselines are saved outputs, not concurrent controls. Metacheck screening was partial in these runs, and the demonstrable subset comes from a provisional audit.</p>
+
+<p>Two things follow. First, no current evidence compares the specialist product with plain review on the outcomes that matter most: the validity and usefulness of criticism on real submissions. Second, the existing results are still valuable as evidence of mechanisms. A verifier rejecting a false "code unavailable" premise after reproducing the analysis, discovery misses on reporting gaps, and source-access holds on original-study claims are concrete behaviours to test in a larger design.</p>
+</section>
+
+<section id="targets">
+<h2>3. Four outcomes that are being conflated</h2>
+
+<p>The literature separates four outcomes that are often treated as one. A system can do well on one and badly on another.</p>
+
+<table>
+<thead><tr><th>Outcome</th><th>What it asks</th><th>Typical instrument</th><th>What it misses</th></tr></thead>
+<tbody>
+<tr><td><strong>Known-error recovery</strong></td><td>Does the review find a designated defect?</td><td>Planted or real-error benchmarks; LLM or quote matching <span class="cite">[<a href="#ref-1">1</a>, <a href="#ref-23">23</a>, <a href="#ref-24">24</a>, <a href="#ref-25">25</a>]</span></td><td>Validity of everything else the review says; materiality; non-error contributions. Depends on the key's validity.</td></tr>
+<tr><td><strong>Criticism validity</strong></td><td>Is each criticism true of the manuscript, and does its inference follow?</td><td>Expert adjudication of emitted findings <span class="cite">[<a href="#ref-11">11</a>, <a href="#ref-12">12</a>, <a href="#ref-13">13</a>]</span></td><td>Coverage (a valid but trivial review scores well); usefulness.</td></tr>
+<tr><td><strong>Usefulness</strong></td><td>Does it help an editor decide and an author improve?</td><td>RQI, ARCADIA, RevUtil, author and editor ratings, uptake, manuscript improvement <span class="cite">[<a href="#ref-14">14</a>, <a href="#ref-15">15</a>, <a href="#ref-16">16</a>, <a href="#ref-26">26</a>, <a href="#ref-27">27</a>]</span></td><td>Correctness. Valence bias: authors rate reviews recommending acceptance higher <span class="cite">[<a href="#ref-20">20</a>, <a href="#ref-28">28</a>]</span>.</td></tr>
+<tr><td><strong>Agreement with humans</strong></td><td>Does it raise what human reviewers raised?</td><td>Comment overlap, score correlation, decision prediction <span class="cite">[<a href="#ref-29">29</a>, <a href="#ref-30">30</a>, <a href="#ref-31">31</a>]</span></td><td>Humans share only about 29–35% of their points with each other <span class="cite">[<a href="#ref-29">29</a>]</span>; inter-reviewer kappa is about .17 <span class="cite">[<a href="#ref-32">32</a>]</span>; independent committees disagreed on 23% of decisions <span class="cite">[<a href="#ref-33">33</a>]</span>. Unmatched does not mean wrong.</td></tr>
+</tbody>
+</table>
+
+<p>Planted-error recall measures the first outcome on a key whose validity is in question. The project's AI-assisted, unblinded provisional audit sorted the 100 Dawes targets into four evidential categories: about 42 demonstrable errors (often narrower than annotated), 24 reporting gaps, 9 needing external verification and 25 weak or invalid. Those categories guide expert checking and sensitivity analyses. They are not a replacement gold standard, and the official annotation-overlap scores should be kept. AAAI-26 found a similar problem with LLM-generated perturbations: of 35 audited targets, 22 were jointly judged significant enough to warrant a review criticism, nine minor and four disputed <span class="cite">[<a href="#ref-4">4</a>]</span>. Whole-report LLM preference mixes the third and fourth outcomes with presentation effects. Only the planned criticism-level expert adjudication measures the second.</p>
+
+<p class="note">Historical human baselines are a reference point, not a target. In BMJ studies, reviewers found on average 2.6 of 9 inserted major errors <span class="cite">[<a href="#ref-34">34</a>]</span> and commented on about 2 of 8 planted weaknesses <span class="cite">[<a href="#ref-35">35</a>]</span>; detection also varied with the reviewer's recommendation (39% for rejecters, 17% for accepters) <span class="cite">[<a href="#ref-36">36</a>]</span>. These figures come from different manuscripts and error types, so they do not give an expected human performance for ReviScope's benchmarks. They do show that recall on planted errors is a narrow measure, confounded with the reviewer's overall decision.</p>
+</section>
+
+<section id="designs">
+<h2>4. What other reviewer designs show</h2>
+
+<h3>4.1 The landscape</h3>
+<p>Published and deployed reviewers fall into four families: single structured prompts, prompted multi-stage or multi-agent pipelines, fine-tuned or RL-trained reviewers, and narrow deterministic or semi-deterministic checkers. Results in the table use different tasks, judges and samples, and are not comparable with each other.</p>
+
+<div class="table-wrap">
+<table class="compact">
+<thead><tr><th>System</th><th>Architecture</th><th>Verification / filtering</th><th>Evaluation (task, judge, n)</th><th>Headline result and main limitation</th></tr></thead>
+<tbody>
+<tr><td>Liang et al. <span class="cite">[<a href="#ref-29">29</a>]</span></td><td>Single GPT-4 structured prompt</td><td>None</td><td>Comment overlap with human reviews (4,805 papers); user study (308 researchers)</td><td>31–39% overlap, similar to human–human; 57.4% found it helpful. Overlap is not correctness.</td></tr>
+<tr><td>MARG <span class="cite">[<a href="#ref-5">5</a>]</span></td><td>Leader, chunk workers, aspect experts</td><td>Inter-agent discussion</td><td>Authors rated comments on their own papers</td><td>Generic comments 60% → 29%; good comments 1.7 → 3.7 per paper. Baseline was context-limited.</td></tr>
+<tr><td>AI Scientist reviewer <span class="cite">[<a href="#ref-31">31</a>]</span></td><td>Single model, self-reflection, 5-review ensemble</td><td>Self-reflection</td><td>ICLR decision prediction, 500 papers</td><td>Balanced accuracy 0.65 (humans 0.66); ensembling reduced variance, not error. Decision prediction only.</td></tr>
+<tr><td>TreeReview <span class="cite">[<a href="#ref-6">6</a>]</span></td><td>Recursive question tree, bottom-up aggregation</td><td>None</td><td>LLM judge plus human win rates</td><td>Beat MARG and single calls with 80% fewer tokens than MARG. Judged quality, not verified recall.</td></tr>
+<tr><td>DeepReview <span class="cite">[<a href="#ref-37">37</a>]</span></td><td>Fine-tuned 14B; novelty, evaluation and reliability stages</td><td>Trained reliability stage</td><td>LLM-judged win rates</td><td>Wins against o1 and DeepSeek-R1. LLM-judged.</td></tr>
+<tr><td>ICLR Review Feedback Agent <span class="cite">[<a href="#ref-26">26</a>]</span></td><td>Two actors, aggregator, critic, formatter</td><td>Critic plus four pass/fail reliability tests with retries</td><td>Randomised trial, ~20k reviews</td><td>26.6% of reviewers updated; blinded raters preferred updated reviews in 89% of a selected sample. Feedback on reviews, not reviewing papers.</td></tr>
+<tr><td>AAAI-26 pilot <span class="cite">[<a href="#ref-4">4</a>]</span></td><td>Five sequential specialist stages, each seeing earlier results; synthesis; self-critique</td><td>Self-critique; critic LLM; human checks; citation audit</td><td>SPECS planted errors (783 in 120 papers); 5,834 survey responses</td><td>Recovery 63.9% vs 42.9% for one prompt; 53.9% found reviews useful. Unequal budgets; key partly invalid.</td></tr>
+<tr><td>coarse <span class="cite">[<a href="#ref-38">38</a>]</span></td><td>Overview, completeness, parallel section agents, synthesis</td><td>Proof check; editorial filter; fuzzy quote verification</td><td>None published</td><td>In a vendor-run, LLM-judged benchmark, coarse scaffolding narrowed a commercial tool's margin over the same base model <span class="cite">[<a href="#ref-39">39</a>]</span>.</td></tr>
+<tr><td>Gauntlet <span class="cite">[<a href="#ref-7">7</a>]</span></td><td>Five expert personas plus a synthesis that keeps disagreements</td><td>Disagreement-preserving synthesis</td><td>LLM-judged ablation, 98 papers; open-label human comparison, 20 papers</td><td>Preferred over a single rich-persona agent on 96% of papers. Humans won on confident errors and unprioritised lists. No length control.</td></tr>
+<tr><td>DIAGPaper <span class="cite">[<a href="#ref-40">40</a>]</span></td><td>Custom specialists, rebuttal stage, prioritisation</td><td>Rebuttal stage</td><td>Overlap with human weaknesses; expert audit of 50 unmatched items</td><td>F1 51.9 vs 47.4 for GPT-4o. Overlap-based.</td></tr>
+<tr><td>Pre-submission pool <span class="cite">[<a href="#ref-10">10</a>]</span></td><td>Sample atomic concerns, deduplicate and refill, compress</td><td>Selector</td><td>Coverage of historical ICLR 2026 reviews; main experiments on ten papers</td><td>Dedup and refill raised strict coverage 44.9% → 78.7% at 3.6× the requests and 5.2× the tokens; paper-only selectors reached 40–44% against 79.3% for an oracle.</td></tr>
+<tr><td>CRED <span class="cite">[<a href="#ref-12">12</a>]</span></td><td>Detectors given manuscript, code and a reproduction record (economics)</td><td>Two-reviewer adjudication of findings</td><td>Planted errors in AI-generated host papers; separate precision study on 100 unmutated papers</td><td>97.4% of 461 findings confirmed. Recall and precision come from different configurations.</td></tr>
+<tr><td>statcheck <span class="cite">[<a href="#ref-41">41</a>]</span>, metacheck <span class="cite">[<a href="#ref-42">42</a>]</span>, RegCheck <span class="cite">[<a href="#ref-43">43</a>]</span></td><td>Deterministic extraction and recomputation; LLM limited to classification or one dimension per call</td><td>Human checks quotes (RegCheck)</td><td>Validation against manual coding (statcheck)</td><td>statcheck accuracy 96–99.9%; its use at journals is associated with a steep decline in inconsistencies <span class="cite">[<a href="#ref-44">44</a>]</span>. Overall accuracy is not the precision of flags.</td></tr>
+<tr><td>YesNoError <span class="cite">[<a href="#ref-45">45</a>]</span></td><td>High-volume unfiltered error scan</td><td>None evident</td><td>Independent spot check of flagged papers</td><td>14 of 40 flagged papers were false positives (paper level).</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>4.2 Evidence on staged and specialist designs</h3>
+<p>Several staged reviewers outperform their chosen baselines on task-specific outcomes. The strongest recall comparison is AAAI-26's: with the same model, its pipeline detected planted errors at higher rates in all five aspects, for example 0.67 against 0.35 for story-level errors and 0.45 against 0.26 for significance <span class="cite">[<a href="#ref-4">4</a>]</span>. Its stages run in sequence and see earlier results, which differs from independent specialist readers, and its baseline was one prompt against several high-effort stages. Narrow, targeted prompts beat general review prompts on error detection in early work <span class="cite">[<a href="#ref-46">46</a>]</span>, and generic review generators were insensitive to counterfactually inserted logic flaws <span class="cite">[<a href="#ref-47">47</a>]</span>. Narrow per-item checks are the best-validated deployed use: over 70% of authors found a NeurIPS checklist assistant useful, with inaccuracy and over-strictness the main complaints <span class="cite">[<a href="#ref-48">48</a>]</span>.</p>
+
+<p>Gains can be small when the outcome is a global score: in one study, a one-paragraph prompt nearly matched an engineered pipeline at predicting ICLR outcomes, although the pipeline's scores varied much less on reruns (median within-paper SD 0.7 against 2.8, across ten papers with two reruns each) <span class="cite">[<a href="#ref-49">49</a>]</span>. On reasoning tasks, multi-agent discussion rarely beats a well-prompted single agent at equal compute <span class="cite">[<a href="#ref-8">8</a>, <a href="#ref-9">9</a>]</span>, and multi-agent systems fail in characteristic ways in information handoff and verification <span class="cite">[<a href="#ref-50">50</a>]</span>.</p>
+
+<p>None of the review-specific comparisons surveyed here controls compute. In ReviScope's case, the specialist pilot used 42 model calls across two papers, where the plain baseline used one per paper. A specialist advantage can only be attributed to decomposition if the comparator gets a similar discovery budget (for example a broad review sampled <em>k</em> times, pooled and deduplicated) and the same verification and editorial treatment.</p>
+
+<h3>4.3 Selection and verification</h3>
+<p>Selection is a documented weak point in other systems. Besides the pre-submission pool result above <span class="cite">[<a href="#ref-10">10</a>]</span>, AAAI-26 respondents' main complaints were nitpicking, verbosity and poor prioritisation <span class="cite">[<a href="#ref-4">4</a>]</span>, and in the Gauntlet study humans won on papers where the AI produced one confident error or an unprioritised list <span class="cite">[<a href="#ref-7">7</a>]</span>. Unfiltered tools produce false positives: 14 of 40 flagged papers in the YesNoError spot check <span class="cite">[<a href="#ref-45">45</a>]</span>. SPOT's best precision of 6.1% is relative to its reference set, under an exhaustive-key assumption. It shows low agreement with the annotated errors, not an adjudicated false-discovery rate <span class="cite">[<a href="#ref-1">1</a>]</span>.</p>
+
+<p>Almost every deployed system has a critic or verifier stage, but none reports an ablation of that stage's precision against the recall it loses. The general literature is mixed. Intrinsic self-correction can turn correct answers into wrong ones <span class="cite">[<a href="#ref-51">51</a>]</span>. Verification with independently answered questions raised factual precision while reducing the number of facts produced <span class="cite">[<a href="#ref-52">52</a>]</span>. Combining several imperfect verifiers, weighted by estimated accuracy, works better than any one of them <span class="cite">[<a href="#ref-53">53</a>]</span>. LLM judges are also persuaded by rhetoric: persuasive additions inflate scores for incorrect solutions <span class="cite">[<a href="#ref-54">54</a>]</span>, and models defer to stated user views <span class="cite">[<a href="#ref-55">55</a>]</span>. ReviScope gives the verifier the generating rationale as untrusted material, which is consistent with this evidence, but the effect of that choice has not been measured.</p>
+
+<h3>4.4 Tools and re-analysis</h3>
+<p>In a randomised study of 103 teams, 37% of AI-led teams (13 of 35) achieved computational reproduction, against 94% of human-only teams (31 of 33), and AI-led teams and found fewer major coding errors <span class="cite">[<a href="#ref-56">56</a>]</span>. Coding agents given the original paper became biased toward confirming its results on tasks that could not be reproduced, and prompt framing could induce specification search <span class="cite">[<a href="#ref-57">57</a>]</span>. The best agents on REPRO-Bench assessed reproducibility correctly in about a fifth to a third of cases <span class="cite">[<a href="#ref-58">58</a>]</span>.</p>
+
+<h3>4.5 Robustness</h3>
+<p>Hidden instructions can steer targeted parts of a review <span class="cite">[<a href="#ref-59">59</a>]</span>. Presentation-only rewrites, with methods and results unchanged, raised AI review scores by 1.21 points on a ten-point scale <span class="cite">[<a href="#ref-60">60</a>]</span>. LLM reviews echo authors' disclosed limitations far more than human reviews do <span class="cite">[<a href="#ref-61">61</a>]</span>. An ensemble of LLM reviewers accepted about half of a set of deliberately unsound, fabricated papers while raising integrity concerns about a similar share <span class="cite">[<a href="#ref-62">62</a>]</span>: raising a concern and weighing it in the overall judgment are separate behaviours.</p>
+</section>
+
+<section id="quality">
+<h2>5. Dimensions of review quality</h2>
+
+<p>No validated gold-standard instrument for review quality exists. A systematic review found 24 tools; none defined quality, and only one had documented scale development <span class="cite">[<a href="#ref-63">63</a>]</span>. ARCADIA's definition is the most useful: a review is good to the extent that it "helps editors make a fair decision and authors improve" <span class="cite">[<a href="#ref-15">15</a>]</span>. Quality is only measurable relative to stated objectives <span class="cite">[<a href="#ref-64">64</a>]</span>.</p>
+
+<p>The framework below combines human peer-review instruments, which score whole reports, with NLP work that scores single points. It works at three levels:</p>
+<ul>
+<li><strong>Issue:</strong> a cluster of criticisms about the same underlying problem.</li>
+<li><strong>Variant:</strong> each system's or reviewer's version of an issue, with its own rationale, consequence and remedy.</li>
+<li><strong>Report:</strong> the whole review as delivered.</li>
+</ul>
+
+<h3>5.1 Variant-level dimensions</h3>
+<p>Clusters identify shared issues, but a supported cluster does not confer support on every member. One system's version can have a false rationale or a disproportionate remedy while another's is sound. Adjudicate each materially distinct variant, count issue recovery once per report, and attribute incorrect arguments and remedies to the outputs that contain them.</p>
+<div class="table-wrap">
+<table class="compact">
+<thead><tr><th>Dimension</th><th>Operational definition</th><th>Who can rate it</th><th>Known risks</th></tr></thead>
+<tbody>
+<tr><td><strong>C1 Correctness</strong></td><td>Supported, contradicted, unresolved (needs data, code or an external source), or not assessable. Assess the factual premise, the inference and the stated consequence separately <span class="cite">[<a href="#ref-65">65</a>]</span>.</td><td>Methods experts with the full manuscript and supplements, blind to source; deterministic recomputation for numbers.</td><td>LLM judges are weak here: best F1 about 22 at detecting deficient review segments, with more false alarms than misses <span class="cite">[<a href="#ref-18">18</a>]</span>. Experts may defer to confident prose.</td></tr>
+<tr><td><strong>C2 Materiality</strong></td><td>If true, how far does it affect the paper? 3 = undermines a primary claim; 2 = weakens a primary claim or affects a secondary claim; 1 = local or reporting issue without inferential effect; 0 = cosmetic or preference.</td><td>Experts, with anchoring vignettes. Convergence across systems and humans is a cheap proxy <span class="cite">[<a href="#ref-29">29</a>]</span>.</td><td>Severity inflation; confusing "hard to fix" with "important".</td></tr>
+<tr><td><strong>C3 Grounding and specificity</strong></td><td>Does it identify where, and exactly what, is wrong? RevUtil 1–5 scale <span class="cite">[<a href="#ref-16">16</a>]</span>.</td><td>Largely automatable: quote-anchor checks plus LLM rating. Human α ≈ .39.</td><td>Specific-looking but wrong points score well; read alongside C1.</td></tr>
+<tr><td><strong>C4 Substantiation</strong></td><td>Is it backed by reasoning, calculation, quotation or a citation that a reader can check <span class="cite">[<a href="#ref-16">16</a>, <a href="#ref-66">66</a>]</span>?</td><td>Trained crowd, or LLM with spot checks (α ≈ .46). Whether the evidence supports the claim belongs to C1.</td><td>Fabricated or irrelevant citations look like substantiation.</td></tr>
+<tr><td><strong>C5 Remedy</strong></td><td>(a) Is it actionable? (b) Is it essential to support the claims as stated, strengthening, or extending beyond scope <span class="cite">[<a href="#ref-19">19</a>]</span>? (c) Is it the least burdensome fix that resolves the problem? (d) Would the suggested analysis itself be valid?</td><td>Actionability: crowd or authors (α ≈ .56, the most reliable RevUtil aspect). Necessity, feasibility and validity: experts.</td><td>Raters reward more and longer requests <span class="cite">[<a href="#ref-20">20</a>]</span>. Reviewer-requested unplanned analyses made published trial reports worse <span class="cite">[<a href="#ref-67">67</a>]</span>. An extension is not harmful merely because it is optional or beyond scope; its validity, feasibility and proportionality still require assessment.</td></tr>
+<tr><td><strong>C6 Benefit</strong></td><td>For suggestions that allege no error (clarity, reporting, theory, presentation): would acting on it give a concrete benefit to the reader or the argument?</td><td>Experts, plus authors or qualified readers asked which points they would act on.</td><td>Easily confused with agreeing with the reviewer's taste.</td></tr>
+<tr><td><strong>C7 Calibration</strong></td><td>Does ReviScope's label (published finding or unresolved concern, and severity) match the adjudicated status?</td><td>Computed from C1 against ReviScope's labels.</td><td>Needs many adjudicated variants. LLM self-reported confidence is uninformative <span class="cite">[<a href="#ref-68">68</a>]</span>.</td></tr>
+<tr><td><strong>C8 Tone</strong></td><td>No hostile or accusatory language; integrity concerns raised only with evidence <span class="cite">[<a href="#ref-19">19</a>]</span>.</td><td>Automatable, with a light audit.</td><td>For LLMs the main risk is overstated certainty, not rudeness.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.2 Report-level dimensions</h3>
+<div class="table-wrap">
+<table class="compact">
+<thead><tr><th>Dimension</th><th>Operational definition</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td><strong>R1 Coverage</strong></td><td>Share of the adjudicated-valid issues with C2 ≥ 2 in the pooled human-plus-system set that this report raised; distribution across aspects (contribution, design, measurement, statistics, interpretation, reporting).</td><td>RQI and ARCADIA domains <span class="cite">[<a href="#ref-14">14</a>, <a href="#ref-15">15</a>]</span>; aspect focus <span class="cite">[<a href="#ref-69">69</a>, <a href="#ref-70">70</a>]</span></td></tr>
+<tr><td><strong>R2 Prioritisation</strong></td><td>Rank agreement between report order or severity labels and adjudicated materiality; essential remedies separated from optional ones.</td><td>Authors rate "focus on important aspects" lowest <span class="cite">[<a href="#ref-71">71</a>]</span>; COPE <span class="cite">[<a href="#ref-19">19</a>]</span></td></tr>
+<tr><td><strong>R3 Burden and noise</strong></td><td>Count of incorrect, immaterial and unnecessary-remedy variants; new analyses or data requested; reading time per valid material point.</td><td><span class="cite">[<a href="#ref-18">18</a>, <a href="#ref-67">67</a>, <a href="#ref-72">72</a>]</span></td></tr>
+<tr><td><strong>R4 Decision usefulness</strong></td><td>Separate, justified judgments of importance and of strength of evidence, consistent with the findings. Score congruence, not agreement with the eventual decision.</td><td>eLife's two vocabularies <span class="cite">[<a href="#ref-73">73</a>]</span>; Meta-Psychology excludes novelty <span class="cite">[<a href="#ref-74">74</a>]</span></td></tr>
+<tr><td><strong>R5 Reader benefit</strong></td><td>Which supported points authors or qualified readers would act on; whether they understand the action; whether they can tell essential from optional work; useful positive feedback.</td><td><span class="cite">[<a href="#ref-15">15</a>, <a href="#ref-26">26</a>]</span></td></tr>
+<tr><td><strong>R6 Stability</strong></td><td>Per-issue detection frequency across repeated runs of one configuration.</td><td><span class="cite">[<a href="#ref-1">1</a>, <a href="#ref-49">49</a>]</span></td></tr>
+<tr><td><strong>R7 Distinctiveness</strong></td><td>Rate of generic points reusable across papers; similarity of reports across papers.</td><td><span class="cite">[<a href="#ref-5">5</a>, <a href="#ref-22">22</a>, <a href="#ref-75">75</a>]</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.3 Precision and yield, defined</h3>
+<p>Keep validity and usefulness apart. Per paper, report:</p>
+<ul>
+<li>supported / all;</li>
+<li>supported / (supported + contradicted);</li>
+<li>unresolved / all;</li>
+<li>the number of contradicted variants;</li>
+<li>supported with C2 ≥ 2 / all;</li>
+<li>a separate count of serious harms (contradicted or unnecessary major or critical advice).</li>
+</ul>
+<p>State how not-assessable items and empty outputs are handled. Never report resolved-only precision alone: it can improve simply by deferring difficult findings.</p>
+
+<p>Statistical and methodological checking is where specialist modules are most defensible. It is under-supplied: 34% of responding leading biomedical journals (36 of 107) rarely or never use specialised statistical review <span class="cite">[<a href="#ref-76">76</a>]</span>. In a BMJ study, training in epidemiology or statistics was the only reviewer characteristic that both editors and authors associated with higher review quality <span class="cite">[<a href="#ref-77">77</a>]</span>. In trials, added statistical or reporting-guideline review modestly improved final manuscripts <span class="cite">[<a href="#ref-27">27</a>, <a href="#ref-78">78</a>]</span>.</p>
+</section>
+
+<section id="methods">
+<h2>6. Evaluation methods and their failure modes</h2>
+
+<h3>6.1 Error benchmarks</h3>
+<table>
+<thead><tr><th>Type</th><th>Examples</th><th>Strength</th><th>Weakness</th></tr></thead>
+<tbody>
+<tr><td>Planted errors</td><td>SPECS <span class="cite">[<a href="#ref-4">4</a>]</span>, FLAWS <span class="cite">[<a href="#ref-23">23</a>]</span>, PaperAudit <span class="cite">[<a href="#ref-24">24</a>]</span>, Dawes <span class="cite">[<a href="#ref-25">25</a>]</span>, CRED <span class="cite">[<a href="#ref-12">12</a>]</span></td><td>Known denominator; cheap to scale.</td><td>Key validity. Deleted information often survives elsewhere. Insertions can create contradictions that are easier to spot than the intended issue.</td></tr>
+<tr><td>Real errors from errata, retractions or withdrawals</td><td>SPOT <span class="cite">[<a href="#ref-1">1</a>]</span>, WithdrarXiv-Check <span class="cite">[<a href="#ref-79">79</a>]</span></td><td>Errors that mattered in practice.</td><td>Much harder (SPOT best recall 21.1%). The key is not exhaustive; public notices risk contamination.</td></tr>
+<tr><td>Paired counterfactuals</td><td>Dycke &amp; Gurevych <span class="cite">[<a href="#ref-47">47</a>]</span></td><td>Tests sensitivity: does the review change when only the flaw changes? Neutral edits act as controls.</td><td>Still needs a validated key: agreement on whether edits compromised soundness was weak (S = 0.20). A changed output can reflect surface sensitivity.</td></tr>
+<tr><td>Pooled adjudication</td><td>SciCoQA <span class="cite">[<a href="#ref-11">11</a>]</span>, CRED precision arm <span class="cite">[<a href="#ref-12">12</a>]</span>, To Err Is Human <span class="cite">[<a href="#ref-13">13</a>]</span></td><td>Finding-level precision; credits valid findings outside the key.</td><td>Costly; systems that contribute to the pool gain an advantage; recall is only relative to the pool.</td></tr>
+</tbody>
+</table>
+
+<p>Matching is itself a source of error: Liang et al.'s matcher had precision 0.78 and recall 0.88 against human labels <span class="cite">[<a href="#ref-29">29</a>]</span>. Localisation metrics, such as FLAWS's top-<em>k</em> spans and CRED's deterministic quote matching, avoid an LLM matcher but ignore whether the rationale is right <span class="cite">[<a href="#ref-12">12</a>, <a href="#ref-23">23</a>]</span>. ReviScope's quote anchoring makes localisation scoring cheap to add alongside LLM matching.</p>
+
+<h3>6.2 LLM judges</h3>
+<p>Documented biases include position <span class="cite">[<a href="#ref-80">80</a>]</span>, length <span class="cite">[<a href="#ref-81">81</a>]</span>, self-preference that persists when model names are hidden <span class="cite">[<a href="#ref-82">82</a>]</span>, sycophancy <span class="cite">[<a href="#ref-55">55</a>]</span> and persuasion <span class="cite">[<a href="#ref-54">54</a>]</span>. General-purpose judges reached only about 51–57% on hard pairs with objectively correct answers <span class="cite">[<a href="#ref-83">83</a>]</span>. On review quality, GPT-4o agreed with trained graduate-student annotators, who saw only titles and abstracts, at τ = 0.36 for overall quality and 0.12 for factuality <span class="cite">[<a href="#ref-84">84</a>]</span>. These results show weaknesses in the settings tested. They do not give an expected accuracy for ReviScope's judges, which need their own calibration.</p>
+
+<p>Mitigations with evidence behind them:</p>
+<ul>
+<li>decomposed checklists rather than Likert scales <span class="cite">[<a href="#ref-85">85</a>]</span>;</li>
+<li>reference-guided judging <span class="cite">[<a href="#ref-86">86</a>]</span>;</li>
+<li>panels of diverse judges, with individual verdicts retained <span class="cite">[<a href="#ref-87">87</a>]</span>;</li>
+<li>length-controlled preference estimation as a sensitivity analysis <span class="cite">[<a href="#ref-81">81</a>]</span>;</li>
+<li>invariance tests under faithful rewrites <span class="cite">[<a href="#ref-21">21</a>]</span>.</li>
+</ul>
+<p>The Refine benchmark aligns atomic concerns and judges only the residual unique ones <span class="cite">[<a href="#ref-39">39</a>]</span>. That estimates incremental supported coverage, but it does not assess the delivered report. Removing shared points can hide differences in qualification, explanation or remedy, and filtering out unsupported points hides the harm they would do. Use atomic assessment for validity and contribution. Keep a separate whole-report assessment of prioritisation, burden, uncertainty and positive feedback, in native and normalised representations as the validation plan already proposes.</p>
+
+<p>Opus preferred every AI arm to both expert reports on both manuscripts. That is consistent with these biases: AI reports are longer and more structured, criticism-only presentation removes the praise and discussion in human prose, and judges share stylistic preferences with AI reviewers <span class="cite">[<a href="#ref-22">22</a>]</span>. LLM and human critiques also have different functional profiles, and "expert" prompting amplifies LLM tendencies rather than making them more human-like <span class="cite">[<a href="#ref-88">88</a>]</span>.</p>
+
+<h3>6.3 Clustering criticisms</h3>
+<p>Atomic decomposition made factual precision measurable for long-form text <span class="cite">[<a href="#ref-89">89</a>]</span>. But over-atomised claims lose the context needed to verify them, and "molecular" units that keep the necessary context were far less ambiguous <span class="cite">[<a href="#ref-90">90</a>]</span>. For review criticisms, the unit should keep the study, passage, variable and inferential claim. Use bidirectional entailment for equivalence and directional coverage for target matching. Audit over-merging and over-splitting on a human-checked sample that includes deliberately mismatched variants. A trained alignment model is a cheap second matcher for disagreement checks <span class="cite">[<a href="#ref-91">91</a>]</span>.</p>
+
+<h3>6.4 Using judges without trusting them</h3>
+<p>Judges can reduce human effort if they are treated as auxiliary measurements. Prediction-powered inference combines judge labels on all items with human labels on a random subsample, and corrects the judge's bias <span class="cite">[<a href="#ref-92">92</a>]</span>. Two-phase designs with known sampling probabilities allow oversampling where the judge is least reliable <span class="cite">[<a href="#ref-93">93</a>]</span>. Neither resolves the dependence among variants, runs and papers, and both are fragile with few papers. Start with transparent inverse-probability-weighted totals and paper-level summaries, and treat these estimators as a later efficiency step. Whatever the estimator, the human sample must give every relevant stratum a positive, recorded inclusion probability, as the validation plan specifies: targeted strata (unique contributions of a stage, judge disagreements, suspected-incorrect major claims) plus a reproducibly sampled remainder.</p>
+</section>
+
+<section id="stats">
+<h2>7. Experimental design and statistics</h2>
+
+<h3>7.1 Units and repetition</h3>
+<p>Papers play the role of stimuli in a participants-by-stimuli design: adding judgments, runs or criticisms for a fixed set of papers cannot raise power for generalisation beyond a ceiling set by the number of papers <span class="cite">[<a href="#ref-2">2</a>]</span>. Compute each paper's configuration difference averaged over runs, summarise the paired differences, and show paper-level results. Normal-approximation intervals are unreliable with small evaluation sets <span class="cite">[<a href="#ref-3">3</a>]</span>, and resampling should preserve pairing <span class="cite">[<a href="#ref-94">94</a>]</span>.</p>
+<p>Repeated generation matters for a different reason. In a study of LLM benchmarks, single runs produced a pairwise ranking inversion in ten of twelve slices relative to a three-run majority, and a second run removed most of them <span class="cite">[<a href="#ref-95">95</a>]</span>. For review, issue-level stability matters as much as mean recall: two configurations can have the same recall while catching different issues on different runs <span class="cite">[<a href="#ref-1">1</a>]</span>.</p>
+
+<h3>7.2 Sample size</h3>
+<p>In a pilot, estimate the paired between-paper SD of the actual primary endpoint, annotation time and the variance components. Then simulate the intended design, with unequal sampling weights and missing ratings. As a purely illustrative calculation: if paired paper-level differences in a proportion had an SD of 0.20, a 95% interval with half-width 0.05 would need about 62 papers, from <em>n</em> ≈ (1.96 × <em>s</em><sub>Δ</sub> / <em>h</em>)². Ten papers would give a half-width near 0.12. Adding planted errors to the same ten papers does not substitute for more papers.</p>
+
+<h3>7.3 Decision criteria</h3>
+<p>Prespecify:</p>
+<ul>
+<li>one principal contrast between specialist and a comparator;</li>
+<li>a benefit endpoint;</li>
+<li>acceptable loss margins on validity precision;</li>
+<li>a limit on serious incorrect advice;</li>
+<li>usability requirements;</li>
+<li>a cost premium.</li>
+</ul>
+<p>Require the relevant confidence bounds to clear each criterion, and label other contrasts exploratory. A non-significant difference does not establish equivalence <span class="cite">[<a href="#ref-96">96</a>]</span>, and a preference win cannot compensate for materially harmful advice.</p>
+
+<h3>7.4 Rater reliability</h3>
+<p>Report Krippendorff's α with the appropriate distance function: nominal for support labels, ordinal for materiality <span class="cite">[<a href="#ref-97">97</a>]</span>. Report raw agreement and prevalence alongside AC1, rather than choosing the most favourable coefficient <span class="cite">[<a href="#ref-98">98</a>]</span>. Compute agreement on independent ratings made before discussion. For comparison, annotators of review-point utility reached α of .39–.56 <span class="cite">[<a href="#ref-16">16</a>]</span>, and refining the guidelines raised kappa for lazy-reviewing labels from .31 to .52 <span class="cite">[<a href="#ref-72">72</a>]</span>. Budget expert time for reading the manuscripts, not only for rating packets.</p>
+</section>
+
+<section id="programme">
+<h2>8. A proposed evaluation programme</h2>
+
+<p>This adapts the existing <a href="../PIPELINE_VALIDATION_PLAN.md">validation plan</a>, with the specialist strategy as the product under test and plain and holistic as labelled comparators.</p>
+
+<h3>8.1 From uncertainty to decision</h3>
+<div class="table-wrap">
+<table class="compact">
+<thead><tr><th>Uncertainty</th><th>Discriminating comparison</th><th>Measured outcome</th><th>Decision it informs</th></tr></thead>
+<tbody>
+<tr><td>Is specialist better than what a user could get otherwise?</td><td>Practical: current specialist vs fresh plain vs current holistic, fixed settings, frozen code</td><td>Per paper: supported consequential issues, supported beneficial suggestions, serious harms, cost</td><td>Whether the default product earns its cost</td></tr>
+<tr><td>Does decomposition itself help, beyond compute?</td><td>Architectural: specialist discovery vs budget-matched broad sampling (pooled), both through identical verification and editorial</td><td>As above, plus unique supported issues per arm</td><td>Whether to keep investing in modules or in sampling</td></tr>
+<tr><td>Do verification and editorial help or harm?</td><td>Fixed candidates replayed through the current verifier and editorial</td><td>Each transition adjudicated as helped, harmed or neutral</td><td>Where to change finalization</td></tr>
+<tr><td>Which module contributes what?</td><td>Leave-one-module-out on selected modules (exploratory)</td><td>Unique supported issues lost; overlap with other modules</td><td>Module scope and rubric revisions</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>8.2 Outcomes, in order of priority</h3>
+<ol>
+<li><strong>Benefit:</strong> per paper, supported issues with C2 ≥ 2, and supported, non-redundant suggestions with an expert-rated concrete benefit (C6), reported by contribution type.</li>
+<li><strong>Harm:</strong> contradicted variants, disproportionate remedies and serious harms, attributed to the outputs that contain them. An extension is not harmful merely because it is optional or beyond scope; its validity, feasibility and proportionality still require assessment.</li>
+<li><strong>Stage transitions:</strong>
+  <ul>
+  <li>Trace each issue through discovery → verifier → source gate → editorial → published or shown as unresolved.</li>
+  <li>Record source-access holds, required-source completion, severity holds and duplicate consolidation.</li>
+  <li>Adjudicate whether each transition helped or harmed.</li>
+  <li>Historical traces reflect the historical verifier contract, so replay frozen candidates under the current one, including true headlines with false rationales and failed source lookups.</li>
+  </ul></li>
+<li><strong>Known-error recovery</strong> by audit stratum, with localisation scoring alongside LLM matching, and official annotation-overlap scores retained. Before scoring new outputs, freeze expert-approved interpretations of each target and the narrower criticisms that count as acceptable.</li>
+<li><strong>Stability:</strong> per-issue detection frequency across repeated runs.</li>
+<li><strong>Reader benefit:</strong> which supported points authors or qualified readers would act on; whether they understand the action and the distinction between essential and optional work; reading time.</li>
+<li><strong>Whole-report assessment</strong> as a diagnostic, in native and normalised representations, in both orders, with length sensitivity.</li>
+<li><strong>Cost:</strong> calls, tokens, stage minutes, failures and expert hours.</li>
+</ol>
+
+<h3>8.3 Instruments to add</h3>
+<ul>
+<li><strong>Counterfactual triples for social psychology.</strong> Before generation, have experts validate flawed, repaired and neutral versions of a few manuscripts (for example an overclaimed causal inference, or a construct substituted between hypothesis and measure). Measure three things, for both the relevant module and the final report <span class="cite">[<a href="#ref-47">47</a>]</span>: correct target-specific criticism in the flawed version, inappropriate persistence after repair, and sensitivity to neutral edits. Include the original versions as negative controls.</li>
+<li><strong>Real-error items:</strong> statcheck-flagged decision errors confirmed by hand, and corrected or retracted social-psychology papers whose flaw is detectable from the manuscript <span class="cite">[<a href="#ref-1">1</a>, <a href="#ref-79">79</a>]</span>.</li>
+<li><strong>Verifier persuasion probes:</strong> hold a criticism constant and vary how persuasive the rationale is, its stated confidence and any implied expert endorsement <span class="cite">[<a href="#ref-54">54</a>, <a href="#ref-55">55</a>]</span>.</li>
+<li><strong>Presentation invariance:</strong> faithful rewrites of the same content, to measure how far judged preference moves without any change in content <span class="cite">[<a href="#ref-21">21</a>, <a href="#ref-60">60</a>]</span>.</li>
+<li><strong>Prompt injection:</strong> controlled manuscripts with hidden instructions targeting specific review fields <span class="cite">[<a href="#ref-59">59</a>]</span>.</li>
+<li><strong>Retrieval diagnostic:</strong> whether modules find and open the relevant preregistration, original study, replications, meta-analyses and cited sources. The development pilot already shows 403 errors blocking original-study checks.</li>
+<li><strong>Limitations echo:</strong> flag criticisms that restate the manuscript's own limitations. Distinguish limitations that are adequately addressed from acknowledged limitations that still undermine a claim <span class="cite">[<a href="#ref-61">61</a>]</span>.</li>
+</ul>
+
+<h3>8.4 Case sets</h3>
+<p>Name a development set, a rubric-calibration set and an untouched comparison set, and record each case's exposure history. The four reserved submitted manuscripts are two tutorials, a meta-research analysis and one two-experiment social psychology paper. Report tutorials, methodological papers and empirical submissions separately, and do not treat their pooled variance as representative of ordinary empirical submissions. Define the confirmatory sample by field and design, following the <a href="../OPEN_REVIEW_SAMPLING_FRAME.md">sampling frame</a>, rather than by what archives happen to offer.</p>
+
+<h3>8.5 Sequence</h3>
+<ol>
+<li><strong>Adjudicate first.</strong> Have experts adjudicate 50–100 issue packets from existing development outputs, including specialist traces, and audit their stage transitions. Draw them from the validation plan's targeted strata plus a reproducibly sampled remainder, with inclusion probabilities recorded, and keep rubric-calibration packets separate from the packets used to estimate performance. Calibrate the current complete-criticism verifier on the probe set. This needs no new review runs.</li>
+<li><strong>Small practical comparison.</strong> Run frozen specialist, plain and holistic on a few untouched cases, with at least two runs each, and estimate endpoint variance and annotation time. Budget model calls and expert hours in advance.</li>
+<li><strong>Architectural controls where needed.</strong> Add budget-matched broad sampling only if the practical comparison leaves the decomposition question open. Define the budget in advance (model tokens including reasoning, or monetary cost; latency separately) and report actual consumption per arm.</li>
+<li><strong>Preregister and expand.</strong> Expand only once benefit, harm and cost meet the prespecified advancement criteria, then run the confirmatory series on unseen cases across the profile family.</li>
+</ol>
+</section>
+
+<section id="pipeline">
+<h2>9. Hypotheses for the specialist pipeline</h2>
+
+<p>These are suggested by the literature. Test them in the programme above rather than adopting them as defaults.</p>
+
+<ul>
+<li><strong>Frame module rubrics as checkable questions.</strong> Targeted error-finding prompts outperform general review prompts <span class="cite">[<a href="#ref-4">4</a>, <a href="#ref-46">46</a>]</span>, and question-tree decomposition beat multi-agent discussion at lower cost <span class="cite">[<a href="#ref-6">6</a>]</span>. Keep room for broad conceptual synthesis, and test whether checklists lose conceptual criticism. An "assessed, no issue" ledger entry does not establish that the check succeeded.</li>
+<li><strong>Locate losses before redistributing effort.</strong> The specialist trace points to discovery; other systems point to selection <span class="cite">[<a href="#ref-7">7</a>, <a href="#ref-10">10</a>]</span>. Adjudicating stage transitions (8.2, item 3) decides which applies here.</li>
+<li><strong>Treat deterministic outputs as reproducible leads.</strong> Confirm extraction, test identity, rounding, sidedness and any applicable corrections before establishing an inconsistency; then assess its consequence. statcheck's validation authors recommend checking individual flags by hand <span class="cite">[<a href="#ref-41">41</a>, <a href="#ref-44">44</a>]</span>.</li>
+<li><strong>Separate recomputation from the claim.</strong> Run recomputation in a separate context, with frozen inputs and an explicit analysis specification, before comparing with the reported value <span class="cite">[<a href="#ref-57">57</a>]</span>. Hiding the reported number alone does not prevent specification search.</li>
+<li><strong>Measure verifier behaviour per model family</strong> on the probe set before choosing a cross-family verifier. Families differ markedly in how lenient they are when scoring manuscripts <span class="cite">[<a href="#ref-99">99</a>, <a href="#ref-100">100</a>]</span>, though score leniency is not the same as falsely accepting criticisms.</li>
+<li><strong>Label remedy necessity in the output</strong> as essential, strengthening or extending, following COPE <span class="cite">[<a href="#ref-19">19</a>]</span>. This addresses the characteristic LLM failure <span class="cite">[<a href="#ref-18">18</a>]</span> and makes C5 directly scoreable.</li>
+<li><strong>Use figures and tables.</strong> Text-only anchoring misses evidence in tables and figures <span class="cite">[<a href="#ref-101">101</a>, <a href="#ref-102">102</a>]</span>.</li>
+</ul>
+</section>
+
+<section id="debates">
+<h2>10. Open questions</h2>
+<ul>
+<li><strong>How complete must the reference set be?</strong> Pooled adjudication improves coverage but favours systems that contributed to the pool. A leave-one-system-out sensitivity analysis shows by how much <span class="cite">[<a href="#ref-11">11</a>]</span>.</li>
+<li><strong>Where is the line between an error, a limitation and an unreasonable demand?</strong> Expert disagreement may reflect legitimate judgments about scope rather than annotation noise <span class="cite">[<a href="#ref-47">47</a>, <a href="#ref-103">103</a>]</span>.</li>
+<li><strong>Can consensus establish validity?</strong> Judge panels and checklists raise consistency more readily than correctness, and model families may share blind spots <span class="cite">[<a href="#ref-85">85</a>, <a href="#ref-87">87</a>]</span>.</li>
+<li><strong>Does precision transfer across prevalence?</strong> Precision on flawed or AI-generated papers may differ sharply from precision on mostly sound submissions <span class="cite">[<a href="#ref-12">12</a>]</span>.</li>
+<li><strong>Do human-review corpora remain usable?</strong> Training reviewers on AI-generated reviews compresses ratings and reduces diversity <span class="cite">[<a href="#ref-75">75</a>]</span>, and public review corpora increasingly contain LLM-modified text.</li>
+<li><strong>Does evidence transfer from ML papers to social psychology?</strong> Almost all comparative design evidence comes from computer science. The strongest social-science evidence concerns reproducibility, not review <span class="cite">[<a href="#ref-12">12</a>, <a href="#ref-56">56</a>, <a href="#ref-58">58</a>]</span>.</li>
+</ul>
+</section>
+
+<section id="method">
+<h2>11. How this note was produced</h2>
+<p>Four scoped literature searches ran in parallel on 8 October 2026. Two were Claude subagents (reviewer system designs; dimensions of review quality) and two used GPT 6.1 Sol through the Codex CLI (evaluation benchmarks; judge reliability and evaluation design). Each was told to open every source it cited and to mark what it could not verify, and unverifiable items were left out.</p>
+<p>Claude Opus 5.5 wrote the synthesis and related it to ReviScope's documents. GPT 6.1 Sol then reviewed the draft twice against the notes, the project documents and selected primary sources, and this version incorporates both rounds of corrections. They include which configuration each project result came from, the Parsa and Rezaei figures, and the denominators of the replication-games and statistical-review figures. Both reviews are kept in <code>llm-reviewer-sources/</code>.</p>
+<p>Numbers are as reported by the sources when accessed on 8 October 2026; reference links point to the current version of each preprint, which may since have changed. Refine's benchmark is run by the vendor, and its results are labelled as such. Not every number was re-checked against its primary source by the author of the synthesis. No ReviScope model runs were made for this note.</p>
+</section>
+
+<section id="refs"><h2>12. References</h2><ol class="refs"><li id="ref-1"><span class="refnum">1.</span> Son, G., et al. (2025). When AI co-scientists fail: SPOT, a benchmark for automated verification of scientific research. arXiv:2505.11855. <a href="https://arxiv.org/abs/2505.11855">https://arxiv.org/abs/2505.11855</a></li>
+<li id="ref-2"><span class="refnum">2.</span> Westfall, J., Kenny, D. A., &amp; Judd, C. M. (2014). Statistical power and optimal design in experiments in which samples of participants respond to samples of stimuli. Journal of Experimental Psychology: General, 143(5), 2020–2045. <a href="https://pubmed.ncbi.nlm.nih.gov/25111580/">https://pubmed.ncbi.nlm.nih.gov/25111580/</a></li>
+<li id="ref-3"><span class="refnum">3.</span> Bowyer, S., Aitchison, L., &amp; Ivanova, D. R. (2025). Position: Don&#x27;t use the CLT in LLM evals with fewer than a few hundred datapoints. ICML 2025, PMLR 267. <a href="https://proceedings.mlr.press/v267/bowyer25a.html">https://proceedings.mlr.press/v267/bowyer25a.html</a></li>
+<li id="ref-4"><span class="refnum">4.</span> Biswas, J., et al. (2026). AI-assisted peer review at scale: The AAAI-26 AI review pilot. arXiv:2604.13940. <a href="https://arxiv.org/abs/2604.13940">https://arxiv.org/abs/2604.13940</a></li>
+<li id="ref-5"><span class="refnum">5.</span> D&#x27;Arcy, M., Hope, T., Birnbaum, L., &amp; Downey, D. (2024). MARG: Multi-Agent Review Generation for Scientific Papers. arXiv:2401.04259. <a href="https://arxiv.org/abs/2401.04259">https://arxiv.org/abs/2401.04259</a></li>
+<li id="ref-6"><span class="refnum">6.</span> Chang, Y., et al. (2025). TreeReview: A dynamic tree of questions framework for deep and efficient LLM-based scientific peer review. EMNLP 2025. arXiv:2506.07642. <a href="https://arxiv.org/abs/2506.07642">https://arxiv.org/abs/2506.07642</a></li>
+<li id="ref-7"><span class="refnum">7.</span> Aggarwal, N., et al. (2026). Can LLMs perform technical comprehension of computer architecture papers? arXiv:2607.11859. <a href="https://arxiv.org/abs/2607.11859">https://arxiv.org/abs/2607.11859</a></li>
+<li id="ref-8"><span class="refnum">8.</span> Wang, Q., Wang, Z., Su, Y., Tong, H., &amp; Song, Y. (2024). Rethinking the bounds of LLM reasoning: Are multi-agent discussions the key? ACL 2024, 6106–6131. <a href="https://aclanthology.org/2024.acl-long.331/">https://aclanthology.org/2024.acl-long.331/</a></li>
+<li id="ref-9"><span class="refnum">9.</span> Tran, D., &amp; Kiela, D. (2026). Single-agent LLMs outperform multi-agent systems on multi-hop reasoning under equal thinking token budgets. arXiv:2604.02460. <a href="https://arxiv.org/abs/2604.02460">https://arxiv.org/abs/2604.02460</a></li>
+<li id="ref-10"><span class="refnum">10.</span> Parsa, P., &amp; Rezaei, A. (2026). More than mimicking reviewers: Evaluating LLMs for pre-submission peer review. arXiv:2609.05788. <a href="https://arxiv.org/abs/2609.05788">https://arxiv.org/abs/2609.05788</a></li>
+<li id="ref-11"><span class="refnum">11.</span> Baumgärtner, T., &amp; Gurevych, I. (2026). SciCoQA: Quality assurance for scientific paper–code alignment. Proceedings of ACL 2026. <a href="https://aclanthology.org/2026.acl-long.1795/">https://aclanthology.org/2026.acl-long.1795/</a></li>
+<li id="ref-12"><span class="refnum">12.</span> Willner, O., &amp; Yanagizawa-Drott, D. (2026). Verifying the verifiers: Towards autonomous policy evaluation. University of Zurich working paper (CRED v0.92). <a href="https://ape.socialcatalystlab.org/cred/verifying-the-verifiers.pdf">https://ape.socialcatalystlab.org/cred/verifying-the-verifiers.pdf</a></li>
+<li id="ref-13"><span class="refnum">13.</span> Bianchi, F., Kwon, Y., Izzo, Z., Zhang, L., &amp; Zou, J. (2025). To err is human: Systematic quantification of errors in published AI papers via LLM analysis. arXiv:2512.05925. <a href="https://arxiv.org/abs/2512.05925">https://arxiv.org/abs/2512.05925</a></li>
+<li id="ref-14"><span class="refnum">14.</span> van Rooyen, S., Black, N., &amp; Godlee, F. (1999). Development of the review quality instrument (RQI) for assessing peer reviews of manuscripts. Journal of Clinical Epidemiology, 52(7), 625–629. <a href="https://doi.org/10.1016/s0895-4356(99)00047-5">https://doi.org/10.1016/s0895-4356(99)00047-5</a></li>
+<li id="ref-15"><span class="refnum">15.</span> Superchi, C., et al. (2020). Development of ARCADIA: A tool for assessing the quality of peer-review reports in biomedical research. BMJ Open, 10(6), e035604. <a href="https://doi.org/10.1136/bmjopen-2019-035604">https://doi.org/10.1136/bmjopen-2019-035604</a></li>
+<li id="ref-16"><span class="refnum">16.</span> Sadallah, A., Baumgärtner, T., Gurevych, I., &amp; Briscoe, T. (2025). The good, the bad and the constructive: Automatically measuring peer review&#x27;s utility for authors. EMNLP 2025. <a href="https://aclanthology.org/2025.emnlp-main.1476/">https://aclanthology.org/2025.emnlp-main.1476/</a></li>
+<li id="ref-17"><span class="refnum">17.</span> Sizo, A., Lino, A., Rocha, Á., &amp; Reis, L. P. (2026). Determining quality dimensions for peer review reports using a Delphi approach. Scientometrics. <a href="https://doi.org/10.1007/s11192-026-05603-3">https://doi.org/10.1007/s11192-026-05603-3</a></li>
+<li id="ref-18"><span class="refnum">18.</span> Du, J., et al. (2024). LLMs assist NLP researchers: Critique paper (meta-)reviewing. EMNLP 2024, 5081–5099. <a href="https://aclanthology.org/2024.emnlp-main.292/">https://aclanthology.org/2024.emnlp-main.292/</a></li>
+<li id="ref-19"><span class="refnum">19.</span> COPE Council. (2017). Ethical guidelines for peer reviewers (Version 2). Committee on Publication Ethics. <a href="https://doi.org/10.24318/cope.2019.1.9">https://doi.org/10.24318/cope.2019.1.9</a></li>
+<li id="ref-20"><span class="refnum">20.</span> Goldberg, A., Stelmakh, I., Cho, K., Oh, A., Agarwal, A., Belgrave, D., &amp; Shah, N. B. (2025). Peer reviews of peer reviews: A randomized controlled trial and other experiments. PLOS ONE, 20(4), e0320444. <a href="https://doi.org/10.1371/journal.pone.0320444">https://doi.org/10.1371/journal.pone.0320444</a></li>
+<li id="ref-21"><span class="refnum">21.</span> Amirshahi, S., Ebrahimi, S., Le, H. S., Arabzadeh, N., &amp; Bagheri, E. (2026). Judging a review by its cover: A reliability analysis of LLM-based peer review evaluation metrics. CIKM 2026. arXiv:2609.23264. <a href="https://arxiv.org/abs/2609.23264">https://arxiv.org/abs/2609.23264</a></li>
+<li id="ref-22"><span class="refnum">22.</span> Baumann, J., Pei, J., Koyejo, S., &amp; Hovy, D. (2026). Stop automating peer review without rigorous evaluation. arXiv:2605.03202 (ICML 2026 position paper). <a href="https://arxiv.org/abs/2605.03202">https://arxiv.org/abs/2605.03202</a></li>
+<li id="ref-23"><span class="refnum">23.</span> Xi, S., Rao, V., Payan, J., &amp; Shah, N. B. (2025). FLAWS: A benchmark for error identification and localization in scientific papers. arXiv:2511.21843. <a href="https://arxiv.org/abs/2511.21843">https://arxiv.org/abs/2511.21843</a></li>
+<li id="ref-24"><span class="refnum">24.</span> Tu, S., et al. (2026). PaperAudit-Bench: Benchmarking error detection in research papers for critical automated peer review. arXiv:2601.19916. <a href="https://arxiv.org/abs/2601.19916">https://arxiv.org/abs/2601.19916</a></li>
+<li id="ref-25"><span class="refnum">25.</span> Dawes Institute / Litvak, P. (2026). AI peer review benchmark (100 planted errors in 10 psychology papers). GitHub repository. <a href="https://github.com/Dawes-Institute/ai-peer-review-benchmark">https://github.com/Dawes-Institute/ai-peer-review-benchmark</a></li>
+<li id="ref-26"><span class="refnum">26.</span> Thakkar, N., et al. (2025). Can LLM feedback enhance review quality? A randomized study of 20K reviews at ICLR 2025. arXiv:2504.09737 (published in Nature Machine Intelligence, 2026). <a href="https://arxiv.org/abs/2504.09737">https://arxiv.org/abs/2504.09737</a></li>
+<li id="ref-27"><span class="refnum">27.</span> Cobo, E., et al. (2011). Effect of using reporting guidelines during peer review on quality of final manuscripts submitted to a biomedical journal: Masked randomised trial. BMJ, 343, d6783. <a href="https://doi.org/10.1136/bmj.d6783">https://doi.org/10.1136/bmj.d6783</a></li>
+<li id="ref-28"><span class="refnum">28.</span> van Rooyen, S., Godlee, F., Evans, S., Smith, R., &amp; Black, N. (1999). Effect of blinding and unmasking on the quality of peer review. Journal of General Internal Medicine, 14(10), 622–624. <a href="https://doi.org/10.1046/j.1525-1497.1999.09058.x">https://doi.org/10.1046/j.1525-1497.1999.09058.x</a></li>
+<li id="ref-29"><span class="refnum">29.</span> Liang, W., et al. (2024). Can large language models provide useful feedback on research papers? A large-scale empirical analysis. NEJM AI, 1(8). <a href="https://doi.org/10.1056/AIoa2400196">https://doi.org/10.1056/AIoa2400196</a></li>
+<li id="ref-30"><span class="refnum">30.</span> Jiang, Y., &amp; Ng, A. (2025). Stanford Agentic Reviewer (paperreview.ai): Technical overview. <a href="https://paperreview.ai/tech-overview">https://paperreview.ai/tech-overview</a></li>
+<li id="ref-31"><span class="refnum">31.</span> Lu, C., Lu, C., Lange, R. T., Foerster, J., Clune, J., &amp; Ha, D. (2024). The AI Scientist: Towards fully automated open-ended scientific discovery. arXiv:2408.06292. <a href="https://arxiv.org/abs/2408.06292">https://arxiv.org/abs/2408.06292</a></li>
+<li id="ref-32"><span class="refnum">32.</span> Bornmann, L., Mutz, R., &amp; Daniel, H.-D. (2010). A reliability-generalization study of journal peer reviews: A multilevel meta-analysis of inter-rater reliability and its determinants. PLoS ONE, 5(12), e14331. <a href="https://doi.org/10.1371/journal.pone.0014331">https://doi.org/10.1371/journal.pone.0014331</a></li>
+<li id="ref-33"><span class="refnum">33.</span> Beygelzimer, A., Dauphin, Y. N., Liang, P., &amp; Wortman Vaughan, J. (2023). Has the machine learning review process become more arbitrary as the field has grown? The NeurIPS 2021 consistency experiment. arXiv:2306.03262. <a href="https://arxiv.org/abs/2306.03262">https://arxiv.org/abs/2306.03262</a></li>
+<li id="ref-34"><span class="refnum">34.</span> Schroter, S., Black, N., Evans, S., Godlee, F., Osorio, L., &amp; Smith, R. (2008). What errors do peer reviewers detect, and does training improve their ability to detect them? Journal of the Royal Society of Medicine, 101(10), 507–514. <a href="https://doi.org/10.1258/jrsm.2008.080062">https://doi.org/10.1258/jrsm.2008.080062</a></li>
+<li id="ref-35"><span class="refnum">35.</span> Godlee, F., Gale, C. R., &amp; Martyn, C. N. (1998). Effect on the quality of peer review of blinding reviewers and asking them to sign their reports: A randomized controlled trial. JAMA, 280(3), 237–240. <a href="https://doi.org/10.1001/jama.280.3.237">https://doi.org/10.1001/jama.280.3.237</a></li>
+<li id="ref-36"><span class="refnum">36.</span> Baxt, W. G., Waeckerle, J. F., Berlin, J. A., &amp; Callaham, M. L. (1998). Who reviews the reviewers? Feasibility of using a fictitious manuscript to evaluate peer reviewer performance. Annals of Emergency Medicine, 32(3), 310–317. <a href="https://doi.org/10.1016/s0196-0644(98)70006-x">https://doi.org/10.1016/s0196-0644(98)70006-x</a></li>
+<li id="ref-37"><span class="refnum">37.</span> Zhu, M., Weng, Y., Yang, L., &amp; Zhang, Y. (2025). DeepReview: Improving LLM-based paper review with human-like deep thinking process. arXiv:2503.08569. <a href="https://arxiv.org/abs/2503.08569">https://arxiv.org/abs/2503.08569</a></li>
+<li id="ref-38"><span class="refnum">38.</span> Van Dijcke, D. coarse: Free open-source AI academic paper reviewer. GitHub repository. <a href="https://github.com/Davidvandijcke/coarse">https://github.com/Davidvandijcke/coarse</a></li>
+<li id="ref-39"><span class="refnum">39.</span> Golub, B., Fradkin, A., Pracher, L., &amp; Calvó López, Y. (2026, June 16). A structured benchmark for AI paper review. Refine.ink blog (vendor benchmark). <a href="https://www.refine.ink/blog/refine-ai-reviewer-benchmark">https://www.refine.ink/blog/refine-ai-reviewer-benchmark</a></li>
+<li id="ref-40"><span class="refnum">40.</span> Zou, Z., Ansari, A., Zhang, D. C., Lee, D., &amp; Yin, W. (2026). DIAGPaper: Diagnosing valid and specific weaknesses in scientific papers via multi-agent reasoning. arXiv:2601.07611. <a href="https://arxiv.org/abs/2601.07611">https://arxiv.org/abs/2601.07611</a></li>
+<li id="ref-41"><span class="refnum">41.</span> Nuijten, M. B., Hartgerink, C. H. J., van Assen, M. A. L. M., Epskamp, S., &amp; Wicherts, J. M. (2016). The prevalence of statistical reporting errors in psychology (1985–2013). Behavior Research Methods, 48(4), 1205–1226. <a href="https://doi.org/10.3758/s13428-015-0664-2">https://doi.org/10.3758/s13428-015-0664-2</a></li>
+<li id="ref-42"><span class="refnum">42.</span> DeBruine, L., Lakens, D., et al. (2024–2026). metacheck: Check research outputs for best practices (R package). <a href="https://www.scienceverse.org/metacheck/">https://www.scienceverse.org/metacheck/</a></li>
+<li id="ref-43"><span class="refnum">43.</span> Cummins, J., Clarke, B., Hussey, I., &amp; Elson, M. (2026). RegCheck: A tool for structured comparisons between study registrations and papers. arXiv:2601.13330. <a href="https://arxiv.org/abs/2601.13330">https://arxiv.org/abs/2601.13330</a></li>
+<li id="ref-44"><span class="refnum">44.</span> Nuijten, M. B., &amp; Wicherts, J. M. (2024). Implementing statcheck during peer review is related to a steep decline in statistical-reporting inconsistencies. Advances in Methods and Practices in Psychological Science, 7(2). <a href="https://doi.org/10.1177/25152459241258945">https://doi.org/10.1177/25152459241258945</a></li>
+<li id="ref-45"><span class="refnum">45.</span> Gibney, E. (2025). AI tools are spotting errors in research papers: Inside a growing movement. Nature (news). <a href="https://doi.org/10.1038/d41586-025-00648-5">https://doi.org/10.1038/d41586-025-00648-5</a></li>
+<li id="ref-46"><span class="refnum">46.</span> Liu, R., &amp; Shah, N. B. (2023). ReviewerGPT? An exploratory study on using large language models for paper reviewing. arXiv:2306.00622. <a href="https://arxiv.org/abs/2306.00622">https://arxiv.org/abs/2306.00622</a></li>
+<li id="ref-47"><span class="refnum">47.</span> Dycke, N., &amp; Gurevych, I. (2025). Automatic reviewers fail to detect faulty reasoning in research papers: A new counterfactual evaluation framework. arXiv:2508.21422 (TACL 2026). <a href="https://arxiv.org/abs/2508.21422">https://arxiv.org/abs/2508.21422</a></li>
+<li id="ref-48"><span class="refnum">48.</span> Goldberg, A., et al. (2024). Usefulness of LLMs as an author checklist assistant for scientific papers: NeurIPS&#x27;24 experiment. arXiv:2411.03417. <a href="https://arxiv.org/abs/2411.03417">https://arxiv.org/abs/2411.03417</a></li>
+<li id="ref-49"><span class="refnum">49.</span> Georgantas, C. (2026). Intelligence is not the bottleneck: Validating an LLM first-pass manuscript score against peer-review outcomes. arXiv:2606.15887. <a href="https://arxiv.org/abs/2606.15887">https://arxiv.org/abs/2606.15887</a></li>
+<li id="ref-50"><span class="refnum">50.</span> Cemri, M., et al. (2025). Why do multi-agent LLM systems fail? NeurIPS 2025 Datasets and Benchmarks. <a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/b1041e52d3be19f0a9bc491657488e4a-Abstract-Datasets_and_Benchmarks_Track.html">https://proceedings.neurips.cc/paper_files/paper/2025/hash/b1041e52d3be19f0a9bc491657488e4a-Abstract-Datasets_and_Benchmarks_Track.html</a></li>
+<li id="ref-51"><span class="refnum">51.</span> Huang, J., et al. (2024). Large language models cannot self-correct reasoning yet. ICLR 2024. arXiv:2310.01798. <a href="https://arxiv.org/abs/2310.01798">https://arxiv.org/abs/2310.01798</a></li>
+<li id="ref-52"><span class="refnum">52.</span> Dhuliawala, S., et al. (2023). Chain-of-verification reduces hallucination in large language models. arXiv:2309.11495. <a href="https://arxiv.org/abs/2309.11495">https://arxiv.org/abs/2309.11495</a></li>
+<li id="ref-53"><span class="refnum">53.</span> Saad-Falcon, J., et al. (2025). Shrinking the generation-verification gap with weak verifiers. NeurIPS 2025. arXiv:2506.18203. <a href="https://arxiv.org/abs/2506.18203">https://arxiv.org/abs/2506.18203</a></li>
+<li id="ref-54"><span class="refnum">54.</span> Hwang, Y., Lee, D., Kang, T., Kim, Y., &amp; Jung, K. (2025). Can you trick the grader? Adversarial persuasion of LLM judges. arXiv:2508.07805. <a href="https://arxiv.org/abs/2508.07805">https://arxiv.org/abs/2508.07805</a></li>
+<li id="ref-55"><span class="refnum">55.</span> Sharma, M., et al. (2023). Towards understanding sycophancy in language models. arXiv:2310.13548. <a href="https://arxiv.org/abs/2310.13548">https://arxiv.org/abs/2310.13548</a></li>
+<li id="ref-56"><span class="refnum">56.</span> Brodeur, A., et al. (2026). AI-assisted teams outperform AI-led teams but not human-only teams in assessing research reproducibility in quantitative social science. PNAS, 123(22). (Earlier: I4R Discussion Paper 195.) <a href="https://doi.org/10.1073/pnas.2524747123">https://doi.org/10.1073/pnas.2524747123</a></li>
+<li id="ref-57"><span class="refnum">57.</span> Alizadeh, M., Mosleh, M., Gilardi, F., Kasirzadeh, A., &amp; Tucker, J. (2026). AI coding agents can reproduce social science findings. arXiv:2606.11447. <a href="https://arxiv.org/abs/2606.11447">https://arxiv.org/abs/2606.11447</a></li>
+<li id="ref-58"><span class="refnum">58.</span> Hu, C., Zhang, L., Lim, Y., Wadhwani, A., Peters, A., &amp; Kang, D. (2025). REPRO-Bench: Can agentic AI systems assess the reproducibility of social science research? Findings of ACL 2025. arXiv:2507.18901. <a href="https://arxiv.org/abs/2507.18901">https://arxiv.org/abs/2507.18901</a></li>
+<li id="ref-59"><span class="refnum">59.</span> Zhu, C., Xiong, J., Ma, R., Lu, Z., Liu, Y., &amp; Li, L. (2025). When your reviewer is an LLM: Biases, divergence, and prompt injection risks in peer review. arXiv:2509.09912. <a href="https://arxiv.org/abs/2509.09912">https://arxiv.org/abs/2509.09912</a></li>
+<li id="ref-60"><span class="refnum">60.</span> Yang, X., et al. (2026). No hidden prompts needed! You can game AI peer review with presentation-only revisions. arXiv:2606.13044. <a href="https://arxiv.org/abs/2606.13044">https://arxiv.org/abs/2606.13044</a></li>
+<li id="ref-61"><span class="refnum">61.</span> Ye, R., et al. (2024). Are we there yet? Revealing the risks of utilizing large language models in scholarly peer review. arXiv:2412.01708. <a href="https://arxiv.org/abs/2412.01708">https://arxiv.org/abs/2412.01708</a></li>
+<li id="ref-62"><span class="refnum">62.</span> Jiang, F., et al. (2025). BadScientist: Can a research agent write convincing but unsound papers that fool LLM reviewers? arXiv:2510.18003. <a href="https://arxiv.org/abs/2510.18003">https://arxiv.org/abs/2510.18003</a></li>
+<li id="ref-63"><span class="refnum">63.</span> Superchi, C., González, J. A., Solà, I., Cobo, E., Hren, D., &amp; Boutron, I. (2019). Tools used to assess the quality of peer review reports: A methodological systematic review. BMC Medical Research Methodology, 19, 48. <a href="https://doi.org/10.1186/s12874-019-0688-x">https://doi.org/10.1186/s12874-019-0688-x</a></li>
+<li id="ref-64"><span class="refnum">64.</span> Jefferson, T., Wager, E., &amp; Davidoff, F. (2002). Measuring the quality of editorial peer review. JAMA, 287(21), 2786–2790. <a href="https://doi.org/10.1001/jama.287.21.2786">https://doi.org/10.1001/jama.287.21.2786</a></li>
+<li id="ref-65"><span class="refnum">65.</span> Dycke, N., et al. (2025). STRICTA: Structured reasoning in critical text assessment for peer review and beyond. ACL 2025. <a href="https://aclanthology.org/2025.acl-long.1107/">https://aclanthology.org/2025.acl-long.1107/</a></li>
+<li id="ref-66"><span class="refnum">66.</span> Guo, Y., Shang, G., Rennard, V., Vazirgiannis, M., &amp; Clavel, C. (2023). Automatic analysis of substantiation in scientific peer reviews. Findings of EMNLP 2023. <a href="https://aclanthology.org/2023.findings-emnlp.684/">https://aclanthology.org/2023.findings-emnlp.684/</a></li>
+<li id="ref-67"><span class="refnum">67.</span> Hopewell, S., et al. (2014). Impact of peer review on reports of randomised trials published in open peer review journals: Retrospective before and after study. BMJ, 349, g4145. <a href="https://doi.org/10.1136/bmj.g4145">https://doi.org/10.1136/bmj.g4145</a></li>
+<li id="ref-68"><span class="refnum">68.</span> Akella, A. P., Siravuri, H. V., &amp; Rohatgi, S. (2025). Pre-review to peer review: Pitfalls of automating reviews using large language models. arXiv:2512.22145. <a href="https://arxiv.org/abs/2512.22145">https://arxiv.org/abs/2512.22145</a></li>
+<li id="ref-69"><span class="refnum">69.</span> Shin, H., et al. (2025). Mind the blind spots: A focus-level evaluation framework for LLM reviews. arXiv:2502.17086. <a href="https://arxiv.org/abs/2502.17086">https://arxiv.org/abs/2502.17086</a></li>
+<li id="ref-70"><span class="refnum">70.</span> Yuan, W., Liu, P., &amp; Neubig, G. (2022). Can we automate scientific reviewing? Journal of Artificial Intelligence Research, 75, 171–212. <a href="https://doi.org/10.1613/jair.1.12862">https://doi.org/10.1613/jair.1.12862</a></li>
+<li id="ref-71"><span class="refnum">71.</span> Gibson, M., Spong, C. Y., Simonsen, S. E., Martin, S., &amp; Scott, J. R. (2008). Author perception of peer review. Obstetrics &amp; Gynecology, 112(3), 646–652. <a href="https://doi.org/10.1097/AOG.0b013e31818425d4">https://doi.org/10.1097/AOG.0b013e31818425d4</a></li>
+<li id="ref-72"><span class="refnum">72.</span> Purkayastha, S., Li, Z., Lauscher, A., Qu, L., &amp; Gurevych, I. (2025). LazyReview: A dataset for uncovering lazy thinking in NLP peer reviews. ACL 2025. arXiv:2504.11042. <a href="https://arxiv.org/abs/2504.11042">https://arxiv.org/abs/2504.11042</a></li>
+<li id="ref-73"><span class="refnum">73.</span> eLife. (2022, October 20). The eLife model: What is an eLife assessment? Inside eLife. <a href="https://elifesciences.org/inside-elife/db24dd46/elife-s-new-model-what-is-an-elife-assessment">https://elifesciences.org/inside-elife/db24dd46/elife-s-new-model-what-is-an-elife-assessment</a></li>
+<li id="ref-74"><span class="refnum">74.</span> Meta-Psychology. (n.d.). About the journal. <a href="https://open.lnu.se/index.php/metapsychology/about">https://open.lnu.se/index.php/metapsychology/about</a></li>
+<li id="ref-75"><span class="refnum">75.</span> Ho, S.-T., Liu, M., &amp; Huang, F. (2026). When AI reviews train AI reviewers: Scientific-judgment collapse and mitigation. arXiv:2609.20942. <a href="https://arxiv.org/abs/2609.20942">https://arxiv.org/abs/2609.20942</a></li>
+<li id="ref-76"><span class="refnum">76.</span> Hardwicke, T. E., &amp; Goodman, S. N. (2020). How often do leading biomedical journals use statistical experts to evaluate statistical methods? PLoS ONE, 15(10), e0239598. <a href="https://doi.org/10.1371/journal.pone.0239598">https://doi.org/10.1371/journal.pone.0239598</a></li>
+<li id="ref-77"><span class="refnum">77.</span> Black, N., van Rooyen, S., Godlee, F., Smith, R., &amp; Evans, S. (1998). What makes a good reviewer and a good review for a general medical journal? JAMA, 280(3), 231–233. <a href="https://doi.org/10.1001/jama.280.3.231">https://doi.org/10.1001/jama.280.3.231</a></li>
+<li id="ref-78"><span class="refnum">78.</span> Cobo, E., et al. (2007). Statistical reviewers improve reporting in biomedical articles: A randomized trial. PLoS ONE, 2(3), e332. <a href="https://doi.org/10.1371/journal.pone.0000332">https://doi.org/10.1371/journal.pone.0000332</a></li>
+<li id="ref-79"><span class="refnum">79.</span> Zhang, T. M., &amp; Abernethy, N. F. (2025). Reviewing scientific papers for critical problems with reasoning LLMs: Baseline approaches and automatic evaluation. arXiv:2505.23824. <a href="https://arxiv.org/abs/2505.23824">https://arxiv.org/abs/2505.23824</a></li>
+<li id="ref-80"><span class="refnum">80.</span> Shi, L., Ma, C., Liang, W., Diao, X., Ma, W., &amp; Vosoughi, S. (2025). Judging the judges: A systematic study of position bias in LLM-as-a-judge. AACL-IJCNLP 2025. arXiv:2406.07791. <a href="https://arxiv.org/abs/2406.07791">https://arxiv.org/abs/2406.07791</a></li>
+<li id="ref-81"><span class="refnum">81.</span> Dubois, Y., Galambosi, B., Liang, P., &amp; Hashimoto, T. B. (2024). Length-controlled AlpacaEval: A simple way to debias automatic evaluators. COLM 2024. arXiv:2404.04475. <a href="https://arxiv.org/abs/2404.04475">https://arxiv.org/abs/2404.04475</a></li>
+<li id="ref-82"><span class="refnum">82.</span> Panickssery, A., Bowman, S. R., &amp; Feng, S. (2024). LLM evaluators recognize and favor their own generations. arXiv:2404.13076. <a href="https://arxiv.org/abs/2404.13076">https://arxiv.org/abs/2404.13076</a></li>
+<li id="ref-83"><span class="refnum">83.</span> Tan, S., et al. (2025). JudgeBench: A benchmark for evaluating LLM-based judges. ICLR 2025. arXiv:2410.12784. <a href="https://arxiv.org/abs/2410.12784">https://arxiv.org/abs/2410.12784</a></li>
+<li id="ref-84"><span class="refnum">84.</span> Ebrahimi, S., et al. (2026). PeeriScope: A multi-faceted framework for evaluating peer review quality. Companion Proceedings of the ACM Web Conference 2026. arXiv:2604.24071. <a href="https://arxiv.org/abs/2604.24071">https://arxiv.org/abs/2604.24071</a></li>
+<li id="ref-85"><span class="refnum">85.</span> Lee, Y., et al. (2025). CheckEval: A reliable LLM-as-a-judge framework for evaluating text generation using checklists. EMNLP 2025, 15771–15798. <a href="https://aclanthology.org/2025.emnlp-main.796/">https://aclanthology.org/2025.emnlp-main.796/</a></li>
+<li id="ref-86"><span class="refnum">86.</span> Zheng, L., et al. (2023). Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. NeurIPS 2023 Datasets and Benchmarks. <a href="https://arxiv.org/abs/2306.05685">https://arxiv.org/abs/2306.05685</a></li>
+<li id="ref-87"><span class="refnum">87.</span> Verga, P., et al. (2024). Replacing judges with juries: Evaluating LLM generations with a panel of diverse models. arXiv:2404.18796. <a href="https://arxiv.org/abs/2404.18796">https://arxiv.org/abs/2404.18796</a></li>
+<li id="ref-88"><span class="refnum">88.</span> Yang, Y., Thelwall, M., &amp; He, G. (2026). Beyond human-likeness: Mapping the scientific critique profiles of LLMs and human reviewers. arXiv:2609.01895. <a href="https://arxiv.org/abs/2609.01895">https://arxiv.org/abs/2609.01895</a></li>
+<li id="ref-89"><span class="refnum">89.</span> Min, S., et al. (2023). FActScore: Fine-grained atomic evaluation of factual precision in long form text generation. EMNLP 2023, 12076–12100. <a href="https://arxiv.org/abs/2305.14251">https://arxiv.org/abs/2305.14251</a></li>
+<li id="ref-90"><span class="refnum">90.</span> Gunjal, A., &amp; Durrett, G. (2024). Molecular facts: Desiderata for decontextualization in LLM fact verification. Findings of EMNLP 2024, 3751–3768. <a href="https://aclanthology.org/2024.findings-emnlp.215/">https://aclanthology.org/2024.findings-emnlp.215/</a></li>
+<li id="ref-91"><span class="refnum">91.</span> Zha, Y., Yang, Y., Li, R., &amp; Hu, Z. (2023). AlignScore: Evaluating factual consistency with a unified alignment function. ACL 2023, 11328–11348. <a href="https://aclanthology.org/2023.acl-long.634/">https://aclanthology.org/2023.acl-long.634/</a></li>
+<li id="ref-92"><span class="refnum">92.</span> Angelopoulos, A. N., Bates, S., Fannjiang, C., Jordan, M. I., &amp; Zrnic, T. (2023). Prediction-powered inference. Science, 382(6671), 669–674. <a href="https://arxiv.org/abs/2301.09633">https://arxiv.org/abs/2301.09633</a></li>
+<li id="ref-93"><span class="refnum">93.</span> Kim, J. P. (2026). Augmenting human evaluation with LLM judges: How many human reviews do you need? arXiv:2605.16354. <a href="https://arxiv.org/abs/2605.16354">https://arxiv.org/abs/2605.16354</a></li>
+<li id="ref-94"><span class="refnum">94.</span> Dror, R., Baumer, G., Shlomov, S., &amp; Reichart, R. (2018). The hitchhiker&#x27;s guide to testing statistical significance in natural language processing. ACL 2018, 1383–1392. <a href="https://aclanthology.org/P18-1128/">https://aclanthology.org/P18-1128/</a></li>
+<li id="ref-95"><span class="refnum">95.</span> Alvarado Gonzalez, M. A., et al. (2025). Do repetitions matter? Strengthening reliability in LLM evaluations. arXiv:2509.24086. <a href="https://arxiv.org/abs/2509.24086">https://arxiv.org/abs/2509.24086</a></li>
+<li id="ref-96"><span class="refnum">96.</span> Lakens, D. (2017). Equivalence tests: A practical primer for t tests, correlations, and meta-analyses. Social Psychological and Personality Science, 8(4), 355–362. <a href="https://doi.org/10.1177/1948550617697177">https://doi.org/10.1177/1948550617697177</a></li>
+<li id="ref-97"><span class="refnum">97.</span> Hayes, A. F., &amp; Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. Communication Methods and Measures, 1(1), 77–89. <a href="https://doi.org/10.1080/19312450709336664">https://doi.org/10.1080/19312450709336664</a></li>
+<li id="ref-98"><span class="refnum">98.</span> Vach, W., &amp; Gerke, O. (2023). Gwet&#x27;s AC1 is not a substitute for Cohen&#x27;s kappa – A comparison of basic properties. MethodsX, 10, 102212. <a href="https://doi.org/10.1016/j.mex.2023.102212">https://doi.org/10.1016/j.mex.2023.102212</a></li>
+<li id="ref-99"><span class="refnum">99.</span> Bianchi, F., Queen, O., Thakkar, N., Sun, E., &amp; Zou, J. (2025). Exploring the use of AI authors and reviewers at Agents4Science. arXiv:2511.15534. <a href="https://arxiv.org/abs/2511.15534">https://arxiv.org/abs/2511.15534</a></li>
+<li id="ref-100"><span class="refnum">100.</span> Idahl, M., &amp; Ahmadi, Z. (2025). OpenReviewer: A specialized large language model for generating critical scientific paper reviews. NAACL 2025 System Demonstrations. arXiv:2412.11948. <a href="https://arxiv.org/abs/2412.11948">https://arxiv.org/abs/2412.11948</a></li>
+<li id="ref-101"><span class="refnum">101.</span> Basch, S., Qu, L., &amp; Gurevych, I. (2026). ReGround: Grounding reviewer comments in multimodal evidence. EMNLP 2026. arXiv:2609.11460. <a href="https://arxiv.org/abs/2609.11460">https://arxiv.org/abs/2609.11460</a></li>
+<li id="ref-102"><span class="refnum">102.</span> Selch, L., et al. (2026). PRISMM-Bench: A benchmark of peer-review grounded multimodal inconsistencies. ICLR 2026. arXiv:2510.16505. <a href="https://arxiv.org/abs/2510.16505">https://arxiv.org/abs/2510.16505</a></li>
+<li id="ref-103"><span class="refnum">103.</span> Xu, Z., Zhao, Y., Patwardhan, M., Vig, L., &amp; Cohan, A. (2025). Can LLMs identify critical limitations within scientific research? A systematic evaluation on AI research papers. ACL 2025. <a href="https://aclanthology.org/2025.acl-long.1009/">https://aclanthology.org/2025.acl-long.1009/</a></li></ol></section>
+</main></body></html>

@@ -30,13 +30,16 @@ flowchart TD
     Extract --> Map[Describe studies and assess material sufficiency]
     Extract --> Metacheck[metacheck screening: deterministic R modules]
     Metacheck -->|unverified leads| Modules
-    Map --> Modules[Coverage-first discovery per methodological and discipline module, with web search, fetching and a sandboxed shell]
+    Map --> Modules[Coverage-first methodological and discipline specialists]
+    Map --> Overview[Whole-paper overview alongside the specialists]
     Profile[Inherited discipline profile] --> Modules
+    Profile --> Overview
     Modules --> Blind[Blind-spot pass over the candidate inventory and coverage ledger]
+    Overview --> Blind
     Blind --> Anchor[Anchor candidate quotations to sources]
     Anchor --> Verify[Check claims and remedies in a separate model call]
     Profile --> Verify
-    Verify --> Editorial[Merge duplicates, set aside unsupported findings, reconcile overview]
+    Verify --> Editorial[Assign severity, fold supported duplicates, reconcile overview]
     Editorial --> Report[JSON, Markdown, HTML and audit records]
     Report --> Eval[Separate human comparison and known-error evaluation]
 ```
@@ -45,4 +48,4 @@ The default profile is `social_psychology`, which extends `quantitative_social_s
 
 Generation and evaluation are separate processes. The reviewer receives the supplied manuscript sources and profile, never historical reviews or benchmark error annotations. The evaluator receives final published substantive content with pipeline provenance removed for blinding; it retains the manuscript and comparator provenance in separate audit artifacts.
 
-Editorial synthesis reconciles the displayed overview, contribution summary, and strengths with supported findings. The original study map remains in `preliminary_study_map` for audit. A model-backed editorial response that omits this reconciliation fails explicitly; the report labels the unreconciled account as preliminary. This prevents an early summary from silently praising a feature challenged by the final review.
+Editorial synthesis assigns final severity and priority with all findings in view, retains discovery severity for audit, and preserves supported merged claims and anchored quotations under the surviving finding. It reconciles the displayed overview, contribution summary, and strengths with supported findings. The original study map remains in `preliminary_study_map` for audit. A model-backed editorial response that omits this reconciliation fails explicitly; the report labels the unreconciled account as preliminary. This prevents an early summary from silently praising a feature challenged by the final review.

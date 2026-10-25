@@ -20,10 +20,12 @@ def test_review_defaults_to_high_effort_and_one_hour_timeout():
     assert (args.effort, args.timeout) == ("high", 3600)
 
 
-def test_holistic_audit_arguments_and_pinned_backend_defaults():
+def test_retired_strategy_flags_are_rejected_and_backend_defaults_are_pinned():
+    import pytest
     from reviscope.backend import ClaudeBackend, CodexBackend
 
-    args = parser().parse_args(["review", "paper.md", "--strategy", "holistic", "--evidence-audit"])
-    assert args.strategy == "holistic" and args.evidence_audit
+    for retired in (["--strategy", "holistic"], ["--evidence-audit"]):
+        with pytest.raises(SystemExit):
+            parser().parse_args(["review", "paper.md", *retired])
     assert (ClaudeBackend().model, ClaudeBackend().effort) == ("claude-opus-5-5", "high")
     assert (CodexBackend().model, CodexBackend().effort) == ("gpt-6-luna", "high")
