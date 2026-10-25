@@ -138,12 +138,12 @@ A quotation that does not anchor is dropped from the finding's evidence and list
 its verification note; it does not block the finding. When the verifier supports a
 claim, its own anchored quotations join the finding's evidence. A finding is published
 (`llm_supported`) when the verifier supports it and at least one anchored quotation
-from the manuscript exists, from the generating model or from the verifier.
-Supplements and preregistrations add support but cannot carry a finding alone. A
-finding with no anchored manuscript quotation is `unresolved`.
+from any supplied manuscript, supplement or preregistration exists, from the generating
+model or from the verifier. A finding with no anchored supplied-source quotation is
+`unresolved`. Source kind does not override a substantive verifier verdict.
 
 When the verifier judges a claim unresolved on the evidence, and the finding has an
-anchored manuscript quotation, the report shows it under “Concerns the verifier could
+anchored supplied-source quotation, the report shows it under “Concerns the verifier could
 not confirm” with the verifier's reason. It keeps status `unresolved` and is not part
 of the findings list. Contradicted findings, and findings left unresolved by quote
 anchoring or external-source checks, are listed only in the set-aside audit.
@@ -178,12 +178,12 @@ the model to recompute reported statistics, power and sample-size claims and sam
 with code, to open cited sources whose use carries an inference, and to search the
 literature before asserting or denying novelty or missing work. What an external source
 shows goes into a finding's `external_evidence` (URL or DOI, exact quotation, what it
-shows). Every finding also needs an anchored quotation from the manuscript itself. The
+shows). Every finding also needs an anchored quotation from a supplied manuscript, supplement or preregistration. The
 verifier re-opens each external source and returns a verdict per item. An item counts as
 confirmed only when the verifier says so and its recorded tool calls touched that URL or DOI;
 a finding whose required external items are all unchecked, or any of which is refuted, cannot be supported.
 The verifier may classify external evidence as optional with an explicit explanation
-of how anchored manuscript evidence and established methodological or disciplinary
+of how anchored supplied-source evidence and established methodological or disciplinary
 knowledge support the claim as worded without it. Unchecked optional items are removed
 from the finding, with their locators and the explanation retained in its verification
 trace; the original candidates and raw verifier decisions retain the full evidence.

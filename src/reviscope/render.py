@@ -11,12 +11,12 @@ UNCONFIRMED_HEADING = "## Concerns the verifier could not confirm"
 
 
 def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
-    """Findings the verifier itself judged unresolved on the evidence, with an anchored manuscript quotation.
+    """Findings the verifier itself judged unresolved, with an anchored supplied-source quotation.
 
     Findings left unresolved by quote anchoring or external-source checks are not included."""
-    manuscripts = {source.id for source in run.sources if source.kind == "manuscript"}
+    source_ids = {source.id for source in run.sources}
     return [f for f in run.findings if f.status == "unresolved" and f.verifier_status == "unresolved"
-            and any(ev.source_id in manuscripts and ev.location for ev in f.evidence)]
+            and any(ev.source_id in source_ids and ev.location for ev in f.evidence)]
 
 
 def published_findings(run: ReviewRun) -> list[Finding]:
@@ -60,7 +60,7 @@ def to_markdown(run: ReviewRun) -> str:
     for number, finding in enumerate(kept, 1):
         kind = {"defect": "Claimed defect", "specification_conflict": "Conflicting specifications",
                 "clarification_request": "Reporting clarification"}[finding.kind]
-        support = "Claim and rationale supported in a separate model check against anchored manuscript evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
+        support = "Claim and rationale supported in a separate model check against anchored supplied-source evidence." if finding.status == "llm_supported" else f"Evidence status: {finding.status}."
         lines.extend([f"### {number}. {finding.severity.value.title()}: {finding.claim}", "", f"**{kind}.** {support}", "", finding.rationale, ""])
         if finding.remedy_status in {"overreaching", "unresolved"}:
             lines.extend([f"**Proposed response withheld:** `{finding.remedy_status}` — {finding.remedy_verification or 'The remedy requires reviewer judgment.'}", ""])

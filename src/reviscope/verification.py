@@ -214,8 +214,8 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
     Evidence is every quotation that anchors in its named source: the generator's, plus the
     verifier's own when it supports the claim. Quotations that fail to anchor are dropped from the
     evidence and listed in the verification note. A finding is publishable (`llm_supported`) when
-    the verifier supports it and at least one anchored quotation comes from the manuscript itself;
-    supplements and preregistrations add support but cannot carry a finding alone. A finding that
+    the verifier supports it and at least one quotation anchors in a supplied manuscript,
+    supplement or preregistration. A finding that
     cites required external evidence also needs at least one item confirmed and none refuted.
     The verifier can classify external evidence as optional with an explicit explanation of
     how manuscript evidence and established knowledge support the claim without it. Unchecked
@@ -250,14 +250,12 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
             if span not in spans:
                 spans.add(span)
                 evidence.append(_grounded(item, anchor, source_by_id.get(item.source_id)))
-        manuscript_anchored = any(source_by_id[item.source_id].kind == "manuscript"
-                                  for item in evidence if item.source_id in source_by_id)
         external = check_external(finding.external_evidence, decision.get("external_checks", []) if decision else [], verifier_calls)
         dependency = decision.get("external_dependency", "required") if decision else None
         dependency_rationale = str(decision.get("external_dependency_rationale") or "").strip() if decision else None
         checked_external = external
         if (verdict == "supported" and dependency == "optional" and dependency_rationale
-                and manuscript_anchored and not any(item.check == "refuted" for item in external)):
+                and evidence and not any(item.check == "refuted" for item in external)):
             external = [item for item in external if item.check == "confirmed"]
             for item in checked_external:
                 if item.check == "unchecked":
@@ -265,9 +263,6 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
         verifier_rationale = str(decision.get("rationale") or "The verifier supplied no rationale.") if decision else None
         if not evidence:
             status, rationale = "unresolved", "No cited quotation could be anchored in its named source."
-        elif not manuscript_anchored:
-            status = "unresolved"
-            rationale = "No anchored quotation comes from the manuscript itself; supplementary sources cannot carry a finding alone."
         elif deterministic:
             status = finding.status
             rationale = finding.verification or "The claim was established by a deterministic check."

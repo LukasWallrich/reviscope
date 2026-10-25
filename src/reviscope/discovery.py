@@ -89,7 +89,7 @@ power and sample-size claims, percentages and sample flow with code, and state t
 assumptions you used. Open cited sources when the manuscript's use of them carries an inference, and
 search the literature before asserting or denying novelty or a missing body of work. Put what an
 external source shows in external_evidence with its URL or DOI and an exact quotation from that
-source. Every finding also needs at least one exact manuscript quotation in evidence, with a valid
+source. Every finding also needs at least one exact quotation from a supplied manuscript, supplement or preregistration in evidence, with a valid
 SOURCE_ID. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). When a search is
 inconclusive, say so rather than asserting an omission.
 Stay within the assigned module; do not repeat a cross-section contradiction outside your remit unless

@@ -202,7 +202,7 @@ def test_verifier_quotes_are_not_evidence_for_a_claim_it_does_not_support():
     assert [item.quote for item in result.evidence] == ["estimate was −0.25"]
 
 
-def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source():
+def test_publication_accepts_supplement_anchors_and_still_checks_external_sources():
     from datetime import datetime, timezone
     from reviscope.schemas import ToolCall
     quote = "The multilevel estimate was -0.25"
@@ -218,7 +218,7 @@ def test_publication_needs_a_manuscript_anchor_and_a_confirmed_external_source()
                     external_evidence=[external])
     supp_decision = {**decision, "evidence": [{"source_id": "supp", "quote": "Supplement says 42 items."}], "external_checks": []}
     result = verify_findings([supplement_only, cited], [source(), supplement], {"s": supp_decision, "e": decision}, verifier_calls=[fetch])
-    assert result[0].status == "unresolved" and "manuscript itself" in result[0].verification
+    assert result[0].status == "llm_supported"
     assert result[1].status == "llm_supported" and result[1].external_evidence[0].check == "confirmed"
     unchecked = verify_findings([cited], [source()], {"e": decision}, verifier_calls=[])[0]
     assert unchecked.status == "unresolved" and unchecked.external_evidence[0].check == "unchecked"

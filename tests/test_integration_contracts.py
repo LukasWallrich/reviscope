@@ -253,7 +253,7 @@ def test_rejected_verifier_output_keeps_its_tool_calls(tmp_path):
     assert stage.status == "failed" and stage.tool_calls[0].query == "q"
 
 
-def test_supplement_only_finding_is_never_rendered_as_a_finding(tmp_path):
+def test_supported_supplement_only_finding_is_rendered_as_a_finding(tmp_path):
     paper = manuscript(tmp_path)
     supplement = tmp_path / "supp.md"
     supplement.write_text("Supplement sentence only. " * 5)
@@ -262,9 +262,11 @@ def test_supplement_only_finding_is_never_rendered_as_a_finding(tmp_path):
                     evidence=[Evidence(source_id=supp_id, quote="Supplement sentence only.")]).model_dump()]
     verify = lambda _instruction: [{"finding_id": "a:0:s", "status": "supported", "rationale": "ok",
                                     "evidence": [{"source_id": supp_id, "quote": "Supplement sentence only."}]}]
-    run = ReviewPipeline(ScriptedBackend(modules={"RUN a": rows}), profile("a"), ScriptedBackend(verify=verify)).run(
+    editorial = [{"finding_id": "a:0:s", "disposition": "keep", "reason": "Supported and distinct.", "severity": "major"}]
+    run = ReviewPipeline(ScriptedBackend(modules={"RUN a": rows}, editorial=editorial), profile("a"), ScriptedBackend(verify=verify)).run(
         paper, supplements=[supplement], output_dir=tmp_path / "out")
     finding_row = run.findings[0]
-    assert finding_row.status == "unresolved" and finding_row.editorial_disposition == "needs_review"
+    assert finding_row.status == "llm_supported" and finding_row.editorial_disposition == "publish"
     rendered = to_markdown(run)
-    assert "### " + "Major: Supplement-based concern" not in rendered and "`a:0:s`" in rendered
+    assert "### 1. Major: Supplement-based concern" in rendered
+    assert "Supplement sentence only." in rendered

@@ -2,6 +2,8 @@ import json
 import re
 from datetime import datetime, timezone
 
+import pytest
+
 from reviscope.backend import Backend
 from reviscope.discovery import TOPICS, DiscoveryResponse, requested_checks
 from reviscope.pipeline import ReviewPipeline
@@ -62,6 +64,40 @@ def manuscript(tmp_path):
     path = tmp_path / "paper.txt"
     path.write_text("24 of 60 people withdrew. " + "Manuscript context. " * 100)
     return path
+
+
+@pytest.mark.parametrize("kind", ["supplement", "preregistration"])
+@pytest.mark.parametrize("verdict, expected", [
+    ("supported", "llm_supported"), ("unresolved", "unresolved"), ("contradicted", "contradicted"),
+])
+def test_supplied_companion_source_can_carry_a_finding_through_the_report(tmp_path, kind, verdict, expected):
+    from reviscope.render import published_findings, unconfirmed_concerns
+
+    quote = "The additional analysis used a different denominator."
+
+    class CompanionBackend(EvidenceBackend):
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == "DiscoveryResponse" and result.findings:
+                from reviscope.schemas import Evidence
+                sid = re.search(r"SOURCE_ID: (\S+)\nTYPE: " + kind, evidence).group(1)
+                result.findings[0].evidence = [Evidence(source_id=sid, quote=quote)]
+            if response_model.__name__ == "VerificationResponse":
+                result.decisions[0].status = verdict
+            return result
+
+    companion = tmp_path / "companion.txt"
+    companion.write_text(quote + " Companion context." * 100)
+    kwargs = {"supplements" if kind == "supplement" else "preregistrations": [companion]}
+    run = ReviewPipeline(CompanionBackend(count=1), run_metacheck=False).run(
+        manuscript(tmp_path), output_dir=tmp_path / "out", **kwargs)
+    assert not run.partial
+    assert run.findings[0].status == expected
+    assert run.findings[0].evidence[0].location
+    assert bool(published_findings(run)) == (verdict == "supported")
+    assert bool(unconfirmed_concerns(run)) == (verdict == "unresolved")
+    report = (tmp_path / "out" / "review.md").read_text()
+    assert (quote in report) == (verdict != "contradicted")
 
 
 def test_required_source_followup_rechecks_claim_with_its_own_lookup(tmp_path):
