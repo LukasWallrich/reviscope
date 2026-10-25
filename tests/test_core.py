@@ -40,7 +40,7 @@ def test_model_response_requires_explicit_abstention():
     checks = [{"check": "module_inferences", "status": "not_applicable", "rationale": "None made."}]
     with pytest.raises(ValidationError):
         DiscoveryResponse.model_validate({"checks": checks, "search_incomplete": False})
-    assert DiscoveryResponse.model_validate({"findings": [], "checks": checks, "search_incomplete": False}).findings == []
+    assert DiscoveryResponse.model_validate({"concerns": [], "checks": checks, "search_incomplete": False}).concerns == []
 
 
 def test_fixture_export_is_unmistakable_and_html_escaped(tmp_path: Path):

@@ -35,13 +35,13 @@ class EvidenceBackend(Backend):
             topics = requested_checks(instruction)
             checks = [{"check": c, "status": "assessed", "rationale": "Compared.", "evidence": [quote]} for c in topics]
             if topics != TOPICS[self.FINDING_MODULE]:
-                return response_model.model_validate({"findings": [], "checks": checks, "search_incomplete": False})
+                return response_model.model_validate({"concerns": [], "checks": checks, "search_incomplete": False})
             findings = [{"id": str(i), "module": "ignored", "claim": f"Sentinel concern {i}.",
                          "rationale": "A precise assessment consequence.", "remedy": "Report the denominator.",
                          "kind": "clarification_request", "severity": "minor", "evidence": [quote],
                          "external_evidence": [{"url": EXTERNAL_URL, "quote": "Method definition.", "shows": "Definition"}]
                          if self.external and i == 0 else []} for i in range(self.count)]
-            return response_model.model_validate({"findings": findings, "checks": checks, "search_incomplete": False})
+            return response_model.model_validate({"concerns": findings, "checks": checks, "search_incomplete": False})
         if kind == "VerificationResponse":
             rows = json.loads(instruction.split("CANDIDATES\n")[1].split("\nDISCIPLINE RULES")[0])
             retry = "SOURCE TASKS\n" in instruction
@@ -78,10 +78,10 @@ def test_supplied_companion_source_can_carry_a_finding_through_the_report(tmp_pa
     class CompanionBackend(EvidenceBackend):
         def generate(self, instruction, evidence, response_model):
             result = super().generate(instruction, evidence, response_model)
-            if response_model.__name__ == "DiscoveryResponse" and result.findings:
+            if response_model.__name__ == "DiscoveryResponse" and result.concerns:
                 from reviscope.schemas import Evidence
                 sid = re.search(r"SOURCE_ID: (\S+)\nTYPE: " + kind, evidence).group(1)
-                result.findings[0].evidence = [Evidence(source_id=sid, quote=quote)]
+                result.concerns[0].evidence = [Evidence(source_id=sid, quote=quote)]
             if response_model.__name__ == "VerificationResponse":
                 result.decisions[0].status = verdict
             return result
@@ -121,10 +121,42 @@ def test_source_followup_cannot_turn_an_asserted_check_into_confirmation(tmp_pat
 
 def test_discovery_schema_excludes_verification_owned_fields():
     schema = DiscoveryResponse.model_json_schema()
-    fields = schema["$defs"]["CandidateFinding"]["properties"]
+    assert "concerns" in schema["properties"] and "findings" not in schema["properties"]
+    fields = schema["$defs"]["CandidateConcern"]["properties"]
     assert "kind" in fields
+    assert "counterargument" in fields
     assert not {"status", "verifier_status", "editorial_disposition", "confidence"} & fields.keys()
     assert "check" not in schema["$defs"]["ExternalCitation"]["properties"]
+
+
+def test_provisional_concerns_keep_counterarguments_through_independent_verification(tmp_path):
+    from reviscope.render import published_findings, unconfirmed_concerns
+
+    counterarguments = ["General caveat leaves the specific recommendation unqualified.",
+                        "A directly applicable qualification resolves this concern.",
+                        "A necessary premise remains unavailable."]
+
+    class ConcernBackend(EvidenceBackend):
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == "DiscoveryResponse":
+                for concern, counterargument in zip(result.concerns, counterarguments):
+                    concern.counterargument = counterargument
+            if response_model.__name__ == "VerificationResponse":
+                rows = json.loads(instruction.split("CANDIDATES\n")[1].split("\nDISCIPLINE RULES")[0])
+                assert [r["counterargument"] for r in rows] == counterarguments
+                for decision, verdict in zip(result.decisions, ["supported", "contradicted", "unresolved"]):
+                    decision.status = verdict
+            return result
+
+    run = ReviewPipeline(ConcernBackend(count=3), run_metacheck=False).run(
+        manuscript(tmp_path), output_dir=tmp_path / "out")
+    assert not run.partial
+    assert [c.counterargument for c in run.candidates] == counterarguments
+    assert all(c.status == "candidate" for c in run.candidates)
+    assert [f.counterargument for f in run.findings] == counterarguments
+    assert [f.id for f in published_findings(run)] == [run.findings[0].id]
+    assert [f.id for f in unconfirmed_concerns(run)] == [run.findings[2].id]
 
 
 def test_source_followup_can_drop_optional_evidence_under_the_existing_policy(tmp_path):
@@ -167,8 +199,8 @@ def test_verification_checks_the_explanation_even_when_the_headline_is_sound(tmp
     class RationaleBackend(EvidenceBackend):
         def generate(self, instruction, evidence, response_model):
             result = super().generate(instruction, evidence, response_model)
-            if response_model.__name__ == "DiscoveryResponse" and result.findings:
-                for finding, rationale in zip(result.findings, [
+            if response_model.__name__ == "DiscoveryResponse" and result.concerns:
+                for finding, rationale in zip(result.concerns, [
                     "24 of 60 is 4%, so attrition is negligible.",
                     "A cited study establishes that this attrition never biases estimates.",
                     "24 of 60 is 40%; the denominator matters for assessing attrition.",
@@ -209,8 +241,8 @@ def test_source_followup_receives_and_reassesses_the_full_explanation(tmp_path):
     class RationaleRetryBackend(EvidenceBackend):
         def generate(self, instruction, evidence, response_model):
             result = super().generate(instruction, evidence, response_model)
-            if response_model.__name__ == "DiscoveryResponse" and result.findings:
-                result.findings[0].rationale = "This method guarantees unbiased estimates under attrition."
+            if response_model.__name__ == "DiscoveryResponse" and result.concerns:
+                result.concerns[0].rationale = "This method guarantees unbiased estimates under attrition."
             if response_model.__name__ == "VerificationResponse":
                 rows = json.loads(instruction.split("CANDIDATES\n")[1].split("\nDISCIPLINE RULES")[0])
                 assert rows[0]["rationale"] == "This method guarantees unbiased estimates under attrition."

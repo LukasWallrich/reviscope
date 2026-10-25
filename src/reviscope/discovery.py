@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .schemas import CandidateFinding, Evidence, SourceDocument
+from .schemas import CandidateConcern, Evidence, SourceDocument
 from .verification import verify_quote
 from .reasoning import ARGUMENT_ASSESSMENT, LITERATURE_ASSESSMENT, MATERIAL_ASSESSMENT
 
@@ -28,10 +28,10 @@ DEFAULT_TOPICS = ['module_inferences', 'source_consistency', 'information_limits
 
 # The blind-spot pass runs after every profile module, before verification.
 BLIND_SPOTS = 'blind_spots'
-BLIND_SPOT_PROMPT = ('Perform one blind-spot audit of the full manuscript against the existing candidate inventory '
-                     'and coverage ledger. Treat earlier findings as unverified leads, not facts. Search for overlooked '
+BLIND_SPOT_PROMPT = ('Perform one blind-spot audit of the full manuscript against the existing concern inventory '
+                     'and coverage ledger. Treat earlier concerns and claims of completed coverage as unverified leads, not facts. Search for overlooked '
                      'claims, mechanisms, numerical assumptions and consequential omissions. Return only substantively '
-                     'new findings; do not paraphrase existing issues. Do not manufacture problems to fill gaps.')
+                     'new concerns; do not paraphrase existing issues. Do not manufacture problems to fill gaps.')
 
 _CHECKS_LINE = 'Return exactly one checks entry for each of: '
 
@@ -44,7 +44,7 @@ class CoverageCheck(BaseModel):
 
 
 class DiscoveryResponse(BaseModel):
-    findings: list[CandidateFinding]
+    concerns: list[CandidateConcern]
     checks: list[CoverageCheck] = Field(min_length=1)
     search_incomplete: bool
 
@@ -58,7 +58,18 @@ def discovery_instruction(module: str, base: str) -> str:
                   'social_psychology_context', 'education_context'}:
         base += MATERIAL_ASSESSMENT
     return base + '''\nAudit the entire supplied manuscript within your assigned responsibility and return every
-distinct, justified issue you find. There is no quota and no limit on the number of findings.
+distinct, evidence-grounded candidate concern. A concern is a provisional objection for independent
+assessment, not a confirmed error. There is no quota and no limit on the number of concerns.
+Prioritise recall of concrete concerns: when a plausible inferential gap remains, emit it with
+its uncertainty and strongest counterargument instead of silently deciding it is resolved.
+Use counterargument to preserve the strongest defeating passage, qualification or alternative
+explanation and explain why the specific concern may remain. An acknowledgement elsewhere resolves
+a concern only if it actually repairs the particular claim, inference or recommendation challenged.
+If your calculation or counterexample defeats a consequential inference, carry that result into a
+concern even when another passage acknowledges a general limitation. Clearly label illustrative
+counterexamples and their assumptions. Independent verification will adjudicate support; editorial
+will merge and prioritise the supported findings. Do not preselect a shortlist for publication.
+Do not invent objections, duplicate concerns or assert an error when only a bounded question is justified.
 Review as a critical expert in your remit, not only as an error checker. Besides errors, raise what
 such a reviewer would expect the authors to address: a central conclusion that depends on a modelling
 or design choice when a reasonable alternative gives a materially different answer; a competing
@@ -79,17 +90,17 @@ essential when the claims as stated cannot stand without it, strengthening when 
 support or clarity without being required, extending when it goes beyond the manuscript's scope. Distinguish unreported from incorrect. For proposals/protocols evaluate theory,
 mechanisms and planned inference without requiring results. Do not prescribe post-treatment exclusions
 by default. Missing information is major only when a central claim cannot be assessed without it.
-Severity here is provisional; editorial assigns final severity with all findings in view.
+Severity here is provisional; editorial assigns final severity with all verified concerns in view.
 Set search_incomplete=true if you could not complete the audit of your responsibility.
 ''' + _CHECKS_LINE + ', '.join(topics) + '''.
-For assessed checks, explain what you compared and cite source evidence; empty findings do not imply
+For assessed checks, explain what you compared and cite source evidence; empty concerns do not imply
 coverage. Mark not_applicable, insufficient_evidence or not_checked with a reason when appropriate.
 Use your tools where they can settle a consequential question. Recompute reported statistics,
 power and sample-size claims, percentages and sample flow with code, and state the inputs and
 assumptions you used. Open cited sources when the manuscript's use of them carries an inference, and
 search the literature before asserting or denying novelty or a missing body of work. Put what an
 external source shows in external_evidence with its URL or DOI and an exact quotation from that
-source. Every finding also needs at least one exact quotation from a supplied manuscript, supplement or preregistration in evidence, with a valid
+source. Every concern also needs at least one exact quotation from a supplied manuscript, supplement or preregistration in evidence, with a valid
 SOURCE_ID. Quote verbatim; mark an omission inside a quotation with an ellipsis (...). When a search is
 inconclusive, say so rather than asserting an omission.
 Stay within the assigned module; do not repeat a cross-section contradiction outside your remit unless

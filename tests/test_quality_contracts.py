@@ -145,7 +145,7 @@ def test_profile_severity_guidance_reaches_generation(tmp_path):
         paper(tmp_path), output_dir=tmp_path / "out")
     generation = "\n".join(text for kind, text in backend.instructions if kind == "DiscoveryResponse")
     assert "invalidates a central result" in generation
-    assert "no limit on the number of findings" in generation
+    assert "no limit on the number of concerns" in generation
 
 
 def test_merge_cannot_move_supported_finding_into_lower_support_target(tmp_path):

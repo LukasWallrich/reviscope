@@ -14,8 +14,10 @@ and recomputation operations are in `measurement`, `consistency` and
 reproduces them. Metacheck leads that no specialist module owns now reach the
 blind-spot pass rather than being dropped.
 
-Discovery owns a lean candidate schema, including claim type, wording, severity,
-remedy and evidence. It does not assign evidential status, confidence, editorial
+Discovery returns `concerns`, each typed as `CandidateConcern`: provisional objections
+for independent assessment, rather than confirmed errors. The schema includes claim
+type, wording, severity, remedy, evidence and `counterargument`, which preserves the
+strongest defeating context and why the concern may remain. It does not assign evidential status, confidence, editorial
 disposition or external-source confirmation. A defect alleges an error; a
 specification conflict compares incompatible reported specifications; a clarification
 request identifies missing information and the particular assessment or reproduction
@@ -29,9 +31,21 @@ automatically support an omission or change its severity.
 ## Discovery
 
 Each profile module audits the whole manuscript within its responsibility and returns
-every distinct, justified finding. No stage limits the number of findings: the discovery
+every distinct, evidence-grounded concern. A plausible inferential gap is passed forward
+with its uncertainty and counterargument instead of being silently resolved in discovery.
+An acknowledgement elsewhere resolves a concern only when it repairs the specific claim,
+inference or recommendation challenged. Calculations and illustrative counterexamples that
+defeat a consequential inference must reach verification as concerns, with their assumptions.
+There is no publication shortlist at this stage. Verification independently assesses each
+concern and its counterargument; editorial merges and prioritises supported findings.
+No stage limits the number of concerns or findings: the discovery
 schema has no ceiling, the prompts set no quota, and editorial selection has no
 publication cap. The JSON audit keeps all candidates and their dispositions.
+
+The final review JSON retains its `candidates` and `findings` collections. Discovery
+stage JSON uses `concerns`; this schema and prompt change invalidates old discovery
+cache entries. Previously saved final review JSON remains readable, with an empty
+counterargument when none was recorded. No support or publication gate is relaxed.
 
 Each specialist must return exactly its assigned coverage checks with an explicit
 status and reason. “Assessed” requires anchored quotations; it is still a model's

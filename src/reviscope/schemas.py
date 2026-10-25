@@ -106,11 +106,13 @@ class StudyMap(BaseModel):
     strengths: list[str]
 
 
-class CandidateFinding(BaseModel):
+class CandidateConcern(BaseModel):
+    """A provisional objection for independent assessment, without a support verdict."""
     id: str
     module: str
     claim: str
     rationale: str
+    counterargument: str = Field(default="", description="Strongest defeating context or alternative explanation, and why the concern may remain despite it.")
     remedy: str
     # COPE: say whether a request is essential to support the claims or would strengthen or extend the work.
     remedy_necessity: Literal["essential", "strengthening", "extending"] | None = None
@@ -128,7 +130,7 @@ class MergedPoint(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
 
 
-class Finding(CandidateFinding):
+class Finding(CandidateConcern):
     discovery_severity: Severity | None = None
     priority: int | None = Field(default=None, ge=1)
     merged_points: list[MergedPoint] = Field(default_factory=list)

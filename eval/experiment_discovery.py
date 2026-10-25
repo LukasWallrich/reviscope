@@ -205,7 +205,7 @@ def main() -> int:
             names = [c.check for c in response.checks]
             if set(names) != set(CHECKS) or len(names) != len(set(names)):
                 run.coverage.append("holistic: operation coverage has missing, unknown or duplicate entries; findings retained")
-            for index, finding in enumerate(response.findings, 1):
+            for index, finding in enumerate(response.concerns, 1):
                 run.candidates.append(Finding.model_validate({**finding.model_dump(),
                     "id": f"holistic:{index:02d}", "module": "holistic"}))
             run.stages.append(stage)

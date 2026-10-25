@@ -38,7 +38,7 @@ class DiscoveryBackend(Backend):
                 self._tool_calls = [ToolCall(backend='test', sequence=0, kind='search', name='web_search',
                                              query='medium effect size benchmark', timestamp=datetime.now(timezone.utc))]
             return response_model.model_validate({
-                'findings': [{'id': str(i), 'module': 'untrusted', 'claim': f'{module} issue {i}',
+                'concerns': [{'id': str(i), 'module': 'untrusted', 'claim': f'{module} issue {i}',
                               'rationale': 'Specific consequence', 'remedy': 'Check denominator',
                               'evidence': [quote], 'external_evidence': [EXTERNAL] if blind else []}
                              for i in range(1 if blind else 6)],
@@ -106,7 +106,7 @@ def test_omitted_coverage_retains_findings_and_is_reported_without_marking_the_r
     assert any('not_checked' in row for row in run.coverage)
     raw_path = next((tmp_path / 'run/raw-discovery').glob('statistical_inference-*.json'))
     raw = json.loads(raw_path.read_text())
-    assert len(raw['checks']) == 1 and len(raw['findings']) == 6
+    assert len(raw['checks']) == 1 and len(raw['concerns']) == 6
 
 
 def test_external_confirmation_cannot_borrow_a_fetch_from_another_batch(tmp_path):

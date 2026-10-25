@@ -544,7 +544,7 @@ class FixtureBackend(Backend):
         fields = response_model.model_fields
         if "studies" in fields:
             return response_model.model_validate(StudyMap(studies=[Study(id="study-1", title="Study 1", description="Demo extraction")], research_question="Demonstration question", design_summary="Demonstration design extraction.", contribution_summary="Demonstration only.", strengths=["Structured method and results sections."]).model_dump())
-        if "findings" in fields:
+        if "concerns" in fields:
             import re
             from .discovery import requested_checks
 
@@ -555,7 +555,7 @@ class FixtureBackend(Backend):
                 coverage["study_map"] = self.generate("Describe the demonstration.", evidence, StudyMap).model_dump()
                 coverage["checks"] = []
             if not any(term in instruction.lower() for term in ("design", "sampling", "participant")):
-                return response_model.model_validate({"findings": [], **coverage})
+                return response_model.model_validate({"concerns": [], **coverage})
             quote = "Participants were recruited from the university pool."
             injection_line = re.search(r"(<script\b[^>]*>.*?</script>\s*Participants were recruited from the university pool\.)", evidence, re.I | re.S)
             if injection_line:
@@ -565,7 +565,7 @@ class FixtureBackend(Backend):
                 match = re.search(r"SOURCE_ID:\s*([^\s]+)", evidence)
                 source_id = match.group(1) if match else "unknown"
                 findings.append(Finding(id="demo-sampling", module="study_design", claim="The sampling frame limits generalization.", rationale="The manuscript describes a university participant pool but does not delimit the target population.", remedy="State the target population and qualify generalization.", evidence=[Evidence(source_id=source_id, quote=quote)], severity="minor"))
-            return response_model.model_validate({"findings": [x.model_dump() for x in findings], **coverage})
+            return response_model.model_validate({"concerns": [x.model_dump() for x in findings], **coverage})
         if "decisions" in fields:
             return response_model.model_validate({"decisions": []})
         return response_model.model_validate({})
