@@ -99,3 +99,50 @@ def test_footnotes_are_appended_with_reference_numbers(tmp_path):
             dst.writestr(item, data)
         dst.writestr("word/footnotes.xml", footnotes)
     assert ingest(noted).text.splitlines() == ["Claim.[footnote 1]", "", "Footnotes", "[Footnote 1] Synthetic note text."]
+
+
+M = 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"'
+
+
+def _omml(body: str):
+    return parse_xml(f"<m:oMath {M}>{body}</m:oMath>")
+
+
+def _mr(text: str) -> str:
+    return f"<m:r><m:t>{text}</m:t></m:r>"
+
+
+def test_math_structure_keeps_scripts_fractions_and_delimiters(tmp_path):
+    document = Document()
+    formulas = [
+        f"<m:sSup><m:e>{_mr('R')}</m:e><m:sup>{_mr('2')}</m:sup></m:sSup>",
+        f"<m:sSub><m:e>{_mr('Δ')}</m:e><m:sub>{_mr('r')}</m:sub></m:sSub>",
+        f"<m:sSubSup><m:e>{_mr('η')}</m:e><m:sub>{_mr('p')}</m:sub><m:sup>{_mr('2')}</m:sup></m:sSubSup>",
+        f"<m:sSup><m:e>{_mr('10')}</m:e><m:sup>{_mr('-3')}</m:sup></m:sSup>",
+        f"<m:f><m:num>{_mr('a+b')}</m:num><m:den>{_mr('n')}</m:den></m:f>",
+        f"<m:rad><m:radPr><m:degHide m:val=\"1\"/></m:radPr><m:deg/><m:e>{_mr('n')}</m:e></m:rad>",
+        f"<m:d><m:e>{_mr('x')}</m:e></m:d>",
+        f"<m:d><m:dPr><m:begChr m:val=\"[\"/><m:endChr m:val=\"]\"/><m:sepChr m:val=\",\"/></m:dPr>"
+        f"<m:e>{_mr('0.1')}</m:e><m:e>{_mr('0.3')}</m:e></m:d>",
+        f"<m:nary><m:naryPr><m:chr m:val=\"∑\"/></m:naryPr><m:sub>{_mr('i')}</m:sub><m:sup/><m:e>{_mr('x')}</m:e></m:nary>",
+    ]
+    for formula in formulas:
+        document.add_paragraph()._p.append(_omml(formula))
+    assert _lines(document, tmp_path) == [
+        "R^2", "Δ_r", "η_p^2", "10^{-3}", "(a+b)/n", "sqrt(n)", "(x)", "[0.1,0.3]", "∑_i x",
+    ]
+
+
+def test_run_level_scripts_merge_across_runs_and_skip_ordinals(tmp_path):
+    document = Document()
+    paragraph = document.add_paragraph("p < 5 × 10")
+    for text in ("-", "4"):
+        paragraph.add_run(text).font.superscript = True
+    paragraph.add_run(", χ")
+    paragraph.add_run("2").font.superscript = True
+    paragraph.add_run(", r")
+    paragraph.add_run("xy").font.subscript = True
+    paragraph.add_run(", the 21")
+    paragraph.add_run("st").font.superscript = True
+    paragraph.add_run(" century")
+    assert _lines(document, tmp_path) == ["p < 5 × 10^{-4}, χ^2, r_{xy}, the 21st century"]

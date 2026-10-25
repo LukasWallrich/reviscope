@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from .schemas import PageText, SourceDocument
@@ -21,13 +22,16 @@ _M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
 _MC = "{http://schemas.openxmlformats.org/markup-compatibility/2006}"
 _SKIP = {_W + "del", _W + "moveFrom", _W + "instrText", _W + "delText", _MC + "Fallback"}
 _NOTES = (("footnotes", "footnote", "Footnote"), ("endnotes", "endnote", "Endnote"))
+_SCRIPTS = {"superscript": "^", "subscript": "_"}
+_ORDINAL = {"st", "nd", "rd", "th"}
 
 
 class _DocxText:
     """Plain text from WordprocessingML in document order.
 
     Walks the XML directly because python-docx's ``cell.text`` and ``paragraph.text``
-    omit nested tables, Office math, text boxes and note references.
+    omit nested tables, Office math, text boxes and note references. Superscripts and
+    subscripts, in Office math or as run formatting, are written as ``x^2``, ``x_{ij}``.
     """
 
     def __init__(self) -> None:
@@ -48,9 +52,9 @@ class _DocxText:
         parts: list[str] = []
         boxes: list[str] = []
         self._inline(p, parts, boxes)
-        return ["".join(parts), *boxes]
+        return [_join(parts), *boxes]
 
-    def _inline(self, el, parts: list[str], boxes: list[str]) -> None:
+    def _inline(self, el, parts: list, boxes: list[str]) -> None:
         for child in el:
             tag = child.tag
             if not isinstance(tag, str) or tag in _SKIP:
@@ -70,6 +74,17 @@ class _DocxText:
                 parts.append(f"[{kind} {number}]")
             elif tag == _W + "txbxContent":
                 boxes.extend(self.blocks(child))
+            elif tag == _M + "oMath":
+                parts.append(_math(child))
+            elif tag == _W + "r" and (mark := _run_script(child)):
+                inner: list = []
+                self._inline(child, inner, boxes)
+                text = _join(inner)
+                previous = parts[-1] if parts and isinstance(parts[-1], str) else ""
+                if mark == "^" and text in _ORDINAL and previous[-1:].isdigit():
+                    parts.append(text)  # Word's automatic ordinal formatting (1st, 21st)
+                elif text:
+                    parts.append((mark, text))
             else:
                 self._inline(child, parts, boxes)
 
@@ -99,6 +114,87 @@ class _DocxText:
             if text:
                 out.append(f"[{label} {number}] {text}" if number else f"[{label}] {text}")
         return out
+
+
+def _join(parts: list) -> str:
+    """Join inline text; (mark, text) entries are scripts, merged across adjacent runs."""
+    out: list[str] = []
+    pending: tuple[str, str] | None = None
+    for part in [*parts, ""]:
+        if isinstance(part, tuple) and pending and pending[0] == part[0]:
+            pending = (pending[0], pending[1] + part[1])
+            continue
+        if pending:
+            out.append(pending[0] + _group(pending[1]))
+            pending = None
+        if isinstance(part, tuple):
+            pending = part
+        else:
+            out.append(part)
+    return "".join(out)
+
+
+def _group(text: str) -> str:
+    return text if len(text) == 1 else "{" + text + "}"
+
+
+def _run_script(run) -> str | None:
+    align = run.find(f"{_W}rPr/{_W}vertAlign")
+    if align is None or run.find(f".//{_W}footnoteReference") is not None or run.find(f".//{_W}endnoteReference") is not None:
+        return None
+    return _SCRIPTS.get(align.get(_W + "val"))
+
+
+def _math(el) -> str:
+    """Linear text for an Office math (OMML) element, keeping structure that m:t text alone loses."""
+    local = el.tag.removeprefix(_M) if isinstance(el.tag, str) else ""
+
+    def part(name: str) -> str:
+        child = el.find(_M + name)
+        return "" if child is None else _math(child)
+
+    def prop(name: str, default: str) -> str:
+        child = el.find(f"{_M}{local}Pr/{_M}{name}")
+        return default if child is None else child.get(_M + "val", default)
+
+    def operand(text: str) -> str:
+        return text if re.fullmatch(r"[\w.]+", text) else f"({text})"
+
+    def scripts(base: str) -> str:
+        sub, sup = part("sub"), part("sup")
+        return base + (f"_{_group(sub)}" if sub else "") + (f"^{_group(sup)}" if sup else "")
+
+    if local == "t":
+        return el.text or ""
+    if local in {"sSup", "sSub", "sSubSup"}:
+        return scripts(part("e"))
+    if local == "sPre":
+        return scripts("") + part("e")
+    if local == "f":
+        return f"{operand(part('num'))}/{operand(part('den'))}"
+    if local == "rad":
+        degree = part("deg")
+        return f"root({degree}, {part('e')})" if degree else f"sqrt({part('e')})"
+    if local == "d":
+        inner = prop("sepChr", "|").join(_math(e) for e in el.findall(_M + "e"))
+        return prop("begChr", "(") + inner + prop("endChr", ")")
+    if local == "nary":
+        return scripts(prop("chr", "∫")) + " " + part("e")
+    if local == "acc":
+        return part("e") + prop("chr", "\u0302")
+    if local == "func":
+        body = part("e")
+        return part("fName") + (body if body.startswith("(") else " " + body)
+    if local in {"limLow", "limUpp"}:
+        return part("e") + ("_" if local == "limLow" else "^") + _group(part("lim"))
+    if local == "eqArr":
+        return "; ".join(_math(e) for e in el.findall(_M + "e"))
+    if local == "m":
+        rows = (", ".join(_math(e) for e in row.findall(_M + "e")) for row in el.findall(_M + "mr"))
+        return "[" + "; ".join(rows) + "]"
+    if local.endswith("Pr") or el.tag in _SKIP:
+        return ""
+    return "".join(_math(child) for child in el)
 
 
 def _nearest(el, name: str):
