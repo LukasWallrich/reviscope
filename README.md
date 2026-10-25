@@ -59,6 +59,8 @@ uv run reviscope review examples/demo_manuscript.md \
 
 Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.md` is intentionally short and incomplete. The default model-backed pipeline treats it as insufficient material, emits one Minor intake notice, and skips specialist review modules; it is not evidence of review quality.
 
+`examples/table_mismatch/table_mismatch.pdf` (built by `build.py` in the same folder) is a short synthetic experiment whose Results say the gratitude condition reported higher life satisfaction, while Table 1 prints the higher mean in the control row. The table's cells are drawn out of reading order, so the extracted text does not show which mean belongs to which condition; only the page image does. A model-backed review should report the conflict with the table cells confirmed against the page image. It is a development check of the page-image path, not evidence of review quality.
+
 ## Results and resume
 
 Each run writes `review.json`, `review.md`, `review.html`, timestamped `run.log`, and content-keyed stage artifacts. The default per-call deadline is 3,600 seconds; a max-effort stage on a full paper can take about 20 minutes. JSON retains the sources, candidate findings, verification status, editorial disposition, and coverage history. Repeating a command reuses successful matching stages. Different sources, profiles, model settings or upstream outputs invalidate dependent work. Updating the Codex or Claude CLI does not: cached stages are reused, and each stage records the CLI version that produced it (`backend_version`).

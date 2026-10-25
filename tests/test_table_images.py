@@ -354,3 +354,21 @@ def test_attached_pages_keep_their_source_labels_at_the_cli_boundary(tmp_path, m
     monkeypatch.setattr(backend_module, "_execute", execute)
     assert backend.generate("Read the cells.", "", Answer,
                             images=StagedImages(files=dict.fromkeys(names, image), attach=names)).value == 1
+
+
+def test_table_mismatch_example_needs_the_printed_page(tmp_path):
+    """The example's table contradicts its text only as printed: the extracted text loses which
+    mean belongs to which condition, so the finding requires the page image."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build", Path(__file__).parents[1] / "examples/table_mismatch/build.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    from reviscope.ingest import ingest
+
+    source = ingest(build.build(tmp_path / "example.pdf"))
+    assert source.text == ingest(Path(__file__).parents[1] / "examples/table_mismatch/table_mismatch.pdf").text
+    assert "higher life satisfaction than the control condition" in " ".join(source.text.split())
+    table = source.pages[1].text
+    assert "4.61" in table and "5.42" in table
+    assert not re.search(r"Gratitude \(n = 60\)\s+4\.61|Control \(n = 60\)\s+5\.42", table)
