@@ -226,8 +226,10 @@ attached page images and neighbouring pages. It is given the table, row and colu
 neither the claimed value nor the claim. Code compares the readings: values after
 normalising minus signs, spaces and a leading decimal point while preserving superscripts;
 marks and printed units must match too, as must typeface when the claim relies on it.
-Unit abbreviations are recorded as printed; missing or different units leave the reading
-unresolved. A claim that rests on table cells is published only when
+A unit is a symbol or abbreviation printed in the cell, its row or column header, or an
+applicable table note (%, ms), recorded as printed. Scale ranges (1–7) and score descriptions
+(item means) are not units. The schemas and all three prompts share this definition. Missing or different units
+leave the reading unresolved. A claim that rests on table cells is published only when
 every relied-on cell matches. Otherwise it stays `unresolved` and appears under the
 concerns the verifier could not confirm, with the reason. This covers a mismatched
 value or star, a cell the reader cannot locate at that row and column, an illegible

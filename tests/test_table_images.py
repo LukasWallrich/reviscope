@@ -354,3 +354,36 @@ def test_attached_pages_keep_their_source_labels_at_the_cli_boundary(tmp_path, m
     monkeypatch.setattr(backend_module, "_execute", execute)
     assert backend.generate("Read the cells.", "", Answer,
                             images=StagedImages(files=dict.fromkeys(names, image), attach=names)).value == 1
+
+
+def test_table_mismatch_example_needs_the_printed_page(tmp_path):
+    """The example's table contradicts its text only as printed: the extracted text loses which
+    mean belongs to which condition, so the finding requires the page image."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build", Path(__file__).parents[1] / "examples/table_mismatch/build.py")
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    from reviscope.ingest import ingest
+
+    source = ingest(build.build(tmp_path / "example.pdf"))
+    assert source.text == ingest(Path(__file__).parents[1] / "examples/table_mismatch/table_mismatch.pdf").text
+    assert "higher life satisfaction than the control condition" in " ".join(source.text.split())
+    table = source.pages[1].text
+    assert "4.61" in table and "5.42" in table
+    assert not re.search(r"Gratitude \(n = 60\)\s+4\.61|Control \(n = 60\)\s+5\.42", table)
+
+
+def test_reviewers_verifier_and_reader_share_one_unit_definition():
+    """Units are compared strictly, so every party must mean the same thing by one: a symbol
+    printed with the cell, its headers or an applicable note, not a scale range or description."""
+    from reviscope.discovery import TABLE_READING_GUIDANCE
+    from reviscope.pipeline import TABLE_VERIFICATION
+    from reviscope.schemas import TABLE_UNIT_DEFINITION
+
+    assert "applicable table note" in TABLE_UNIT_DEFINITION
+    assert "not a scale range or score description; empty when none" in TABLE_UNIT_DEFINITION
+    for prompt in (TABLE_READING_GUIDANCE, TABLE_VERIFICATION, BLIND_READING):
+        assert TABLE_UNIT_DEFINITION in " ".join(prompt.split())
+    for schema in (TableReading, CellReading):
+        assert schema.model_json_schema()["properties"]["unit"]["description"] == TABLE_UNIT_DEFINITION

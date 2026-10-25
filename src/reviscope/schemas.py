@@ -104,6 +104,11 @@ class PageImageSet(BaseModel):
 
 Emphasis = Literal["none", "bold", "italic", "other"]
 
+TABLE_UNIT_DEFINITION = (
+    "a unit symbol or abbreviation printed in the cell, its row or column header, or an applicable table note, "
+    "such as %, ms or kg, exactly as printed; not a scale range or score description; empty when none"
+)
+
 
 class TableReading(BaseModel):
     """One table cell as printed on a rendered page image. It is not a text quotation and has no
@@ -116,7 +121,7 @@ class TableReading(BaseModel):
     value: str = Field(min_length=1)  # exactly as printed, sign and decimal point included, without marks
     marks: str = ""  # significance stars, footnote letters or symbols printed with the value
     emphasis: Emphasis | None = None  # typeface of the value; None when the claim does not rely on it
-    unit: str = ""  # unit or scale stated for the value, if any
+    unit: str = Field(default="", description=TABLE_UNIT_DEFINITION)
 
 
 class CellReading(BaseModel):
@@ -127,7 +132,7 @@ class CellReading(BaseModel):
     value: str
     marks: str
     emphasis: Emphasis
-    unit: str
+    unit: str = Field(description=TABLE_UNIT_DEFINITION)
     note: str
 
 

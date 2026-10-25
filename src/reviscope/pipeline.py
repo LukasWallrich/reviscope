@@ -19,6 +19,7 @@ from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, TABLE_READING_GUIDANCE, DiscoveryResponse, discovery_instruction, validate_discovery
 from .schemas import SUPPORTED_STATUSES, CellReading, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, PageImageSet, Profile, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap, TableCheck, TableReading
+from .schemas import TABLE_UNIT_DEFINITION
 
 
 class VerificationDecision(BaseModel):
@@ -43,22 +44,21 @@ class CellReadingResponse(BaseModel):
     readings: list[CellReading]
 
 
-TABLE_VERIFICATION = """TABLE CELLS. Set table_dependence=true when any substantive premise of the claim or
+TABLE_VERIFICATION = f"""TABLE CELLS. Set table_dependence=true when any substantive premise of the claim or
 rationale rests on what a table in a PDF source prints: a value, its sign, significance marks,
 typeface, or which row or column a value belongs to. Then return in table_readings every cell the
 claim relies on, read from the page images (open them; the extracted text can misplace cells, join
 numbers and drop signs or stars), with the table label, the row labels (for a row without a label
 of its own, the label it falls under and its position, such as "second row") and the column headers
 from the outermost spanning header down to the cell's own, the value exactly as printed, its marks, its
-emphasis when the claim relies on typeface (otherwise null) and its unit exactly as printed
-(for example ms or %, without expanding abbreviations). A candidate's own
+emphasis when the claim relies on typeface (otherwise null) and its unit ({TABLE_UNIT_DEFINITION}). A candidate's own
 table_readings are assertions to check, not evidence. A separate reader will read each relied-on cell
 from the page images without seeing the values; a claim whose cells it does not confirm is held as
 unresolved. Evidence quotations stay verbatim extracted text: quote the caption, table label or the
 prose the claim concerns, and never present a value read from an image as a quotation. A value that
 the page prints differently from the extracted text is decided by the page."""
 
-BLIND_READING = """Read table cells from the attached page images of a manuscript. Each request names a
+BLIND_READING = f"""Read table cells from the attached page images of a manuscript. Each request names a
 source, page, table label, row labels (outermost group first) and column headers (outermost spanning
 header first). For each request find that table on that page, or on a neighbouring page if the table
 continues there, and the single cell at the intersection of that row and that column, using the
@@ -66,7 +66,7 @@ spanning headers to decide which columns they cover. A row label may end with a 
 "second row" for a row without a label of its own; count rows within the named group. Report the value exactly as printed (sign,
 decimal point and digits as shown, without marks), the marks printed with it (significance stars,
 footnote letters or symbols; empty when none), its emphasis (none, bold, italic or other) and its unit
-when the table states one, using the printed symbol or abbreviation rather than expanding it.
+({TABLE_UNIT_DEFINITION}).
 Set located=false when no single cell sits at that row and column, for
 example when the headers place that column under a different group or the row is absent, and say why
 in note. Set legible=false when the cell cannot be read with confidence. Read only the page images;
