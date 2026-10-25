@@ -42,6 +42,7 @@ def test_sideways_text_gets_upright_copies(tmp_path):
     assert [i.view for i in turned] == ["turned", "turned-upper-left", "turned-upper-right", "turned-lower-left", "turned-lower-right"]
     assert turned[0].file == f"{source.id}/p001-turned.png" and turned[0].width > turned[0].height
     assert "Pages 1 have sideways text" in manifest_text([rendered])
+    assert "[Page 5] is p005.png" in manifest_text([rendered])
     upright = render_source(ingest(table_pdf(tmp_path / "table.pdf")), tmp_path / "run")
     assert not any(i.rotation for i in upright.images)
 

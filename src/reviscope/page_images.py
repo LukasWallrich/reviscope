@@ -207,7 +207,9 @@ def manifest_text(sets: list[PageImageSet]) -> str:
              "directory. The extracted text can misplace table cells, join neighbouring numbers or cells, drop "
              "minus signs and lose significance stars, bold type and column grouping; the images show each page "
              "as printed. Open the images with your file or image viewing tool whenever a point depends on a "
-             "table, figure or typographic detail, including a table continued from or onto a neighbouring page."]
+             "table, figure or typographic detail, including a table continued from or onto a neighbouring page. "
+             "Page N of a source in the extracted text (the [Page N] marker) is pNNN.png in that source's directory, "
+             "for example [Page 5] is p005.png; page numbers printed on the page can differ."]
     for s in sets:
         if s.error:
             lines.append(f"- {s.source_id}: no page images ({s.error}). Points that depend on its tables cannot be checked against the printed page.")
