@@ -43,7 +43,7 @@ table_readings: source_id, page, the table label as printed, the row labels (out
 for a row without a label of its own, the label it falls under and its position, such as "second row"),
 the column headers from the outermost spanning header down to the cell's own header, the value exactly
 as printed without marks, the marks printed with it, emphasis when the point relies on typeface
-(otherwise null) and the unit exactly as printed, without expanding abbreviations. A separate reader checks each recorded cell against the page images
+(otherwise null) and the unit (a unit symbol or abbreviation printed in the cell or in its row or column header, such as %, ms or kg, exactly as printed; not a scale range, score description or table note; empty when none). A separate reader checks each recorded cell against the page images
 without seeing your value; a point whose cells it cannot confirm is not published. Evidence quotations
 stay verbatim extracted text: quote the table caption or label or the related prose, and never quote a
 value reconstructed from an image. Where the extracted text of a table differs from the printed page,

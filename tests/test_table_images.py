@@ -372,3 +372,14 @@ def test_table_mismatch_example_needs_the_printed_page(tmp_path):
     table = source.pages[1].text
     assert "4.61" in table and "5.42" in table
     assert not re.search(r"Gratitude \(n = 60\)\s+4\.61|Control \(n = 60\)\s+5\.42", table)
+
+
+def test_reviewers_verifier_and_reader_share_one_unit_definition():
+    """Units are compared strictly, so every party must mean the same thing by one: a symbol
+    printed with the cell or its headers, not a scale range or note (which readers otherwise disagree on)."""
+    from reviscope.discovery import TABLE_READING_GUIDANCE
+    from reviscope.pipeline import TABLE_VERIFICATION
+
+    definition = "not a scale range, score description or table note; empty when none"
+    for prompt in (TABLE_READING_GUIDANCE, TABLE_VERIFICATION, BLIND_READING):
+        assert definition in " ".join(prompt.split())

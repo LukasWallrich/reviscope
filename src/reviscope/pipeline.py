@@ -50,8 +50,7 @@ claim relies on, read from the page images (open them; the extracted text can mi
 numbers and drop signs or stars), with the table label, the row labels (for a row without a label
 of its own, the label it falls under and its position, such as "second row") and the column headers
 from the outermost spanning header down to the cell's own, the value exactly as printed, its marks, its
-emphasis when the claim relies on typeface (otherwise null) and its unit exactly as printed
-(for example ms or %, without expanding abbreviations). A candidate's own
+emphasis when the claim relies on typeface (otherwise null) and its unit (a unit symbol or abbreviation printed in the cell or in its row or column header, such as %, ms or kg, exactly as printed; not a scale range, score description or table note; empty when none). A candidate's own
 table_readings are assertions to check, not evidence. A separate reader will read each relied-on cell
 from the page images without seeing the values; a claim whose cells it does not confirm is held as
 unresolved. Evidence quotations stay verbatim extracted text: quote the caption, table label or the
@@ -66,7 +65,7 @@ spanning headers to decide which columns they cover. A row label may end with a 
 "second row" for a row without a label of its own; count rows within the named group. Report the value exactly as printed (sign,
 decimal point and digits as shown, without marks), the marks printed with it (significance stars,
 footnote letters or symbols; empty when none), its emphasis (none, bold, italic or other) and its unit
-when the table states one, using the printed symbol or abbreviation rather than expanding it.
+(a unit symbol or abbreviation printed in the cell or in its row or column header, such as %, ms or kg, exactly as printed; not a scale range, score description or table note; empty when none).
 Set located=false when no single cell sits at that row and column, for
 example when the headers place that column under a different group or the row is absent, and say why
 in note. Set legible=false when the cell cannot be read with confidence. Read only the page images;

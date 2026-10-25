@@ -116,7 +116,7 @@ class TableReading(BaseModel):
     value: str = Field(min_length=1)  # exactly as printed, sign and decimal point included, without marks
     marks: str = ""  # significance stars, footnote letters or symbols printed with the value
     emphasis: Emphasis | None = None  # typeface of the value; None when the claim does not rely on it
-    unit: str = ""  # unit or scale stated for the value, if any
+    unit: str = ""  # unit symbol printed in the cell or its row or column header (%, ms); not scale ranges or notes
 
 
 class CellReading(BaseModel):
