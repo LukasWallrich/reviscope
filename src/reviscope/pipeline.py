@@ -134,10 +134,21 @@ class ReviewPipeline:
         self.evidence_audit = evidence_audit
 
     @staticmethod
+    def _reading_text(source: SourceDocument) -> str:
+        layouts = [f"[Page {page.page}, table layout]\n{page.table_layout}"
+                   for page in source.pages if page.table_layout]
+        if not layouts:
+            return source.text
+        return (source.text + "\n\nTABLE LAYOUT COPIES\n"
+                "Column-reading aids; evidence quotations must come from the normal text above.\n\n"
+                + "\n\n".join(layouts))
+
+    @staticmethod
     def _evidence(sources: list[SourceDocument]) -> str:
         chunks = []
         for source in sources:
-            chunks.append(f"SOURCE_ID: {source.id}\nTYPE: {source.kind}\nCONTENT BEGIN\n{source.text}\nCONTENT END")
+            content = ReviewPipeline._reading_text(source)
+            chunks.append(f"SOURCE_ID: {source.id}\nTYPE: {source.kind}\nCONTENT BEGIN\n{content}\nCONTENT END")
         return "\n\n".join(chunks)
 
     def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
@@ -202,7 +213,7 @@ class ReviewPipeline:
         sources = [ingest(manuscript)]
         sources += [ingest(p, "supplement") for p in supplements or []]
         sources += [ingest(p, "preregistration") for p in preregistrations or []]
-        input_hash = _hash([(s.kind, s.sha256, _hash(s.text)) for s in sources])
+        input_hash = _hash([(s.kind, s.sha256, _hash(self._reading_text(s))) for s in sources])
         metadata = RunMetadata(run_id=input_hash[:12], backend=self.backend.name, model=self.backend.model, effort=self.backend.effort,
                                verifier_backend=self.verifier_backend.name, verifier_model=self.verifier_backend.model,
                                verifier_effort=self.verifier_backend.effort,

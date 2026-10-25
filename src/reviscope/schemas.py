@@ -74,6 +74,7 @@ class ToolCall(BaseModel):
 class PageText(BaseModel):
     page: int = Field(ge=1)
     text: str
+    table_layout: str | None = None  # Reading aid only; quotations anchor in text.
 
 
 class SourceDocument(BaseModel):

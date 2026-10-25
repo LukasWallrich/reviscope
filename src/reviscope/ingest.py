@@ -8,13 +8,28 @@ from .schemas import PageText, SourceDocument
 
 
 SUPPORTED = {".pdf", ".docx", ".md", ".markdown", ".txt"}
+# A line-leading label avoids duplicating pages for inline table references.
+_TABLE_CAPTION = re.compile(r"^[^\S\r\n]*Table\s+(?:[A-Z]\s*)?\d+\b", re.IGNORECASE | re.MULTILINE)
 
 
-def _pdf(path: Path) -> tuple[str, list[PageText]]:
+def _pdf(path: Path) -> tuple[str, list[PageText], list[str]]:
     from pypdf import PdfReader
 
-    pages = [PageText(page=i, text=(p.extract_text() or "")) for i, p in enumerate(PdfReader(path).pages, 1)]
-    return "\n\n".join(f"[Page {p.page}]\n{p.text}" for p in pages), pages
+    pages: list[PageText] = []
+    warnings: list[str] = []
+    for i, p in enumerate(PdfReader(path).pages, 1):
+        page = PageText(page=i, text=(p.extract_text() or ""))
+        if _TABLE_CAPTION.search(page.text):
+            try:
+                layout = p.extract_text(extraction_mode="layout") or ""
+                if layout.strip():
+                    page.table_layout = layout
+                else:
+                    warnings.append(f"No table layout text on PDF page {i}; normal text is retained.")
+            except Exception as exc:
+                warnings.append(f"Table layout extraction failed on PDF page {i}: {type(exc).__name__}: {exc}; normal text is retained.")
+        pages.append(page)
+    return "\n\n".join(f"[Page {p.page}]\n{p.text}" for p in pages), pages, warnings
 
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -229,7 +244,7 @@ def ingest(path: str | Path, kind: str = "manuscript") -> SourceDocument:
     pages: list[PageText] = []
     warnings: list[str] = []
     if p.suffix.lower() == ".pdf":
-        text, pages = _pdf(p)
+        text, pages, warnings = _pdf(p)
         blank = [page.page for page in pages if not page.text.strip()]
         if pages and len(blank) == len(pages):
             raise ValueError(f"No text could be extracted from scanned PDF {p}; OCR is required")
