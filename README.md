@@ -164,6 +164,9 @@ The project is named **ReviScope**: evidence-grounded manuscript review for auth
 
 ## Development and checks
 
+Use `main` for the broad-review pipeline and `test` for specialist experiments.
+See [branch layout and archived work](docs/BRANCHES.md).
+
 ```bash
 uv run pytest -q
 uv build
