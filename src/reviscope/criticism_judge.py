@@ -115,6 +115,7 @@ def _make(file_sha: str, item: str, origin: dict[str, Any], sources: Sequence[So
 def _pipeline_variants(run: ReviewRun, base: dict[str, Any], file_sha: str, sources: Sequence[SourceDocument]) -> list[tuple[Variant, Origin]]:
     """Published findings and author-visible unresolved concerns, as rendered in review.md."""
     from .render import published_findings, unconfirmed_concerns
+    from .render import shown as shown_text
 
     rows = []
     shown = [(f, "published") for f in published_findings(run)] + [(f, "unresolved") for f in unconfirmed_concerns(run)]
@@ -122,9 +123,10 @@ def _pipeline_variants(run: ReviewRun, base: dict[str, Any], file_sha: str, sour
         # The report withholds overreaching or unresolved remedies and shows no remedy for unresolved concerns.
         withheld = display == "unresolved" or finding.remedy_status in {"overreaching", "unresolved"}
         external = [f"{e.quote} ({e.locator}); offered to show: {e.shows}" for e in finding.external_evidence]
+        claim, rationale, remedy = shown_text(finding)  # the reader pass's wording where the report uses it
         rows.append(_make(file_sha, finding.id, {**base, "display": display, "module": finding.module, "status": finding.status,
                                                  "severity": finding.severity.value, "kind": finding.kind, "remedy_withheld": withheld},
-                          sources, claim=finding.claim, rationale=finding.rationale, remedy=None if withheld else finding.remedy,
+                          sources, claim=claim, rationale=rationale, remedy=None if withheld else remedy,
                           quotes=[e.quote for e in finding.evidence], external=external))
     return rows
 

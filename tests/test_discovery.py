@@ -84,7 +84,9 @@ def test_discovery_blind_spot_external_evidence_tool_provenance_and_cache(tmp_pa
     assert published.external_evidence[0].url == EXTERNAL['url']
     markdown = (tmp_path / 'run/review.md').read_text()
     assert 'External source (confirmed): “A medium effect size is d = .50.”' in markdown and EXTERNAL['url'] in markdown
-    assert '3 tool calls: 1 search, 2 fetch' in markdown and '- `verification-blind_spots-1`: 1 fetch' in markdown
+    audit = (tmp_path / 'run/audit.md').read_text()
+    assert '3 tool calls: 1 search, 2 fetch' in audit and '- `verification-blind_spots-1`: 1 fetch' in audit
+    assert 'tool calls' not in markdown
     count = len(backend.calls)
     backend.version = 'test-cli 2'  # a CLI update keeps cached stages and their recorded version
     rerun = pipeline.run(paper, output_dir=tmp_path / 'run')

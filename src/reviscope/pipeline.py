@@ -14,7 +14,8 @@ from pydantic import BaseModel, Field, model_validator
 from .backend import REVIEW_GUARD, Backend, CodexBackend, StagedImages
 from .ingest import ingest
 from . import page_images
-from .render import finding_order, render_all
+from .render import finding_order, remedy_shown, render_all, report_items, to_markdown
+from . import reader
 from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, TABLE_READING_GUIDANCE, DiscoveryResponse, discovery_instruction, validate_discovery
@@ -634,10 +635,48 @@ class ReviewPipeline:
                                                         "editorial_reason": f"Editorial stage failed: {type(exc).__name__}: {exc}",
                                                         "merged_into": None}) for finding in run.findings]
             run.stages.append(self._failed("editorial", exc, editorial_stage))
+        if not insufficient:
+            self._reader(run, out, evidence)
         self.progress("render: started")
         render_all(run, out)
         self.progress("render: completed")
         return run
+
+    def _reader(self, run: ReviewRun, out: Path, evidence: str) -> None:
+        """Final reader pass over the assembled review: revised wording for every item the report shows."""
+        items = report_items(run)
+        if not items:
+            return
+        draft = to_markdown(run)
+        payload = [reader.item_payload(label, finding, display, remedy_shown(finding, display)) for label, finding, display in items]
+        instruction = (reader.READER_PROMPT + "\nREVIEW AS DRAFTED\n" + draft + "\nITEMS\n" + _canonical(payload)
+                       + "\nCURRENT OVERVIEW\n" + _canonical(run.study_map.model_dump(include={"design_summary", "contribution_summary", "strengths"})))
+        stage = None
+        try:
+            response, stage = self._cached(out, "reader", {"draft": _hash(draft), "items": _hash(payload), "evidence": _hash(evidence),
+                                                           "instruction_hash": _hash(REVIEW_GUARD + reader.READER_PROMPT)},
+                                           reader.ReaderResponse, lambda: self.backend.generate(instruction, evidence, reader.ReaderResponse))
+            ids = [r.id for r in response.revisions]
+            shown_ids = {finding.id for _, finding, _ in items}
+            if len(ids) != len(set(ids)) or not set(ids) <= shown_ids:
+                raise ValueError("Reader returned duplicate or unknown item IDs")
+            by_id = {r.id: r for r in response.revisions}
+            revised = {finding.id: reader.apply_revision(finding, by_id.get(finding.id), remedy_shown(finding, display), run.sources)
+                       for _, finding, display in items}
+            run.findings = [revised.get(f.id, f) for f in run.findings]
+            missing = shown_ids - set(ids)
+            if missing and self.backend.name != "fixture":
+                run.coverage.append(f"reader: {len(missing)} item(s) returned without revision; their original wording is shown")
+            run.pre_reader_study_map = run.study_map
+            run.study_map, overview_notes = reader.apply_overview(run.study_map, response.overview)
+            run.reader_notes = [*response.report_notes, *overview_notes]
+            run.stages.append(stage)
+        except Exception as exc:
+            if stage and stage.artifact:
+                Path(stage.artifact).unlink(missing_ok=True)
+            run.partial = True
+            run.coverage.append("reader: stage failed; the original wording of every item is shown")
+            run.stages.append(self._failed("reader", exc, stage))
 
     def _check_tables(self, run: ReviewRun, out: Path, name: str, decisions: dict[str, dict], verified: list[Finding]) -> list[Finding]:
         """Read the table cells that supported claims rely on in a separate call, which receives the

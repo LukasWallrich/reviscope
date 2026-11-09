@@ -169,12 +169,13 @@ def read_review(path: Path, *, allow_legacy_partial: bool = False) -> str:
             continue
         if row.get("status") in {"candidate", "unverified", "rejected", "contradicted", "merged"}:
             continue
-        item = (f"{row.get('severity', 'unspecified').upper()}: {row.get('claim', '')}\n"
-                f"Reason: {row.get('rationale', '')}")
+        reader = row.get("reader") or {}  # the reader pass's wording, where the report shows it
+        item = (f"{row.get('severity', 'unspecified').upper()}: {reader.get('claim') or row.get('claim', '')}\n"
+                f"Reason: {reader.get('rationale') or row.get('rationale', '')}")
         if row.get("status") == "unresolved":
             item += "\nAssessment: Unresolved concern; the available evidence did not establish or contradict it."
         if row.get("remedy_status") not in {"overreaching", "unresolved"}:
-            item += f"\nSuggested response: {row.get('remedy', '')}"
+            item += f"\nSuggested response: {reader.get('remedy') or row.get('remedy', '')}"
         for source in row.get("evidence", []):
             location = source.get("location") or (f"page {source['page']}" if source.get("page") else "location unavailable")
             item += f"\nEvidence: “{source.get('quote', '')}” — {source.get('source_id', '')}, {location}"

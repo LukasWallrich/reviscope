@@ -196,6 +196,19 @@ class MergedPoint(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
 
 
+class ReaderEdit(BaseModel):
+    """Wording from the final reader pass. A field is None when the reader left it unchanged or its
+    revision failed the number check; the report then shows the finding's own text."""
+    claim: str | None = None
+    rationale: str | None = None
+    remedy: str | None = None
+    wording: str | None = None  # drafted passage for a reporting clarification; brackets mark details for the authors
+    wording_location: str | None = None
+    changes: str = ""
+    doubt: str = ""  # the reader's doubt that the item is correct; recorded for audit, not acted on
+    rejected: list[str] = Field(default_factory=list)
+
+
 class Finding(CandidateConcern):
     discovery_severity: Severity | None = None
     priority: int | None = Field(default=None, ge=1)
@@ -219,6 +232,7 @@ class Finding(CandidateConcern):
     editorial_disposition: Literal["publish", "merged", "rejected", "needs_review"] = "publish"
     editorial_reason: str | None = None
     merged_into: str | None = None
+    reader: ReaderEdit | None = None
 
 
 class StageRecord(BaseModel):
@@ -302,6 +316,8 @@ class ReviewRun(BaseModel):
     sources: list[SourceDocument]
     study_map: StudyMap = Field(default_factory=lambda: StudyMap(studies=[], research_question=None, design_summary=None, contribution_summary=None, strengths=[]))
     preliminary_study_map: StudyMap | None = None
+    pre_reader_study_map: StudyMap | None = None  # overview before the reader pass revised its wording
+    reader_notes: list[str] = Field(default_factory=list)
     candidates: list[Finding] = Field(default_factory=list)
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)

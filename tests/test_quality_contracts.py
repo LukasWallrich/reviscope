@@ -231,8 +231,9 @@ def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
     by_name = {item.id.rsplit(":", 1)[-1]: item for item in run.findings}
     assert by_name["open"].status == "unresolved" and by_name["open"].editorial_disposition == "needs_review"
     markdown = (tmp_path / "out" / "review.md").read_text()
-    findings, rest = markdown.split("## Concerns the verifier could not confirm", 1)
-    section, audit = rest.split("## Coverage and audit", 1)
+    findings, section = markdown.split("## Concerns the verifier could not confirm", 1)
+    audit = (tmp_path / "out" / "audit.md").read_text()
+    assert "## Coverage and audit" not in markdown
     assert re.search(r"^### \d+\. Minor: Claim confirmed", findings, re.M) and "Claim open" not in findings
     assert "### Major: Claim open" in section and reasons["open"] in section and "“Evidence B.”" in section
     assert "Claim false" not in section and "Claim ghost" not in section
@@ -240,13 +241,13 @@ def test_verifier_unresolved_concerns_render_in_their_own_section(tmp_path):
     assert "`" + by_name["open"].id + "`" not in audit
     blinded = strip_review_metadata(markdown)
     assert "Claim confirmed" in blinded and "Claim open" not in blinded
-    assert "Claim and rationale supported in a separate model check" in markdown
-    assert "Claim and rationale supported in a separate model check" not in blinded
+    assert "Claim and rationale supported in a separate model check" in audit
+    assert "Claim and rationale supported in a separate model check" not in markdown
     assert "Claimed defect." not in blinded
 
 
 def test_report_leads_with_main_concerns_and_labels_remedy_necessity():
-    from reviscope.render import to_html, to_markdown
+    from reviscope.render import report_html, to_markdown
     from reviscope.schemas import Finding, ReviewRun, RunMetadata, SourceDocument, StudyMap
 
     source = SourceDocument(id="manuscript-x", kind="manuscript", path="p.md", sha256="0", text="Evidence A.")
@@ -263,6 +264,7 @@ def test_report_leads_with_main_concerns_and_labels_remedy_necessity():
     assert "2 supported finding(s) (1 major, 1 minor)" in summary
     assert "**1. Major:** Claim a Remedy essential" in summary and "Claim b" not in summary
     assert "**Suggested response (optional extension beyond the current scope):** Do it." in markdown
-    page = to_html(markdown)
-    assert "<pre" not in page and "<h3 id='finding-1'>" in page and "href='#finding-1'" in page
-    assert "<blockquote><p>“Evidence A.”" in page
+    page = report_html(run)
+    assert "<pre" not in page and "id='finding-1'" in page and "href='#finding-1'" in page
+    assert "<div class='evidence'><p>“Evidence A.”" in page
+    assert markdown.index("“Evidence A.”") < markdown.index("**The problem.**") < markdown.index("**Suggested response")

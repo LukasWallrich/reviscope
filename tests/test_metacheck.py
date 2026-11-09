@@ -109,11 +109,12 @@ def test_leads_are_routed_compacted_and_failures_marked(tmp_path, monkeypatch):
     assert run.metacheck.converter == "online server TUE grobid 0.8.2 (manuscript uploaded)"
     assert run.metacheck.counts == {"sections": 5, "refs": 25}
     assert any("could not check: causal_claims" in line for line in run.coverage)
-    report = (tmp_path / "run" / "review.md").read_text()
+    report = (tmp_path / "run" / "audit.md").read_text()
+    assert "Metacheck" not in (tmp_path / "run" / "review.md").read_text()
     assert "### Metacheck screening" in report and "`stat_check` — light red, 3 row(s) (1 filtered as not a candidate: recomputed" in report
     assert any(line.startswith("metacheck stat_check: 1 of 3 row(s) filtered as not a candidate") for line in run.coverage)
     assert "`causal_claims` — could not check" in report
-    assert "Metacheck" not in strip_review_metadata(report)  # judges see findings only
+    assert "Metacheck" not in strip_review_metadata((tmp_path / "run" / "review.md").read_text())  # judges see findings only
     ReviewPipeline(CaptureBackend(), profile()).run(paper, output_dir=tmp_path / "run")
     assert calls.count("mc_import.R") == 1  # same input: import reused
 
@@ -224,7 +225,7 @@ def test_no_metacheck_flag_skips_stage_and_says_so(tmp_path):
     backend = CaptureBackend()
     run = ReviewPipeline(backend, profile(), run_metacheck=False).run(manuscript(tmp_path), output_dir=tmp_path / "run")
     assert run.metacheck.status == "skipped" and "metacheck: skipped by flag" in run.coverage
-    assert "metacheck: skipped by flag" in (tmp_path / "run" / "review.md").read_text()
+    assert "metacheck: skipped by flag" in (tmp_path / "run" / "audit.md").read_text()
     assert "METACHECK" not in backend.evidence["statistical_inference"]
 
 
