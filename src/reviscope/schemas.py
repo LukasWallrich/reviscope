@@ -206,7 +206,17 @@ class ReaderEdit(BaseModel):
     wording_location: str | None = None
     changes: str = ""
     doubt: str = ""  # the reader's doubt that the item is correct; recorded for audit, not acted on
+    see_also: str | None = None  # for an unconfirmed concern: the finding it repeats, shown as a cross-reference
     rejected: list[str] = Field(default_factory=list)
+
+
+class ReaderMerge(BaseModel):
+    """A merge the reader proposed and what was done with it."""
+    source: str
+    target: str
+    reason: str = ""
+    outcome: Literal["merged", "cross-reference", "refused"]
+    note: str = ""
 
 
 class Finding(CandidateConcern):
@@ -318,6 +328,7 @@ class ReviewRun(BaseModel):
     preliminary_study_map: StudyMap | None = None
     pre_reader_study_map: StudyMap | None = None  # overview before the reader pass revised its wording
     reader_notes: list[str] = Field(default_factory=list)
+    reader_merges: list[ReaderMerge] = Field(default_factory=list)
     candidates: list[Finding] = Field(default_factory=list)
     findings: list[Finding] = Field(default_factory=list)
     stages: list[StageRecord] = Field(default_factory=list)

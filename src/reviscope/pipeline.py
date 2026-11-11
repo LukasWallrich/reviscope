@@ -19,7 +19,7 @@ from . import reader
 from .reasoning import REASONING_ASSESSMENT
 from . import metacheck
 from .discovery import BLIND_SPOT_PROMPT, BLIND_SPOTS, TABLE_READING_GUIDANCE, DiscoveryResponse, discovery_instruction, validate_discovery
-from .schemas import SUPPORTED_STATUSES, CellReading, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, PageImageSet, Profile, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap, TableCheck, TableReading
+from .schemas import SUPPORTED_STATUSES, CellReading, Evidence, ExternalCheck, ExternalSourceTask, Finding, MergedPoint, MetacheckRecord, PageImageSet, Profile, ReaderEdit, ReviewRun, RunMetadata, Severity, SourceDocument, StageProvenance, StageRecord, StudyMap, TableCheck, TableReading
 from .schemas import TABLE_UNIT_DEFINITION
 
 
@@ -661,9 +661,31 @@ class ReviewPipeline:
             if len(ids) != len(set(ids)) or not set(ids) <= shown_ids:
                 raise ValueError("Reader returned duplicate or unknown item IDs")
             by_id = {r.id: r for r in response.revisions}
-            revised = {finding.id: reader.apply_revision(finding, by_id.get(finding.id), remedy_shown(finding, display), run.sources)
+            records, fold, see_also = reader.plan_merges(items, response.merges)
+            shown_by_id = {finding.id: finding for _, finding, _ in items}
+            extra: dict[str, str] = {}
+            for source, target in fold.items():
+                extra[target] = extra.get(target, "") + "\n" + reader.item_material(shown_by_id[source])
+            revised = {finding.id: reader.apply_revision(finding, by_id.get(finding.id), remedy_shown(finding, display), run.sources,
+                                                         extra.get(finding.id, ""))
                        for _, finding, display in items}
-            run.findings = [revised.get(f.id, f) for f in run.findings]
+            for concern, finding_id in see_also.items():
+                edit = revised[concern].reader or ReaderEdit()
+                revised[concern] = revised[concern].model_copy(update={"reader": edit.model_copy(update={"see_also": finding_id})})
+            rank = {"minor": 0, "major": 1, "critical": 2}
+            for source, target in fold.items():
+                point, before = revised[source], revised[target]
+                severity = max(before.severity, point.severity, key=lambda s: rank[s.value])
+                record = next(r for r in records if r.source == source)
+                if severity != before.severity:
+                    record.note = f"severity raised from {before.severity.value} to {severity.value} to match the merged item"
+                revised[target] = before.model_copy(update={"severity": severity, "merged_points": [*before.merged_points, MergedPoint(
+                    finding_id=point.id, module=point.module, claim=point.claim,
+                    evidence=[e for e in point.evidence if e.source_char_start is not None])]})
+                revised[source] = point.model_copy(update={"editorial_disposition": "merged", "merged_into": target,
+                                                           "editorial_reason": f"Merged by the reader pass: {record.reason or 'no reason given'}"})
+            run.findings = sorted([revised.get(f.id, f) for f in run.findings], key=finding_order)
+            run.reader_merges = records
             missing = shown_ids - set(ids)
             if missing and self.backend.name != "fixture":
                 run.coverage.append(f"reader: {len(missing)} item(s) returned without revision; their original wording is shown")

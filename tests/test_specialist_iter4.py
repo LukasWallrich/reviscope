@@ -197,10 +197,10 @@ def test_merge_folds_distinct_claims_and_only_anchored_quotes_without_rewriting(
     assert {p.finding_id for p in points} == {f.id for f in run.findings if f.editorial_disposition == "merged"}
     assert len(run.candidates) == len(run.findings) == 3
     markdown = to_markdown(run).split("## Coverage and audit")[0]
-    assert "Also raised by other modules:" in markdown
+    assert "Also raised as:" in markdown
     assert all(p.claim in markdown and p.evidence[0].quote in markdown for p in points)
     assert "Invented quotation." not in markdown
-    assert "Also raised by other modules:" in to_html(markdown)
+    assert "Also raised as:" in to_html(markdown)
     rerun = run_pipeline(tmp_path, CorrectedQuoteBackend(rows, edit=merge_into_overview))
     assert published_findings(rerun)[0].merged_points == points
     assert all(s.status == "cached" for s in rerun.stages if s.name != "metacheck")

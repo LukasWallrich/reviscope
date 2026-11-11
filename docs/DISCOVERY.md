@@ -180,7 +180,7 @@ cannot be assessed without it. Severity never overrides verification status.
 
 After publication gates and merge-target checks, supported merged findings contribute
 their unchanged claims and anchored quotations to the survivor's `merged_points`, each
-with its finding id and module. Reports show these under “Also raised by other modules:”.
+with its finding id and module. Reports show these under “Also raised as:”.
 No new prose is generated for a merge. Unresolved, unverified and contradicted sources
 are not folded, and every original finding remains in the audit. Older stored findings
 default to an empty `merged_points` list.

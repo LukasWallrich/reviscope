@@ -118,3 +118,48 @@ def test_reader_failure_shows_original_wording_and_marks_partial(tmp_path):
     result, _, review, audit = run(tmp_path, reader)
     assert result.partial and "Original claim" in review and "Partial review" in review
     assert "reader: stage failed" in audit and "`reader` — failed" in audit
+
+
+def test_merge_plan_folds_like_items_and_cross_references_mixed_ones():
+    from reviscope.reader import ReaderMergeProposal as M, plan_merges
+    a, b, c, d = (Finding(id=i, module="m", claim=i, rationale="r", remedy="x") for i in "abcd")
+    items = [("finding 1", a, "published"), ("finding 2", b, "published"), ("unconfirmed concern 1", c, "unresolved"),
+             ("unconfirmed concern 2", d, "unresolved")]
+    records, fold, see_also = plan_merges(items, [M(source="a", target="b"), M(source="b", target="a"), M(source="c", target="a"),
+                                                  M(source="d", target="d"), M(source="zz", target="a")])
+    assert fold == {"a": "b"} and see_also == {"c": "b"}
+    assert [r.outcome for r in records] == ["merged", "refused", "cross-reference", "refused", "refused"]
+
+
+def three_rows(source_id):
+    return [Finding(id=i, module="a", claim=claim, rationale=f"{claim} rationale with 40 cases", remedy="Report it.",
+                    kind="clarification_request", evidence=[Evidence(source_id=source_id, quote="Quoted source sentence.")]).model_dump()
+            for i, claim in (("x", "First claim"), ("y", "Second claim"), ("z", "Third claim"))]
+
+
+@pytest.mark.reader_pass
+def test_reader_merges_repeated_findings_and_links_an_unconfirmed_concern(tmp_path):
+    paper = manuscript(tmp_path)
+    def editorial(instruction):
+        rows = json.loads(instruction.split("\nFINDINGS\n", 1)[1])
+        return [{"finding_id": r["id"], "disposition": "keep", "reason": "ok", "priority": 1,
+                 "severity": "major" if "First" in r["claim"] else "minor"} for r in rows]
+    def verifier(instruction):
+        block = json.loads(instruction.split("CANDIDATES\n", 1)[1].split("\nDISCIPLINE RULES", 1)[0])
+        third = {c["finding_id"] for c in block if c["claim"] == "Third claim"}
+        return [{**row, **({"status": "unresolved", "rationale": "cannot tell"} if row["finding_id"] in third else {})}
+                for row in verify(instruction)]
+    def reader(instruction):
+        ids = {item["claim"].split()[0]: item["id"] for item in items(instruction)}
+        return {"revisions": [{"id": ids["Second"], "claim": "Combined claim", "rationale": "Both rationales, 40 cases."}],
+                "merges": [{"source": ids["First"], "target": ids["Second"], "reason": "Same point."},
+                           {"source": ids["Third"], "target": ids["First"], "reason": "Same point again."}]}
+    generator = ReaderBackend(reader, modules={"RUN a": three_rows(ingest(paper).id)}, editorial=editorial)
+    result = ReviewPipeline(generator, profile("a"), ScriptedBackend(model="verifier", verify=verifier)).run(paper, output_dir=tmp_path / "out")
+    review, audit = ((tmp_path / "out" / name).read_text() for name in ("review.md", "audit.md"))
+    assert not result.partial, [(s.name, s.error) for s in result.stages if s.error]
+    assert "### 1. Major: Combined claim" in review and "### 2." not in review  # severity raised from minor
+    assert "- First claim" in review and "**See also finding 1**" in review and "Third claim" in review
+    assert [m.outcome for m in result.reader_merges] == ["merged", "cross-reference"]
+    assert "severity raised from minor to major" in audit and "Merged by the reader pass: Same point." in audit
+    assert "href='#finding-1'" in (tmp_path / "out" / "review.html").read_text()

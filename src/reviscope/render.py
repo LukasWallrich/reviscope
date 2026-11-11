@@ -18,7 +18,7 @@ def unconfirmed_concerns(run: ReviewRun) -> list[Finding]:
 
     Findings left unresolved by quote anchoring or external-source checks are not included."""
     source_ids = {source.id for source in run.sources}
-    return [f for f in run.findings if f.status == "unresolved"
+    return [f for f in run.findings if f.status == "unresolved" and f.editorial_disposition != "merged"
             and (f.verifier_status == "unresolved" or f.verifier_status == "supported" and held_for_tables(f))
             and any(ev.source_id in source_ids and ev.location for ev in f.evidence)]
 
@@ -158,7 +158,7 @@ def to_markdown(run: ReviewRun) -> str:
             lines.extend([f"**Possible wording.** {_wording_note(finding.reader)}", "",
                           *(f"    {line}" for line in finding.reader.wording.splitlines()), ""])
         if finding.merged_points:
-            lines.extend(["**Also raised by other modules:**", ""])
+            lines.extend(["**Also raised as:**", ""])
             for point in finding.merged_points:
                 lines.extend([f"- {point.claim}", "", *_quotation_lines(point.evidence), ""])
     if unconfirmed:
@@ -167,12 +167,24 @@ def to_markdown(run: ReviewRun) -> str:
             claim, rationale, _ = shown(finding)
             lines.extend([f"### {finding.severity.value.title()}: {claim}", "", _unconfirmed_reason(finding), "",
                           "**In the manuscript:**", "", *_evidence_lines(finding, run), "", f"**The concern.** {rationale}", ""])
+            if number := _see_also(finding, kept):
+                lines.extend([f"**See also finding {number}**, which raises a related point.", ""])
+            if finding.merged_points:
+                lines.extend(["**Also raised as:**", ""])
+                for point in finding.merged_points:
+                    lines.extend([f"- {point.claim}", "", *_quotation_lines(point.evidence), ""])
     return "\n".join(lines) + "\n"
 
 
 UNCONFIRMED_INTRO = ("The verifier could neither establish nor rule out these concerns from the supplied material, "
                      "or the table cells they rest on were not confirmed against the page images. "
                      "They are not established findings. Each lists the reason.")
+
+
+def _see_also(finding: Finding, kept: list[Finding]) -> int | None:
+    """Number of the published finding an unconfirmed concern refers to, if the reader pass linked them."""
+    target = finding.reader.see_also if finding.reader else None
+    return next((n for n, f in enumerate(kept, 1) if f.id == target), None)
 
 
 def _unconfirmed_reason(finding: Finding) -> str:
@@ -248,6 +260,14 @@ def _reader_audit(run: ReviewRun) -> list[str]:
         before = run.pre_reader_study_map
         lines.extend(["", f"Original overview: {before.design_summary}", "", f"Original contribution: {before.contribution_summary}", ""])
         lines.extend(f"- Original strength: {item}" for item in before.strengths)
+    if run.reader_merges:
+        claims = {f.id: f.claim for f in run.findings}
+        labels = {f.id: label for label, f, _ in report_items(run)}
+        lines.extend(["", "Merges proposed by the reader:", ""])
+        for m in run.reader_merges:
+            name = lambda i: f"{labels[i]} (`{i}`)" if i in labels else f"`{i}`" + (f" (“{claims[i]}”)" if i in claims else "")
+            detail = "; ".join(x for x in (m.note,) if x)
+            lines.append(f"- {name(m.source)} into {name(m.target)} — {m.outcome}{f' ({detail})' if detail else ''}. Reason: {m.reason or 'none given'}")
     if run.reader_notes:
         lines.extend(["", "Reader's notes on the review as a whole:", ""])
         lines.extend(f"- {note}" for note in run.reader_notes)
@@ -396,6 +416,7 @@ font-family:Charter,Georgia,serif;font-size:.95rem}
 .wording p{margin:.2rem 0}
 .wording .where{font:.85rem system-ui,sans-serif;color:var(--soft)}
 .related{font-size:.92rem}
+.see-also{font-size:.92rem;color:var(--soft)}
 details{margin-top:.6rem;color:var(--soft);font-size:.92rem}
 ul.strengths li{margin:.25rem 0}
 @media (max-width:560px){article{padding:1rem 1rem .8rem 1rem}.num{position:static;display:block;margin-bottom:.3rem}}
@@ -463,7 +484,7 @@ def report_html(run: ReviewRun) -> str:
                          f"<p class='where'>{_inline(_wording_note(finding.reader))}</p>"
                          f"{_paragraphs(finding.reader.wording)}</div>")
         if finding.merged_points:
-            parts.append("<details class='related'><summary>Also raised by other modules</summary>")
+            parts.append("<details class='related'><summary>Also raised as</summary>")
             for point in finding.merged_points:
                 parts.append(f"<p>{_inline(point.claim)}</p>{_evidence_html(_quotation_lines(point.evidence))}")
             parts.append("</details>")
@@ -476,7 +497,13 @@ def report_html(run: ReviewRun) -> str:
             out.append(f"<article class='{severity} unconfirmed'><p><span class='chip {severity}'>{severity}</span>"
                        f"<span class='kind'>Unconfirmed</span></p><h3>{_inline(claim)}</h3><p>{_inline(_unconfirmed_reason(finding))}</p>"
                        f"<div class='label'>In the manuscript</div>{_evidence_html(_evidence_lines(finding, run))}"
-                       f"<div class='label'>The concern</div>{_paragraphs(rationale)}</article>")
+                       f"<div class='label'>The concern</div>{_paragraphs(rationale)}"
+                       + (f"<p class='see-also'>See also <a href='#finding-{number}'>finding {number}</a>, which raises a related point.</p>"
+                          if (number := _see_also(finding, kept)) else "")
+                       + ("<details class='related'><summary>Also raised as</summary>"
+                          + "".join(f"<p>{_inline(p.claim)}</p>{_evidence_html(_quotation_lines(p.evidence))}" for p in finding.merged_points)
+                          + "</details>" if finding.merged_points else "")
+                       + "</article>")
     return _page(_title(run), "".join(out))
 
 

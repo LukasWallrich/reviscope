@@ -11,7 +11,7 @@ from decimal import Decimal, InvalidOperation
 
 from pydantic import BaseModel, Field
 
-from .schemas import Finding, ReaderEdit, SourceDocument, StudyMap
+from .schemas import Finding, ReaderEdit, ReaderMerge, SourceDocument, StudyMap
 
 READER_PROMPT = """You are the final reader of a peer review before it goes to the authors and the editor.
 Read the review as they will, alongside the manuscript. Make each item clear, specific and proportionate
@@ -45,9 +45,18 @@ Rules:
   item's evidence.
 - If an item is already clear, return its text unchanged with changes "none".
 
+Items that repeat each other: if two items make the same point, so that the authors would read one
+problem twice, return a merge with source, target and reason. The source is folded into the target and
+appears beneath it as a related point. Merge only genuine repetition, not related issues that need
+different responses. Revise the target so it covers what the source adds; its numbers may come from either
+item. A finding and an unconfirmed concern are never combined: return the merge entry anyway, and the
+concern keeps its own section with a cross-reference to the finding. Only a merge entry creates a merge or
+a cross-reference; mentioning one in a revision or a note does not. Still return a revision for every item,
+including merged ones.
+
 Also return overview: design_summary, contribution_summary and strengths revised for clarity under the same
 rules (a number must already appear in the current overview), and report_notes: problems that span items,
-such as two items that contradict or repeat each other, or a severity that does not match the explanation.
+such as two items that contradict each other, or a severity that does not match the explanation.
 Report notes are recorded for audit and do not change the review."""
 
 
@@ -68,8 +77,15 @@ class ReaderOverview(BaseModel):
     strengths: list[str]
 
 
+class ReaderMergeProposal(BaseModel):
+    source: str
+    target: str
+    reason: str = ""
+
+
 class ReaderResponse(BaseModel):
     revisions: list[ReaderRevision] = Field(default_factory=list)
+    merges: list[ReaderMergeProposal] = Field(default_factory=list)
     overview: ReaderOverview | None = None
     report_notes: list[str] = Field(default_factory=list)
 
@@ -124,12 +140,47 @@ def item_payload(number: str, finding: Finding, display: str, remedy_shown: bool
             "quotations": [e.quote for e in finding.evidence]}
 
 
+def plan_merges(items: list[tuple[str, Finding, str]], proposals: list[ReaderMergeProposal]
+                ) -> tuple[list[ReaderMerge], dict[str, str], dict[str, str]]:
+    """Decide each proposed merge. Items of the same kind (two findings, or two unconfirmed concerns) are
+    folded, source into target; a finding and an unconfirmed concern only gain a cross-reference from the
+    concern to the finding. Chains and repeated sources are refused.
+
+    Returns the records, folds (source -> target) and cross-references (concern -> finding)."""
+    display = {finding.id: shown_as for _, finding, shown_as in items}
+    records: list[ReaderMerge] = []
+    fold: dict[str, str] = {}
+    see_also: dict[str, str] = {}
+    for p in proposals:
+        record = dict(source=p.source, target=p.target, reason=p.reason.strip())
+        if p.source not in display or p.target not in display or p.source == p.target:
+            records.append(ReaderMerge(**record, outcome="refused", note="unknown item, or an item merged into itself"))
+        elif display[p.source] != display[p.target]:
+            concern, finding = (p.source, p.target) if display[p.source] == "unresolved" else (p.target, p.source)
+            if concern in see_also:
+                records.append(ReaderMerge(**record, outcome="refused", note="the concern already has a cross-reference"))
+            else:
+                see_also[concern] = finding
+                records.append(ReaderMerge(**record, outcome="cross-reference",
+                                           note="a finding and an unconfirmed concern are not combined; the concern refers to the finding"))
+        elif p.source in fold or p.source in fold.values() or p.target in fold:
+            records.append(ReaderMerge(**record, outcome="refused", note="the item is already part of another merge"))
+        else:
+            fold[p.source] = p.target
+            records.append(ReaderMerge(**record, outcome="merged"))
+    for concern in [c for c in see_also if c in fold]:
+        del see_also[concern]  # a concern folded into another concern needs no cross-reference of its own
+    see_also = {concern: fold.get(finding, finding) for concern, finding in see_also.items()}  # refer to what remains shown
+    return records, fold, see_also
+
+
 def apply_revision(finding: Finding, revision: ReaderRevision | None, remedy_shown: bool,
-                   sources: list[SourceDocument]) -> Finding:
-    """Accept each revised field whose numbers all occur in the item's material; keep the original otherwise."""
+                   sources: list[SourceDocument], extra_material: str = "") -> Finding:
+    """Accept each revised field whose numbers all occur in the item's material (with the material of any
+    item merged into it); keep the original otherwise."""
     if revision is None:
         return finding
-    allowed = numbers(item_material(finding))
+    allowed = numbers(item_material(finding) + "\n" + extra_material)
     rejected: list[str] = []
 
     def accept(field: str, text: str, pool: set[str], strip_placeholders: bool = False) -> str | None:
