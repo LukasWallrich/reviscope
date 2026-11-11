@@ -225,6 +225,8 @@ def audit_markdown(run: ReviewRun) -> str:
             lines.append(f"- Finding {number}, `{finding.id}` (`{finding.module}`): {support} {finding.verification or 'No verification note.'}")
             if not remedy_shown(finding):
                 lines.append(f"  Remedy status `{finding.remedy_status}`; withheld remedy: {finding.remedy}")
+            if finding.editorial_reason:
+                lines.append(f"  Editorial: {finding.editorial_reason}")
             for point in finding.merged_points:
                 lines.append(f"  Merged from `{point.finding_id}` (`{point.module}`).")
     unconfirmed = unconfirmed_concerns(run)

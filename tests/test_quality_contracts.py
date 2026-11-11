@@ -129,14 +129,15 @@ def test_verifier_exception_yields_rendered_partial_audit(tmp_path):
     assert not re.search(r"^### (\d+\. )?Major:", (tmp_path / "out" / "review.md").read_text(), re.M)
 
 
-def test_editorial_exception_never_publishes_uncapped_unfiltered_findings(tmp_path):
+def test_editorial_exception_still_shows_every_supported_finding_in_a_partial_review(tmp_path):
     generator = QualityBackend(findings=[candidate("a"), candidate("b", quote="Evidence B.")],
                                fail_editorial=True)
     verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
     run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     assert run.partial
-    assert all(item.editorial_disposition == "needs_review" for item in run.findings)
-    assert not re.search(r"^### (\d+\. )?Major:", (tmp_path / "out" / "review.md").read_text(), re.M)
+    assert all(item.editorial_disposition == "publish" for item in run.findings)
+    review = (tmp_path / "out" / "review.md").read_text()
+    assert "Partial review" in review and len(re.findall(r"^### \d+\. ", review, re.M)) == 2
 
 
 def test_profile_severity_guidance_reaches_generation(tmp_path):
@@ -161,7 +162,7 @@ def test_merge_cannot_move_supported_finding_into_lower_support_target(tmp_path)
     run = ReviewPipeline(generator, one_module(), QualityBackend(model="verifier", verification=verify)).run(
         paper(tmp_path), output_dir=tmp_path / "out")
     strong = next(item for item in run.findings if "strong" in item.id)
-    assert strong.editorial_disposition == "needs_review" and strong.merged_into is None
+    assert strong.editorial_disposition == "publish" and strong.merged_into is None
 
 
 def test_every_supported_finding_is_published_in_severity_order(tmp_path):
@@ -198,7 +199,7 @@ def test_nonfixture_editor_must_return_reconciled_overview(tmp_path):
     run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
     assert run.partial
     assert next(item for item in run.stages if item.name == "editorial").status == "failed"
-    assert all(item.editorial_disposition == "needs_review" for item in run.findings)
+    assert all(item.editorial_disposition == "publish" for item in run.findings)
 
 
 def test_reconciliation_cannot_erase_preliminary_nonnull_summary(tmp_path):
@@ -268,3 +269,16 @@ def test_report_leads_with_main_concerns_and_labels_remedy_necessity():
     assert "<pre" not in page and "id='finding-1'" in page and "href='#finding-1'" in page
     assert "<div class='evidence'><p>“Evidence A.”" in page
     assert markdown.index("“Evidence A.”") < markdown.index("**The problem.**") < markdown.index("**Suggested response")
+
+
+def test_editorial_cannot_set_aside_a_supported_finding(tmp_path):
+    generator = QualityBackend(findings=[candidate("a"), candidate("b", quote="Evidence B.")])
+    generator.editorial = lambda rows: [
+        {"finding_id": rows[0]["id"], "disposition": "reject", "reason": "Not important."},
+        {"finding_id": rows[1]["id"], "disposition": "needs_review", "reason": "Major not established.", "severity": "minor"}]
+    verifier = QualityBackend(model="verifier", verification=lambda rows: [decision(row) for row in rows])
+    run = ReviewPipeline(generator, one_module(), verifier).run(paper(tmp_path), output_dir=tmp_path / "out")
+    assert [f.editorial_disposition for f in run.findings] == ["publish", "publish"]
+    by_reason = {f.editorial_reason: f for f in run.findings}
+    assert by_reason["Editorial objection (published regardless): Major not established."].severity.value == "minor"
+    assert "Editorial objection (published regardless): Not important." in by_reason

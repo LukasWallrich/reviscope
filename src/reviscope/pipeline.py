@@ -525,7 +525,7 @@ class ReviewPipeline:
                 decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="completed")
             else:
-                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep, merge, reject, or needs_review. A merge requires target_id. The number of published findings is not limited: never reject a finding or mark it needs_review because of how many other findings there are. Assign final severity and a positive integer priority for every keep decision, with all findings in view; lower priority numbers come first within each severity. Critical means a demonstrated error that invalidates a central result. Major means a supported issue that could change a central conclusion or its interpretation, an internal inconsistency affecting a reported result, or missing analysis or information without which a central claim cannot be assessed. Minor means a local, presentational or reporting issue without such consequence. Missing information is major only when a central claim cannot be assessed without it. Discovery severity is provisional and retained for audit. Severity never overrides verification status. The manuscript supplies context for the reconciled overview and proportionality, not a replacement verification pass. Keep distinct, proportionately stated supported findings under the editorial rules; do not override factual verification on a fresh substantive reading. If you identify a factual disagreement with verification, use needs_review and explain it for audit rather than silently rejecting it. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
+                instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep or merge: every supported finding is published, on its own or merged into a finding that makes the same point. A merge requires target_id. The number of published findings is not limited. Assign final severity and a positive integer priority for every keep decision, with all findings in view; lower priority numbers come first within each severity. Critical means a demonstrated error that invalidates a central result. Major means a supported issue that could change a central conclusion or its interpretation, an internal inconsistency affecting a reported result, or missing analysis or information without which a central claim cannot be assessed. Minor means a local, presentational or reporting issue without such consequence. Missing information is major only when a central claim cannot be assessed without it. Discovery severity is provisional and retained for audit. Severity never overrides verification status. The manuscript supplies context for the reconciled overview and proportionality, not a replacement verification pass. Keep distinct, proportionately stated supported findings under the editorial rules; do not override factual verification on a fresh substantive reading. If you identify a factual disagreement with verification, keep the finding and explain the disagreement in the reason, which is recorded for audit. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input),
                     "evidence": _hash(evidence), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse,
                     lambda: self.backend.generate(instruction, evidence, EditorialResponse))
@@ -574,20 +574,18 @@ class ReviewPipeline:
                         if valid_target:
                             disposition, merged_into = "merged", decision.target_id
                         else:
-                            disposition = "needs_review"
-                            reason = f"Invalid editorial merge target; original reason: {decision.reason}"
-                    else:
-                        disposition = "rejected"
+                            reason = f"Invalid editorial merge target; published separately. Original reason: {decision.reason}"
+                    else:  # a supported finding is never set aside; the objection is kept for audit
+                        reason = f"Editorial objection (published regardless): {decision.reason}"
                     if reason is None:
                         reason = decision.reason
-                else:
-                    if decision:
-                        reason = decision.reason
-                        if decision.disposition == "needs_review":
-                            disposition = "needs_review"
+                elif decision:
+                    reason = decision.reason
+                    if decision.disposition == "needs_review":
+                        reason = f"Editorial objection (published regardless): {decision.reason}"
                 updates = {"editorial_disposition": disposition, "editorial_reason": reason, "merged_into": merged_into}
-                if decision and decision.disposition == "keep" and disposition == "publish" and finding.status in SUPPORTED_STATUSES:
-                    updates.update(severity=decision.severity, priority=decision.priority)
+                if decision and disposition == "publish" and finding.status in SUPPORTED_STATUSES:
+                    updates.update(severity=decision.severity or finding.severity, priority=decision.priority)
                 edited.append(finding.model_copy(update=updates))
             quarantined: list[Finding] = []
             for finding in edited:
@@ -605,8 +603,8 @@ class ReviewPipeline:
                     target = final_by_id.get(finding.merged_into or "")
                     if target is None or target.editorial_disposition != "publish" or target.status not in SUPPORTED_STATUSES:
                         merge_repair_needed = True
-                        finding = finding.model_copy(update={"editorial_disposition": "needs_review", "merged_into": None,
-                                                             "editorial_reason": "Merge target was not publishable; retained for review."})
+                        finding = finding.model_copy(update={"editorial_disposition": "publish", "merged_into": None,
+                                                             "editorial_reason": "Merge target was not publishable; published separately."})
                 repaired_findings.append(finding)
             related: dict[str, list[MergedPoint]] = {}
             for finding in repaired_findings:
@@ -617,8 +615,7 @@ class ReviewPipeline:
             folded = [f.model_copy(update={"merged_points": related.get(f.id, [])}) for f in repaired_findings]
             run.findings = sorted(folded, key=finding_order)
             if merge_repair_needed:
-                run.partial = True
-                run.coverage.append("editorial: invalid merge target was retained as needs_review")
+                run.coverage.append("editorial: a merge into a target that was not published was undone; the finding is published separately")
             if decisions.reconciled_overview is not None:  # type: ignore[union-attr]
                 overview = decisions.reconciled_overview  # type: ignore[union-attr]
                 run.study_map = run.study_map.model_copy(update={"design_summary": overview.design_summary,
@@ -631,9 +628,13 @@ class ReviewPipeline:
             if editorial_stage and editorial_stage.artifact:
                 Path(editorial_stage.artifact).unlink(missing_ok=True)
             run.partial = True
-            run.findings = [finding.model_copy(update={"editorial_disposition": "needs_review",
-                                                        "editorial_reason": f"Editorial stage failed: {type(exc).__name__}: {exc}",
-                                                        "merged_into": None}) for finding in run.findings]
+            run.findings = sorted([finding.model_copy(update={
+                "editorial_disposition": "publish" if finding.status in SUPPORTED_STATUSES else "needs_review",
+                "editorial_reason": f"Editorial stage failed: {type(exc).__name__}: {exc}", "merged_into": None})
+                for finding in run.findings], key=finding_order)
+            if any(f.editorial_disposition == "publish" for f in run.findings):
+                run.coverage.append("editorial: stage failed; every supported finding is shown at the severity its module gave, "
+                                    "and repeated findings were not merged")
             run.stages.append(self._failed("editorial", exc, editorial_stage))
         if not insufficient:
             self._reader(run, out, evidence)

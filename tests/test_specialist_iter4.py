@@ -156,11 +156,12 @@ def test_priority_ties_and_missing_priorities_keep_a_stable_order(tmp_path):
     assert [f.id.split(":")[-1] for f in published_findings(run)] == ["tie_a", "tie_b", "second", "missing"]
 
 
-def test_missing_editorial_keep_severity_fails_closed(tmp_path):
+def test_missing_editorial_keep_severity_fails_but_still_shows_supported_findings(tmp_path):
     backend = Iter4Backend({"overview": [candidate("a")]}, edit=lambda rows: [
         {"finding_id": row["id"], "disposition": "keep", "reason": "Missing severity."} for row in rows])
     run = run_pipeline(tmp_path, backend)
-    assert run.partial and not published_findings(run)
+    assert run.partial and [f.id for f in published_findings(run)] == [run.findings[0].id]
+    assert any("every supported finding is shown at the severity its module gave" in c for c in run.coverage)
     assert next(s for s in run.stages if s.name == "editorial").status == "failed"
     assert run.findings[0].status == "llm_supported"  # severity never changes verification
 
