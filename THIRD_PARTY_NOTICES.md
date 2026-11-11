@@ -35,3 +35,15 @@ The upstream MIT license is reproduced below to preserve attribution for any coa
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
+
+## paper-review
+
+The review report adapts ideas from:
+
+- Project: `paper-review`
+- Author: David Hagmann
+- Source: https://github.com/dhagmann/paper-review
+- Source revision reviewed during development: `b0dd47dec8122e216eb85ef74e7144ab127b4f7b`
+- License: MIT
+
+The adapted ideas are: keeping the reader-facing report separate from the audit record; presenting each finding as the manuscript passage, then the problem, then the suggested response; offering draft wording for reporting clarifications; and a final reading pass over the assembled report. No paper-review code, prompts or stylesheet were copied: the implementation in `src/reviscope/reader.py` and `src/reviscope/render.py`, including the report's visual design, was written independently for this project.
