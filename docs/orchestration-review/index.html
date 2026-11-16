@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI Sandbox Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<style>
+:root { --bg:#fbfaf7; --fg:#1d1d1b; --muted:#5f5d57; --line:#dedad2; --card:#ffffff;
+        --fixed:#1f7a4d; --decide:#a15c00; --info:#3c5a99; --code:#f1eee7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#171716; --fg:#ecebe6; --muted:#a8a69e; --line:#34332f; --card:#1f1f1d;
+  --fixed:#5cc48f; --decide:#e3a24a; --info:#8fa9e3; --code:#2a2926; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:860px; margin:0 auto; padding:32px 16px 64px; }
+h1 { font-size:1.7rem; margin:0 0 4px; }
+h2 { font-size:1.25rem; margin:40px 0 10px; padding-bottom:4px; border-bottom:1px solid var(--line); }
+h3 { font-size:1.02rem; margin:0 0 6px; }
+p, li { max-width:72ch; }
+.sub { color:var(--muted); margin:0 0 24px; }
+code { background:var(--code); padding:1px 4px; border-radius:4px; font-size:.88em; }
+pre { background:var(--code); padding:10px 12px; border-radius:6px; overflow-x:auto; font-size:.85em; }
+.card { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--line); border-radius:6px; padding:14px 16px; margin:12px 0; }
+.card.fixed { border-left-color:var(--fixed); } .card.decide { border-left-color:var(--decide); } .card.info { border-left-color:var(--info); }
+.tag { display:inline-block; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; padding:1px 7px; border-radius:10px; margin-right:6px; vertical-align:2px; }
+.tag.fixed { color:var(--fixed); border:1px solid var(--fixed); } .tag.decide { color:var(--decide); border:1px solid var(--decide); } .tag.info { color:var(--info); border:1px solid var(--info); }
+.rec { margin:8px 0 0; } .rec b { color:var(--muted); font-weight:600; }
+table { border-collapse:collapse; width:100%; font-size:.9rem; margin:8px 0; }
+th, td { border-bottom:1px solid var(--line); text-align:left; padding:6px 8px; vertical-align:top; }
+th { color:var(--muted); font-weight:600; }
+.tablewrap { overflow-x:auto; }
+.ok { color:var(--fixed); } .bad { color:var(--decide); }
+</style>
+</head>
+<body>
+<main>
+<h1>Does the Claude Code and Codex sandboxing make sense?</h1>
+<p class="sub">ReviScope orchestration review · branch <code>orchestration-review</code> · Codex CLI 0.169.0, Claude Code 2.1.322 · Linux tested live, macOS not tested · 16 November 2026</p>
+
+<h2>Answer</h2>
+<p>Yes. The design protects the right things, and on Linux both CLIs enforce it. In live calls, neither sandboxed shell could read CLI credentials or anything else in the home directory, write outside its call directory, reach the network, or connect to local sockets such as D-Bus, systemd, gpg-agent or LXD. The weak points are not the shell rules themselves:</p>
+<ul>
+<li>A timed-out Claude call left its sandboxed processes running. Ctrl-C during parallel stages waited for every running call to finish. Both are now fixed.</li>
+<li>The shell can read everything <em>outside</em> the home directory, including <code>/tmp</code> and mounted drives. The README now says so.</li>
+<li>Three gaps need a decision: on macOS, whether the sandboxed shell can read credentials from the login Keychain (untested); an <code>ANTHROPIC_API_KEY</code> in the environment can switch Claude runs to metered API billing; and Claude's WebFetch runs on the user's machine and can reach local and intranet HTTPS hosts.</li>
+</ul>
+<p>The two usability costs, needing a Codex binary outside <code>$HOME</code> on Linux and Python/R packages installed system-wide, follow from the home-directory rule. Codex 0.169 cannot re-allow read-only access to a path under a denied home: I tested this, and only a write grant takes effect. Write access would let the model modify the Codex binary, so the Codex requirement stays.</p>
+
+<h2>Threat model</h2>
+<div class="tablewrap"><table>
+<tr><th>Asset</th><th>Threat</th><th>Control</th><th>Verdict</th></tr>
+<tr><td>CLI credentials (<code>~/.codex/auth.json</code>, <code>~/.claude/.credentials.json</code>, env tokens)</td><td>Prompt injection in a manuscript or fetched page makes the model read a token and leak it through a search query or fetch URL</td><td>Shell cannot read home; token variables kept from the shell; Claude Read confined to the call directory</td><td class="ok">Necessary and sufficient on Linux (verified). Relocated config dirs were a gap, now fixed. macOS Keychain untested.</td></tr>
+<tr><td>The user's other files (other manuscripts, email, data)</td><td>Same exfiltration path</td><td>Home directory hidden</td><td class="bad">Partial: <code>/tmp</code>, <code>/Volumes</code>, <code>/media</code>, data disks stay readable</td></tr>
+<tr><td>The user's machine</td><td>Model mistake or injection writes, deletes or installs</td><td>Writes only to the per-call directory; no network; no sockets</td><td class="ok">Holds for both CLIs (verified); orphaned processes after a timeout were a gap, now fixed</td></tr>
+<tr><td>Benchmark validity</td><td>Model finds published reviews or later versions of the manuscript</td><td>Prompt instruction; Claude WebFetch blocked on 9 review domains; <code>eval/audit_tool_use.py</code></td><td>Appropriately soft: the audit, not the block list, is the control. Codex has no domain block.</td></tr>
+<tr><td>Confidentiality of the manuscript</td><td>Text leaves the machine</td><td>None by design: the model service receives the full text</td><td>Search queries built from the manuscript also reach the providers' search back-ends; the README covers the model service only</td></tr>
+</table></div>
+
+<h2>Findings, ranked</h2>
+
+<div class="card fixed"><h3><span class="tag fixed">fixed</span>1. Timed-out Claude calls left the sandboxed shell running</h3>
+<p>Claude Code starts its Bash sandbox (bubblewrap, proxy helpers and the command itself) in a session of its own. Killing the CLI's process group missed it. In a live call with a 75-second timeout, the sandbox wrapper and a <code>sleep 400</code> were still running 110 seconds later. In real runs that would be an R or Python job, or a stuck command, outliving its stage. Codex did not leave processes behind.</p>
+<p class="rec"><b>Change:</b> on timeout or interrupt, ReviScope snapshots the process tree with <code>ps</code> (works on Linux and macOS) and kills every descendant and its process group. Re-tested live: nothing left. New test: <code>test_timeout_also_kills_children_that_left_the_process_group</code>.</p></div>
+
+<div class="card fixed"><h3><span class="tag fixed">fixed</span>2. Ctrl-C during parallel stages waited for running calls</h3>
+<p>With <code>--parallel</code> above 1, Ctrl-C reached only the main thread. The thread pool then waited for every running CLI, which can take up to the per-call timeout (default one hour). Those CLIs run in their own sessions, so the terminal's interrupt never reached them and they kept using quota.</p>
+<p class="rec"><b>Change:</b> on interrupt, queued stages are cancelled and every running CLI is killed with its process tree. New test: <code>test_interrupt_during_parallel_stages_stops_every_running_cli</code>.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>3. macOS: the Keychain is outside the home-directory rule</h3>
+<p>On macOS, Claude Code stores its login in the login Keychain, not in a file. Hiding <code>~</code> blocks the Keychain file but not the <code>security</code> command, which asks the system Keychain service. Whether the sandbox lets the shell reach that service, and whether the Keychain prompts, I could not test without a Mac. If both allow it, the main credential guarantee fails on the platform most users have. Codex keeps <code>~/.codex/auth.json</code> as a file by default, which the rule covers.</p>
+<p class="rec"><b>Recommendation:</b> run this once on a Mac through the Claude backend (the probe script asks the model to run it in its shell), and add the result to the README.</p>
+<pre>security find-generic-password -s "Claude Code-credentials" &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo KEYCHAIN_READABLE || echo keychain-blocked</pre>
+<p>If it prints <code>KEYCHAIN_READABLE</code>, block the Keychain service in the sandbox settings, or refuse tool-enabled Claude calls on macOS until it is blocked.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>4. <code>ANTHROPIC_API_KEY</code> can switch Claude runs to metered billing</h3>
+<p>The environment allowlist passes <code>ANTHROPIC_API_KEY</code> to Claude Code. Many researchers who script have one set. Claude Code can then authenticate with the key instead of the subscription login, so a long review is billed per token instead of drawn from the subscription, with no warning. The README says calls "use your CLI authentication". The key no longer reaches Codex, which never needed it.</p>
+<p class="rec"><b>Recommendation:</b> stop passing <code>ANTHROPIC_API_KEY</code> by default. Add an explicit opt-in (<code>--claude-auth api-key</code>) and record which login was used in <code>review.json</code>. <code>CLAUDE_CODE_OAUTH_TOKEN</code> (subscription) can stay.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>5. The shell can read everything outside the home directory</h3>
+<p>Both shells could list and read <code>/tmp</code>. That includes other tools' scratch directories (on this machine, Claude Code's per-session scratchpads) and the staged page images of other ReviScope calls running at the same time. Mounted drives (<code>/data</code> here; <code>/Volumes</code> on macOS) are readable too. The README previously implied that only the call directory mattered; it now says what stays readable.</p>
+<p class="rec"><b>Recommendation:</b> also deny <code>/tmp</code> and <code>/var/tmp</code>, keeping the call directory readable. For Codex on Linux I verified that a <code>"/tmp"="deny"</code> entry still leaves the workspace under <code>/tmp</code> writable. Claude needs <code>denyRead</code> on <code>/tmp</code> plus <code>allowRead</code> on the call directory. This changes the command line, so every cached stage is rerun once, and macOS (<code>/tmp</code> → <code>/private/tmp</code>, per-user <code>$TMPDIR</code>) needs testing first. Denying removable drives by default is a judgement call; I would document rather than deny.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>6. Claude WebFetch can reach local and intranet HTTPS hosts</h3>
+<p>Claude's WebFetch runs on the user's machine, not on Anthropic's servers. A live fetch of <code>http://127.0.0.1:18765/</code> reached the local test server; it failed only because WebFetch upgraded the request to HTTPS. A university intranet page, router admin page or local HTTPS service would be fetched and shown to the model. Codex's web search runs on OpenAI's side and cannot reach the user's network.</p>
+<p class="rec"><b>Recommendation:</b> add deny rules for <code>localhost</code>, loopback and private address ranges to the Claude settings. Bundle this with finding 5, since both change the Claude command line and invalidate Claude caches once.</p></div>
+
+<div class="card fixed"><h3><span class="tag fixed">fixed</span>7. Relocated CLI config directories were readable</h3>
+<p>The shell rule hid only <code>$HOME</code>. A user with <code>CODEX_HOME</code> or <code>CLAUDE_CONFIG_DIR</code> outside the home directory (common on shared servers) exposed the credentials stored there.</p>
+<p class="rec"><b>Change:</b> such a directory is now denied as well (Codex profile, Claude <code>denyRead</code> and a Read deny rule). <code>CLAUDE_CONFIG_DIR</code> is passed to Claude so relocated logins work. Command lines are unchanged when these variables are unset or point inside home.</p></div>
+
+<div class="card fixed"><h3><span class="tag fixed">fixed</span>8. Missing CLIs and unsafe policies were found mid-run</h3>
+<p>An earlier owner run lost all four verification batches to <code>FileNotFoundError</code> after discovery had finished. The verifier CLI was only looked for when verification started.</p>
+<p class="rec"><b>Change:</b> before the first stage, a run checks that each selected CLI is installed, that the managed policy is acceptable and, for Codex on Linux, that a binary outside home exists. The CLI prints a one-line error and exits with code 1. The Codex message now names an install command.</p></div>
+
+<div class="card fixed"><h3><span class="tag fixed">fixed</span>9. Managed-policy detection missed drop-in files</h3>
+<p>Claude Code 2.1.322 merges <code>managed-settings.d/*.json</code> drop-ins (confirmed in the binary). The check read only <code>managed-settings.json</code>. Codex user-level <code>requirements.toml</code> was looked for in <code>~/.codex</code> even when <code>CODEX_HOME</code> pointed elsewhere.</p>
+<p class="rec"><b>Change:</b> both are now checked and included in the policy hash. Still not covered: macOS configuration profiles (MDM), server-delivered managed settings, and <code>/etc/codex/config.toml</code>, which Codex loads as a system layer and which could add MCP servers. <b>Recommendation:</b> for Codex, replace the file check with a behavioural canary once per run. <code>codex sandbox -P reviscope</code> runs the real permission profile without a model call and can confirm that home, network and sockets are blocked. Claude has no model-free equivalent, so its file check stays.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>10. Usability: toolchains in the home directory are invisible</h3>
+<p>conda/miniforge, uv-managed Python, pyenv, <code>renv</code> and user R libraries (<code>~/R</code>, <code>~/Library/R</code>) all live under home, so recomputation in the shell only sees system-wide installs. The model then works around missing packages or estimates instead of computing. Codex cannot grant read-only access under a denied home, so a per-user "allow my conda" option is not possible for Codex without giving the model write access.</p>
+<p class="rec"><b>Recommendation:</b> add a <code>reviscope doctor</code> command that runs <code>python3 -c "import scipy, statsmodels, pandas"</code> and <code>Rscript -e 'library(lavaan)'</code> inside the real Codex sandbox (free with <code>codex sandbox</code>) and prints exactly what to install. That beats discovering it from tool errors mid-review. Longer term, a ReviScope-managed environment outside home (for example under <code>/opt/reviscope</code>) would give every reviewer the same packages.</p></div>
+
+<div class="card decide"><h3><span class="tag decide">needs decision</span>11. A schema failure reruns the whole tool-enabled stage</h3>
+<p>When output fails validation, the repair call repeats the full task with tools, which roughly doubles a 10–20-minute stage. Codex constrains output with <code>--output-schema</code>, so this mostly affects Claude. Claude Code 2.1.322 supports <code>--json-schema</code>, which ReviScope does not use.</p>
+<p class="rec"><b>Recommendation:</b> pass <code>--json-schema</code> to Claude, and make the repair a tool-free reformatting call with the previous output. Both change model behaviour and Claude cache keys, so evaluate them in specialist mode first.</p></div>
+
+<div class="card info"><h3><span class="tag info">note</span>12. Cache identity depends on which variables happen to be set</h3>
+<p>The backend identity hashes the <em>names</em> of allowlisted variables present in the environment. Running once with <code>LC_ALL</code> or a proxy set and once without changes every cache key. The identity was left unchanged here so existing caches stay valid (checked: identical for all four backend configurations in this environment).</p>
+<p class="rec"><b>Recommendation:</b> hash the allowlist itself instead, at the next deliberate cache invalidation. Bundle it with findings 5, 6, 11 and 13.</p></div>
+
+<div class="card info"><h3><span class="tag info">note</span>13. Cost and time are not recorded per stage</h3>
+<p>From recent run logs: 17–37 model stages per review, 230–550 tool calls, 60–186 minutes of summed stage time, 21–70 minutes wall-clock at <code>--parallel 4</code>, and single stages up to 21 minutes. Codex's <code>turn.completed</code> event carries token counts, and Claude's result event carries tokens and <code>total_cost_usd</code>. ReviScope discards both. There is no automatic retry for transient failures (rate limits, network): the stage fails, the run is marked partial, and rerunning the same command resumes from cache. That is a sound default for subscription quotas.</p>
+<p class="rec"><b>Recommendation:</b> store usage in the stage provenance and print a per-run total, so users see what a review costs against their quota. In the same cache-invalidating change, add <code>--disable hooks</code> to the Codex command so administrator hooks cannot run during review calls.</p></div>
+
+<h2>What was verified</h2>
+<ul>
+<li>Live calls through both backends (Codex <code>gpt-6-luna</code> at low effort, Claude <code>claude-opus-5-5</code> at low effort) ran a probe script. Credentials unreadable, home hidden, writes outside the call directory refused, no network, Unix-socket connects refused, <code>/tmp</code> readable, system SciPy visible. The probes ran again after the changes.</li>
+<li>Model-free checks with <code>codex sandbox</code> using the exact ReviScope permission profile: D-Bus, systemd, gpg-agent, LXD and T3 sockets all refused. A read grant under a denied home is ignored, and only a write grant takes effect.</li>
+<li>Codex's image tool refuses files under home. Claude WebFetch reaches 127.0.0.1.</li>
+<li>Orphan test before and after the fix (Claude leaked processes before and none after; Codex leaked none either time).</li>
+<li><code>uv run --extra dev pytest -q</code>: 399 passed, 10 skipped. The two new process tests fail against the old kill logic.</li>
+<li>No manuscript text was used. Probes used empty evidence.</li>
+</ul>
+<p>Not verified: anything on macOS. The CLI flags used were checked against <code>--help</code> for the installed versions.</p>
+</main>
+</body>
+</html>
