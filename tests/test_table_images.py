@@ -103,12 +103,18 @@ CELL_TEXT = "Prefer outcomes that can show no difference. Report both intervals;
     ("Prefer outcomes that can show", "mismatched"),                              # not a complete sentence
     ("Prefer outcomes that can show a difference.", "mismatched"),
     ("Show no difference.", "mismatched"),                                        # too short to stand alone
+    ("justify the bound.", "mismatched"),                                         # a clause after a semicolon
 ])
 def test_complete_sentences_of_a_longer_text_cell(claimed, outcome):
     result = compare_reading(reading(value=claimed), blind(value=CELL_TEXT))
     assert result[0] == outcome
     if outcome == "matched":
         assert "complete sentences" in result[1]
+
+
+def test_a_clause_after_a_colon_is_not_a_sentence():
+    claimed = reading(value="the treatment improves later outcomes.")
+    assert compare_reading(claimed, blind(value="Do not conclude: the treatment improves later outcomes."))[0] == "mismatched"
 
 
 def test_numeric_prefix_is_not_a_part_of_text():

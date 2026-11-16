@@ -395,7 +395,7 @@ def _part_of_text(mine: str, theirs: str) -> bool:
     if len(a.split()) < MIN_PART_WORDS or not a.endswith((".", "!", "?")) or len(b) <= len(a):
         return False
     return any(b[i:].startswith(a) and (i + len(a) == len(b) or b[i + len(a)] == " ")
-               for i in [0] + [m.end() for m in re.finditer(r"[.!?:;] ", b)])
+               for i in [0] + [m.end() for m in re.finditer(r"[.!?] ", b)])
 
 
 def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:
