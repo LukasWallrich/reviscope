@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from reviscope import materials
-from reviscope.backend import ClaudeBackend, CodexBackend, FixtureBackend, PolicyError, StagedImages, _stage
+from reviscope.backend import ClaudeBackend, CodexBackend, FixtureBackend, StagedImages, _stage
 from reviscope.pipeline import ReviewPipeline
 from reviscope.schemas import SourceDocument
 
@@ -125,12 +125,17 @@ def test_review_and_verification_calls_receive_materials_and_cache_on_them(tmp_p
     assert skipped.materials.status == "skipped"
 
 
-def test_shell_network_is_a_claude_allowlist_and_refused_for_codex(tmp_path):
+def test_shell_network_is_a_domain_allowlist_for_both_clis(tmp_path):
     claude = ClaudeBackend(shell_network=True).command(tmp_path)
     network = json.loads(claude[claude.index("--settings") + 1])["sandbox"]["network"]
     assert network["strictAllowlist"] and "api.crossref.org" in network["allowedDomains"] and "*.osf.io" in network["allowedDomains"]
     assert ClaudeBackend(shell_network=True).identity != ClaudeBackend().identity
-    with pytest.raises(PolicyError, match="not available for Codex"):
-        CodexBackend("gpt-6-luna", shell_network=True).check_policy()
+    codex = CodexBackend("gpt-6-luna", shell_network=True).command(tmp_path)
+    profile = next(part for part in codex if part.startswith("permissions.reviscope="))
+    # Codex enforces the `domains` map only through its network proxy; the legacy allowed_domains list is ignored
+    assert "features.network_proxy=true" in codex and "allowed_domains" not in profile
+    assert '"api.crossref.org"="allow"' in profile and '"**.osf.io"="allow"' in profile and '"*.osf.io"' not in profile
+    plain = CodexBackend("gpt-6-luna").command(tmp_path)
+    assert "network={enabled=false}" in next(p for p in plain if p.startswith("permissions.")) and "features.network_proxy=true" not in plain
     with pytest.raises(ValueError):
         ClaudeBackend(tools=False, shell_network=True)

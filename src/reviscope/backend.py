@@ -628,13 +628,21 @@ def _config_outside_home(variable: str) -> str | None:
     return None if path == home or home in path.parents else str(path)
 
 
-def codex_permissions() -> str:
+def codex_permissions(shell_network: bool = False) -> str:
     """Shell permission profile: read the filesystem except the home directory (and CODEX_HOME when it
-    lies elsewhere), write only the per-call working directory, no network."""
+    lies elsewhere), write only the per-call working directory, no network. With shell_network, the
+    shell reaches SHELL_NETWORK_HOSTS through Codex's network proxy (features.network_proxy, set in the
+    command), which blocks every other host, loopback and private addresses included. The proxy reads
+    the `domains` map; the older `allowed_domains` list is silently ignored."""
     denied = [str(Path.home())] + [path for path in [_config_outside_home("CODEX_HOME")] if path]
     deny = "".join(f'{json.dumps(path)}="deny", ' for path in denied)
+    if shell_network:  # Codex: "*.x" matches subdomains only, "**.x" also x itself
+        hosts = dict.fromkeys("**" + host[1:] if host.startswith("*.") else host for host in SHELL_NETWORK_HOSTS)
+        network = "network={enabled=true, domains={" + ", ".join(f'{json.dumps(host)}="allow"' for host in hosts) + "}}"
+    else:
+        network = "network={enabled=false}"
     return (f'permissions.reviscope={{extends=":read-only", filesystem={{{deny}'
-            f'":workspace_roots"={{"."="write"}}}}, network={{enabled=false}}}}')
+            f'":workspace_roots"={{"."="write"}}}}, {network}}}')
 
 
 def codex_executable() -> str | None:
@@ -668,7 +676,9 @@ class CodexBackend(SubprocessBackend):
                "--disable", "in_app_browser", "--disable", "computer_use", "--disable", "image_generation",
                "--disable", "skill_search", "--disable", "multi_agent", "--color", "never"]
         if self.tools:
-            cmd += ["-c", 'web_search="live"', "-c", 'default_permissions="reviscope"', "-c", codex_permissions(),
+            if self.shell_network:
+                cmd += ["-c", "features.network_proxy=true"]
+            cmd += ["-c", 'web_search="live"', "-c", 'default_permissions="reviscope"', "-c", codex_permissions(self.shell_network),
                     "-c", "allow_login_shell=false", "-c", 'shell_environment_policy.inherit="core"', "--json"]
         else:
             cmd += ["-c", 'web_search="disabled"', "--sandbox", "read-only",
@@ -680,9 +690,6 @@ class CodexBackend(SubprocessBackend):
         return [*cmd, "-"]
 
     def check_policy(self) -> None:
-        if self.shell_network:
-            raise PolicyError("shell network access is not available for Codex: Codex 0.169 did not enforce a domain list in "
-                              "our tests, so enabling it would open the shell to every host, loopback included")
         if self.tools and codex_executable() is None:
             raise PolicyError("on Linux the Codex shell sandbox hides the home directory, so tool-enabled calls need a codex "
                               "binary installed outside it and on PATH, for example with `sudo npm install -g @openai/codex` "

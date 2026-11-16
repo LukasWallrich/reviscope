@@ -40,7 +40,7 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--no-materials", action="store_true",
                         help="do not download the data, code and supplements that the sources link on OSF, Zenodo, figshare or GitHub")
     review.add_argument("--shell-network", action="store_true",
-                        help="let the sandboxed shell reach scholarly APIs, data repositories and package indexes (Claude only; off by default)")
+                        help="let the sandboxed shell reach a fixed list of scholarly APIs, data repositories and package indexes (off by default)")
     review.set_defaults(func=_review_command)
     register_evaluation(sub)
     register_normalization(sub)
