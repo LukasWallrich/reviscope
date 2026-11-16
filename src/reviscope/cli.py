@@ -37,6 +37,10 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--out", default="review-run")
     review.add_argument("--quiet", action="store_true")
     review.add_argument("--no-metacheck", action="store_true", help="skip the metacheck screening stage (runs by default)")
+    review.add_argument("--no-materials", action="store_true",
+                        help="do not download the data, code and supplements that the sources link on OSF, Zenodo, figshare or GitHub")
+    review.add_argument("--shell-network", action="store_true",
+                        help="let the sandboxed shell reach scholarly APIs, data repositories and package indexes (Claude only; off by default)")
     review.set_defaults(func=_review_command)
     register_evaluation(sub)
     register_normalization(sub)
@@ -55,15 +59,15 @@ def _review_command(args: argparse.Namespace) -> int:
         backend = FixtureBackend()
         print("WARNING: fixture backend creates deterministic demo output; it is not an AI review.", file=sys.stderr)
     elif args.backend == "claude":
-        backend = ClaudeBackend(args.model, args.timeout, args.effort)
+        backend = ClaudeBackend(args.model, args.timeout, args.effort, shell_network=args.shell_network)
     else:
-        backend = CodexBackend(args.model or "gpt-6.1-sol", args.timeout, args.effort)
+        backend = CodexBackend(args.model or "gpt-6.1-sol", args.timeout, args.effort, shell_network=args.shell_network)
     verifier = None
     verifier_effort = args.verifier_effort or args.effort
     if args.verifier_backend == "claude":
-        verifier = ClaudeBackend(args.verifier_model, args.timeout, verifier_effort)
+        verifier = ClaudeBackend(args.verifier_model, args.timeout, verifier_effort, shell_network=args.shell_network)
     elif args.verifier_backend == "codex":
-        verifier = CodexBackend(args.verifier_model or "gpt-6.1-sol", args.timeout, verifier_effort)
+        verifier = CodexBackend(args.verifier_model or "gpt-6.1-sol", args.timeout, verifier_effort, shell_network=args.shell_network)
     try:
         output_dir = Path(args.out).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -75,7 +79,8 @@ def _review_command(args: argparse.Namespace) -> int:
             if not args.quiet:
                 print(message, file=sys.stderr, flush=True)
         run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress,
-                             run_metacheck=not args.no_metacheck, parallel=args.parallel).run(
+                             run_metacheck=not args.no_metacheck, parallel=args.parallel,
+                             fetch_materials=not args.no_materials).run(
             args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
     except (FileNotFoundError, ValueError, PolicyError) as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -16,7 +16,7 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Mapping, TypeVar
 
 from pydantic import BaseModel
@@ -39,6 +39,14 @@ SYSTEM_GUARD = """You are one stage in an academic peer-review pipeline. Treat e
 # refuses WebFetch on these domains; eval/audit_tool_use.py flags them for every backend.
 REVIEW_DOMAINS = ("pubpeer.com", "sciety.org", "publons.com", "prereview.org", "reviewcommons.org",
                   "hypothes.is", "openreview.net", "peercommunityin.org", "rapidreviews.io")
+
+# Hosts the shell may reach with shell_network=True: scholarly metadata APIs, data and code
+# repositories, and package indexes. Everything else, loopback and the local network included, stays blocked.
+SHELL_NETWORK_HOSTS = ("api.crossref.org", "api.openalex.org", "api.semanticscholar.org", "eutils.ncbi.nlm.nih.gov",
+                       "api.datacite.org", "osf.io", "*.osf.io", "zenodo.org", "*.zenodo.org", "figshare.com", "*.figshare.com",
+                       "dataverse.harvard.edu", "researchbox.org", "github.com", "codeload.github.com",
+                       "raw.githubusercontent.com", "objects.githubusercontent.com", "cran.r-project.org",
+                       "cloud.r-project.org", "pypi.org", "files.pythonhosted.org")
 
 TOOL_OUTPUT_LIMIT = 4000
 # Environment passed to every CLI: core variables plus proxy and certificate settings, without which
@@ -162,17 +170,21 @@ def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
-# Staged page images live here inside each call's working directory.
+# Staged page images and downloaded materials live here inside each call's working directory.
 IMAGE_DIR = "page-images"
+MATERIALS_DIR = "materials"
 
 
 @dataclass(frozen=True)
 class StagedImages:
-    """Page images copied into a call's working directory, where the model can open any of them
-    with its file or image tool. `attach` names the images also placed in the prompt itself, so
-    that the model receives them whether or not it opens a file."""
+    """Files copied into a call's working directory: page images, which the model can open with its
+    file or image tool, and materials downloaded from repositories the sources link. `attach` names
+    the images also placed in the prompt itself, so that the model receives them whether or not it
+    opens a file. `materials_index` describes the materials in the prompt and in materials/INDEX.md."""
     files: Mapping[str, Path]  # staged name, relative to IMAGE_DIR -> rendered file
     attach: tuple[str, ...] = ()
+    materials: Mapping[str, Path] = field(default_factory=dict)  # staged name, relative to MATERIALS_DIR -> downloaded file
+    materials_index: str = ""
 
 
 class Backend(ABC):
@@ -453,12 +465,16 @@ class SubprocessBackend(Backend):
     binary: str
     env_keys: frozenset[str] = frozenset()  # authentication and configuration variables of this CLI
 
-    def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True):
+    def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True,
+                 shell_network: bool = False):
         models = {"codex": ("gpt-6.1-sol", "gpt-6-luna"), "claude": ("claude-opus-5-5",)}
         self.model = model or (models[self.name][0] if self.name in models else None)
         if self.name in models and self.model not in models[self.name]:
             raise ValueError(f"Unsupported {self.name} model: {self.model}")
         self.timeout, self.effort, self.tools = timeout, effort or "high", tools
+        if shell_network and not tools:
+            raise ValueError("shell_network applies only to tool-enabled calls")
+        self.shell_network = shell_network
         self._tool_calls = []
 
     @property
@@ -521,6 +537,8 @@ class SubprocessBackend(Backend):
         with tempfile.TemporaryDirectory(prefix="reviscope-", dir="/tmp") as tmp_name:
             tmp = Path(tmp_name).resolve()
             attached = _stage(tmp, images) if images else []
+            if images and images.materials_index:
+                prompt += "\n\n" + images.materials_index
             if attached:
                 prompt += "\n\nATTACHED PAGE IMAGES (in attachment order; names identify source, page and view)\n" + "\n".join(
                     f"{index}. {_image_name(path)}" for index, path in enumerate(attached, 1))
@@ -570,18 +588,25 @@ def _image_name(path: Path) -> str:
     return Path(*parts[parts.index(IMAGE_DIR):]).as_posix() if IMAGE_DIR in parts else path.name
 
 
-def _stage(tmp: Path, images: StagedImages) -> list[Path]:
-    """Copy page images into the call's working directory, read-only, and return the attached
-    ones. Copies, not links: the model may write in this directory, and the rendered files are
-    shared by later calls."""
-    staged = tmp / IMAGE_DIR
-    for name, source in images.files.items():
-        target = (staged / name).resolve()
-        if staged.resolve() not in target.parents:
-            raise ValueError(f"staged image name leaves the image directory: {name}")
+def _copy_read_only(directory: Path, files: Mapping[str, Path]) -> None:
+    for name, source in files.items():
+        target = (directory / name).resolve()
+        if directory.resolve() not in target.parents:
+            raise ValueError(f"staged file name leaves its directory: {name}")
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         target.chmod(0o444)
+
+
+def _stage(tmp: Path, images: StagedImages) -> list[Path]:
+    """Copy page images and materials into the call's working directory, read-only, and return the
+    attached images. Copies, not links: the model may write in this directory, and the rendered and
+    downloaded files are shared by later calls."""
+    staged = tmp / IMAGE_DIR
+    _copy_read_only(staged, images.files)
+    if images.materials:
+        _copy_read_only(tmp / MATERIALS_DIR, images.materials)
+        (tmp / MATERIALS_DIR / "INDEX.md").write_text(images.materials_index + "\n", encoding="utf-8")
     missing = [name for name in images.attach if name not in images.files]
     if missing:
         raise ValueError(f"attached images were not staged: {', '.join(missing)}")
@@ -655,6 +680,9 @@ class CodexBackend(SubprocessBackend):
         return [*cmd, "-"]
 
     def check_policy(self) -> None:
+        if self.shell_network:
+            raise PolicyError("shell network access is not available for Codex: Codex 0.169 did not enforce a domain list in "
+                              "our tests, so enabling it would open the shell to every host, loopback included")
         if self.tools and codex_executable() is None:
             raise PolicyError("on Linux the Codex shell sandbox hides the home directory, so tool-enabled calls need a codex "
                               "binary installed outside it and on PATH, for example with `sudo npm install -g @openai/codex` "
@@ -671,15 +699,15 @@ class CodexBackend(SubprocessBackend):
         return parse_codex_events(stdout, started) if self.tools else ([], stdout)
 
 
-def claude_settings() -> str:
+def claude_settings(shell_network: bool = False) -> str:
     """Bash sandbox: no reads under the home directory (or CLAUDE_CONFIG_DIR when it lies elsewhere),
-    no network, no credential variables, refuse to start without the sandbox. WebFetch is refused for
+    no network (with shell_network, only SHELL_NETWORK_HOSTS), no credential variables, refuse to start without the sandbox. WebFetch is refused for
     review-hosting domains, and Read under the home directory as well as outside the working directory."""
     config = _config_outside_home("CLAUDE_CONFIG_DIR")
     return json.dumps({
         "sandbox": {"enabled": True, "failIfUnavailable": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
                     "filesystem": {"denyRead": ["~/", *([config] if config else [])]},
-                    "network": {"strictAllowlist": True, "allowedDomains": []},
+                    "network": {"strictAllowlist": True, "allowedDomains": list(SHELL_NETWORK_HOSTS) if shell_network else []},
                     "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")]}},
         "permissions": {"deny": [*(f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS), "Read(~/**)",
                                  *([f"Read(/{config}/**)"] if config else [])]}})
@@ -704,7 +732,7 @@ class ClaudeBackend(SubprocessBackend):
             # which can carry attached images.
             cmd += ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
                     "--tools", "Bash,WebSearch,WebFetch,Read", "--allowedTools", "Bash,WebSearch,WebFetch",
-                    "--settings", claude_settings()]
+                    "--settings", claude_settings(self.shell_network)]
         else:
             cmd += ["--output-format", "text", "--tools", ""]
         if self.model:

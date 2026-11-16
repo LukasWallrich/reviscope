@@ -205,6 +205,7 @@ def audit_markdown(run: ReviewRun) -> str:
     lines.extend(["## Coverage and audit", ""])
     lines.extend(_metacheck(run))
     lines.extend(_page_images(run))
+    lines.extend(_materials(run))
     lines.extend(f"- {item}" for item in run.coverage)
     lines.append("")
     for stage in run.stages:
@@ -340,6 +341,24 @@ def _page_images(run: ReviewRun) -> list[str]:
                      f"{rendered.config.get('renderer')} {rendered.config.get('pypdfium2')}, PDFium {rendered.config.get('pdfium')}; "
                      f"configuration `{rendered.config_hash}`; {_page_link(run, rendered.source_id, 1)}; "
                      f"[manifest with image hashes]({manifest})")
+    return lines + [""]
+
+
+def _materials(run: ReviewRun) -> list[str]:
+    record = run.materials
+    if record is None or record.status == "none_linked":
+        return []
+    if record.status == "skipped":
+        return ["### Linked materials", "", f"Not downloaded ({record.reason or 'skipped'}).", ""]
+    lines = ["### Linked materials", "",
+             "Repositories linked from the sources were downloaded by ReviScope before review, outside the model sandbox, "
+             "and copied read-only into each review and verification call. Hashes are in `materials/manifest.json`. "
+             "Files whose names suggest peer-review correspondence or another version of the manuscript were not downloaded; "
+             "a name check cannot catch every such file.", ""]
+    for source in record.sources:
+        detail = f"{len(source.files)} file(s), {sum(f.size for f in source.files):,} bytes"
+        lines.append(f"- {source.url} — {source.status}: {detail}" + (f"; {source.error}" if source.error else ""))
+        lines.extend(f"  - not downloaded: `{skip.name}` ({skip.reason})" for skip in source.skipped)
     return lines + [""]
 
 

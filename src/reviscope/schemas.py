@@ -321,6 +321,38 @@ class ExternalSourceTask(BaseModel):
     claim_status: str
 
 
+class MaterialFile(BaseModel):
+    path: str  # relative to the materials directory; the staged name under materials/ in each call
+    url: str
+    size: int
+    sha256: str
+
+
+class MaterialSkip(BaseModel):
+    name: str
+    reason: str
+    url: str | None = None
+
+
+class MaterialSource(BaseModel):
+    """One repository linked from the sources (an OSF project, Zenodo record, figshare item or GitHub repository)."""
+    provider: Literal["osf", "zenodo", "figshare", "github"]
+    identifier: str
+    url: str
+    status: Literal["fetched", "partial", "failed", "skipped"]
+    files: list[MaterialFile] = Field(default_factory=list)
+    skipped: list[MaterialSkip] = Field(default_factory=list)
+    error: str | None = None
+
+
+class MaterialsRecord(BaseModel):
+    """Files linked from the sources, downloaded by ReviScope before review (outside the model sandbox)."""
+    status: Literal["fetched", "none_linked", "skipped"]
+    directory: str = ""
+    sources: list[MaterialSource] = Field(default_factory=list)
+    reason: str | None = None
+
+
 class ReviewRun(BaseModel):
     metadata: RunMetadata
     sources: list[SourceDocument]
@@ -335,6 +367,7 @@ class ReviewRun(BaseModel):
     coverage: list[str] = Field(default_factory=list)
     metacheck: MetacheckRecord | None = None
     page_images: list[PageImageSet] = Field(default_factory=list)
+    materials: MaterialsRecord | None = None
     source_tasks: list[ExternalSourceTask] = Field(default_factory=list)
     partial: bool = False
 

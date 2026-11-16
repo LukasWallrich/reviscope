@@ -349,7 +349,7 @@ def test_staging_copies_read_only_files_inside_the_call_directory(tmp_path):
     assert attached == [call / "page-images/src/p001.png"]
     assert attached[0].read_bytes() == b"png" and not attached[0].is_symlink()
     assert not os.access(attached[0], os.W_OK)
-    with pytest.raises(ValueError, match="leaves the image directory"):
+    with pytest.raises(ValueError, match="leaves its directory"):
         _stage(call, StagedImages(files={"../escape.png": rendered}))
     with pytest.raises(ValueError, match="not staged"):
         _stage(call, StagedImages(files={}, attach=("src/p002.png",)))

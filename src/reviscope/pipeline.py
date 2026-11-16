@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 from .backend import REVIEW_GUARD, Backend, CodexBackend, StagedImages, terminate_running
 from .ingest import ingest
 from . import page_images
+from . import materials as linked_materials
 from .render import finding_order, remedy_shown, render_all, report_items, to_markdown
 from . import reader
 from .reasoning import REASONING_ASSESSMENT
@@ -170,7 +171,7 @@ without a specific assessment consequence is not automatically a supported criti
 class ReviewPipeline:
     STAGE_VERSION = "0.5.0a3"  # cache semantics of stages; bump only when a stage's behaviour changes
 
-    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, parallel: int = 4):
+    def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, parallel: int = 4, fetch_materials: bool = True):
         self.backend = backend or CodexBackend(model="gpt-6.1-sol", effort="high")
         self.verifier_backend = verifier_backend or self.backend
         if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
@@ -178,6 +179,7 @@ class ReviewPipeline:
         self.progress = progress or (lambda _: None)
         self.profile, self.profile_hash = _load_profile(profile)
         self.run_metacheck = run_metacheck
+        self.fetch_materials = fetch_materials
         if parallel < 1:
             raise ValueError("parallel must be at least 1")
         self.parallel = parallel
@@ -210,10 +212,30 @@ class ReviewPipeline:
         if run.page_images:
             self.progress(f"page images: completed in {time.monotonic() - started:.1f}s")
 
+    def _materials(self, run: ReviewRun, out: Path) -> None:
+        """Download the data, code and supplements that the sources link (OSF, Zenodo, figshare, GitHub)."""
+        if not self.fetch_materials or self.backend.name == "fixture":
+            run.materials = linked_materials.MaterialsRecord(status="skipped", reason="skipped by flag" if not self.fetch_materials else "offline demonstration")
+            return
+        started = time.monotonic()
+        run.materials = linked_materials.fetch_materials(run.sources, out, progress=self.progress)
+        if run.materials.status == "none_linked":
+            return
+        fetched = sum(len(s.files) for s in run.materials.sources)
+        run.coverage.append(f"materials: {fetched} file(s) downloaded from {len(run.materials.sources)} linked repositor(ies) "
+                            f"in {time.monotonic() - started:.1f}s and staged read-only for review and verification calls")
+        run.coverage.extend(f"materials: {s.url}: {s.status}" + (f" ({s.error})" if s.error else "") +
+                            (f", {len(s.skipped)} file(s) not downloaded" if s.skipped else "")
+                            for s in run.materials.sources if s.status != "fetched")
+
     @staticmethod
-    def _images(run: ReviewRun, attach: list[str] | None = None) -> StagedImages | None:
+    def _images(run: ReviewRun, attach: list[str] | None = None, with_materials: bool = True) -> StagedImages | None:
         files = page_images.files(run.page_images)
-        return StagedImages(files=files, attach=tuple(attach or ())) if files else None
+        materials = linked_materials.files(run.materials) if with_materials else {}
+        if not files and not materials:
+            return None
+        return StagedImages(files=files, attach=tuple(attach or ()), materials=materials,
+                            materials_index=linked_materials.index_text(run.materials) if materials else "")
 
     @staticmethod
     def _generate(backend: Backend, instruction: str, evidence: str, model_type: type[BaseModel], images: StagedImages | None) -> BaseModel:
@@ -330,6 +352,7 @@ class ReviewPipeline:
             if source.extraction_warnings:
                 run.partial = True
         self._render_pages(run, out)
+        self._materials(run, out)
         evidence = self._evidence(sources)
         if len(evidence) > 150_000:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
@@ -377,6 +400,8 @@ class ReviewPipeline:
                 return validate_discovery(value, m, sources, run.page_images)
             inputs = {"sources": input_hash, "upstream": _hash(module_evidence), "instruction_hash": _hash(REVIEW_GUARD + final_instruction), "metacheck": metacheck_fingerprint, "leads": _hash(leads.get(module, "")),
                       "page_images": page_images.fingerprint(run.page_images)}
+            if linked_materials.files(run.materials):
+                inputs["materials"] = linked_materials.fingerprint(run.materials)
             return f"review-{module}", inputs, DiscoveryResponse, generate_findings, self.backend
 
         if not insufficient:  # profile modules are independent; the blind-spot pass needs their candidates
@@ -447,10 +472,14 @@ class ReviewPipeline:
 
     @staticmethod
     def _image_inputs(run: ReviewRun, images: StagedImages | None) -> dict[str, object]:
-        """Cache-key components for calls that receive page images: every rendered file and the attachments."""
-        if not run.page_images:
-            return {}
-        return {"page_images": page_images.fingerprint(run.page_images), "attached": list(images.attach) if images else []}
+        """Cache-key components for calls that receive staged files: every rendered image, the attachments
+        and, when any were downloaded, the materials."""
+        inputs: dict[str, object] = {}
+        if run.page_images:
+            inputs = {"page_images": page_images.fingerprint(run.page_images), "attached": list(images.attach) if images else []}
+        if images and images.materials:
+            inputs["materials"] = linked_materials.fingerprint(run.materials)
+        return inputs
 
     @staticmethod
     def _cited_pages(run: ReviewRun, findings: list[Finding], limit: int = 8) -> list[str]:
@@ -740,7 +769,7 @@ class ReviewPipeline:
             attach = [name_ for sid, page in chunk for name_ in page_images.page_files(run.page_images, sid, page)]
             attach += [name_ for sid, page in chunk for near in (page - 1, page + 1)
                        for name_ in page_images.page_files(run.page_images, sid, near, quarters=False) if name_ not in attach]
-            images = self._images(run, list(dict.fromkeys(attach)))
+            images = self._images(run, list(dict.fromkeys(attach)), with_materials=False)  # blind cell reading needs the page only
             asked = [{"request_id": f"cell-{i}", "source_id": r.source_id, "page": r.page, "table": r.table, "row": r.row, "column": r.column}
                      for i in indices for _, _, r in [requests[i]]]
             inputs = {"requests": _hash(asked), "instruction_hash": _hash(REVIEW_GUARD + BLIND_READING), **self._image_inputs(run, images)}
