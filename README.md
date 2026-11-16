@@ -54,7 +54,7 @@ A deterministic installation demonstration needs no model or credentials:
 
 ```bash
 uv run reviscope review examples/demo_manuscript.md \
-  --backend fixture --out runs/offline-demo
+  --backend fixture --no-metacheck --out runs/offline-demo
 ```
 
 Fixture output is a demonstration, not an AI review. `examples/demo_manuscript.md` is intentionally short and incomplete. The default model-backed pipeline treats it as insufficient material, emits one Minor intake notice, and skips specialist review modules; it is not evidence of review quality.

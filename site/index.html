@@ -127,6 +127,7 @@ footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--r
       <a href="#what">What it is</a>
       <a href="#how">How it works</a>
       <a href="#try">Try it</a>
+      <a href="#contribute">Contribute</a>
       <a class="gh" href="https://github.com/LukasWallrich/reviscope">GitHub</a>
     </nav>
   </div>
@@ -137,11 +138,11 @@ footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--r
 <section class="hero">
   <span class="status">Early research software · not validated</span>
   <h1>A structured second read for quantitative social-science manuscripts</h1>
-  <p class="lede">ReviScope runs a set of focused AI review modules over a manuscript and returns a list of specific, checkable points: each one tied to a quoted passage, with a suggested response.</p>
+  <p class="lede">ReviScope runs a set of focused AI review modules over a manuscript and returns a list of specific, checkable points, each linked to a quoted passage and, where it can, a suggested response.</p>
   <p>It is meant for authors who want development feedback on a draft: things to check, clarify or argue more carefully before others read it. It does not judge whether a paper is good, and it has not been validated against human peer review.</p>
   <div class="cta">
     <a class="btn primary" href="#try">Try it on a draft</a>
-    <a class="btn secondary" href="https://github.com/LukasWallrich/reviscope/issues">Tell us what helped or misled you</a>
+    <a class="btn secondary" href="https://github.com/LukasWallrich/reviscope/issues">Tell me what helped or misled you</a>
   </div>
 </section>
 
@@ -176,45 +177,70 @@ footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--r
 
 <ol class="steps">
   <li><strong>Screening.</strong> The <a href="https://github.com/scienceverse/metacheck">metacheck</a> R package runs deterministic checks (reported statistics, references, preregistration and open-practice statements) and passes its results on as unverified leads.</li>
-  <li><strong>Specialist modules.</strong> Separate modules review contribution, design, measurement, statistical inference, interpretation and consistency, alongside a whole-paper overview. A blind-spot pass then looks for what they missed. Modules can search the literature, recompute statistics in a sandbox and look at page images of tables.</li>
-  <li><strong>Verification.</strong> A separate call checks each candidate point, ideally with a different model family. A point is published only if the verifier supports it and it quotes the manuscript exactly; points the verifier cannot settle are listed separately as unconfirmed.</li>
+  <li><strong>Specialist modules.</strong> Separate modules review contribution, design, measurement, statistical inference, interpretation and consistency, alongside a whole-paper overview. A blind-spot pass then looks for what they missed. Modules can search the literature, recompute statistics in a restricted computing environment and look at page images of tables.</li>
+  <li><strong>Verification.</strong> A separate call checks each candidate point, ideally with a different model family. A point is published only if the verifier supports it and it has a checked quotation from the manuscript or its supplementary files; points the verifier cannot settle are listed separately as unconfirmed. Verifier support is another model's judgement, not proof that a criticism is correct.</li>
   <li><strong>Editorial and reader passes.</strong> Overlapping points are merged and given a severity. A final pass rewrites them for clarity and proportion, without adding claims.</li>
 </ol>
 
 <p>You receive a readable review (each finding shows the manuscript passage, then the problem, then a suggested response) and a separate audit record with the verification notes, set-aside points and every tool call.</p>
 
-<h2 id="evidence">What we know so far</h2>
+<h2 id="evidence">Evaluation is ongoing</h2>
 
-<p>Very little, and we would rather say so plainly. Development so far has used a small set of openly reviewed papers and the maintainer's own drafts. On those, the pipeline has not been shown to find more than a single careful prompt to the same model; what it adds is structure: quotation anchoring, a separate verification step and an inspectable record. Whether that makes the feedback more useful to authors is the open question.</p>
-<p>A held-out validation set has been set aside and not yet run. Until it is, treat any impression of quality, good or bad, as anecdotal. <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/PIPELINE_VALIDATION_PLAN.md">Validation plan</a> · <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/SPECIALIST_DEVELOPMENT.md">development record</a>.</p>
+<p>ReviScope is under active development, and I do not yet know how useful its feedback is. The checks so far guide development; none of them is a validation.</p>
+<ul>
+  <li><strong>Planted errors.</strong> Earlier versions were run on two papers from <a href="https://www.paullitvak.com/p/how-well-does-ai-peer-review-work">Paul Litvak's benchmark</a> of errors planted in psychology papers (<a href="https://github.com/Dawes-Institute/ai-peer-review-benchmark">data</a>), and compared with a single prompt to the same model. This tests one narrow part of review, and some of the planted targets are <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/benchmark-validity-audit/synthesis.md">questionable as errors</a>.</li>
+  <li><strong>Human reviews.</strong> Comparisons with the published reviews of openly reviewed Meta-Psychology submissions, with criticisms judged point by point by AI models (not yet by human experts).</li>
+  <li><strong>Author ratings.</strong> Whether an author finds the points correct and would act on them, so far on my own drafts.</li>
+</ul>
+<p>Whether the extra stages add value over a single careful prompt is one of the questions being tested. A held-out set of papers is reserved for validation. Until that has run, treat any impression of quality, good or bad, as anecdotal. <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/PIPELINE_VALIDATION_PLAN.md">Validation plan</a> · <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/SPECIALIST_DEVELOPMENT.md">development record</a>.</p>
 
 <h2 id="try">Try it</h2>
 
-<p>You need Python 3.11+, <a href="https://docs.astral.sh/uv/">uv</a>, and a logged-in <strong>Codex CLI</strong> or <strong>Claude CLI</strong>. Model calls run through your own CLI subscription or account. PDF, DOCX, Markdown and plain text are supported.</p>
+<p>You need a logged-in <strong>Codex CLI</strong> or <strong>Claude CLI</strong>; model calls run through your own subscription or account. PDF, DOCX, Markdown and plain text are supported; scanned PDFs need OCR first.</p>
 
+<div class="note">
+  <p><strong>Where your manuscript goes.</strong> The text is sent to the model service your CLI uses, and saved in the local run folder. By default, metacheck screening also uploads the manuscript to an online conversion server (unless you run a local GROBID server), sends the title and abstract to a hosted classifier, and queries CrossRef and other scholarly services. Add <code>--no-metacheck</code> to skip these.</p>
+</div>
+
+<h3>Ask your coding agent</h3>
+<p>If you use Codex, Claude Code or a similar agent, paste this prompt and replace the path:</p>
+<pre><code>Install ReviScope from https://github.com/LukasWallrich/reviscope by following
+its README, then review my manuscript at PATH/TO/draft.pdf.
+- Use --backend codex --model gpt-6.1-sol --effort high. If the Claude CLI
+  is also logged in, add --verifier-backend claude --verifier-model
+  claude-opus-5-5. If only Claude is available, use --backend claude
+  --model claude-opus-5-5. Do not substitute another model or API service.
+- Before processing the manuscript, explain which services will receive it
+  (the model service, and metacheck's conversion upload, title/abstract
+  classifier and reference lookups). Wait for my answer. Add --no-metacheck
+  if I decline metacheck; stop if I decline the model service.
+- Write the output to runs/my-draft. When it finishes, tell me about any
+  partial or failed stages, open runs/my-draft/review.html and summarise its
+  critical and major findings, keeping unconfirmed concerns separate. Do not
+  add criticisms or your own judgement of the paper.</code></pre>
+
+<h3>Or use the command line</h3>
+<p>This needs Python 3.11+ and <a href="https://docs.astral.sh/uv/">uv</a>.</p>
 <pre><code>git clone https://github.com/LukasWallrich/reviscope.git
 cd reviscope
 uv sync --extra dev
 
 # Offline demo: no model, no credentials (output is a fixture, not a review)
-uv run reviscope review examples/demo_manuscript.md --backend fixture --out runs/demo
+uv run reviscope review examples/demo_manuscript.md \
+  --backend fixture --no-metacheck --out runs/demo
 
-# A real review of your draft
+# A review of your draft, with a verifier from a different model family
 uv run reviscope review draft.pdf \
-  --backend codex --model gpt-6-luna --effort high \
+  --backend codex --model gpt-6.1-sol --effort high \
+  --verifier-backend claude --verifier-model claude-opus-5-5 \
   --out runs/my-draft</code></pre>
 
-<p>Open <code>runs/my-draft/review.html</code> when it finishes. Add <code>--supplement</code> or <code>--preregistration</code> if you have them, and <code>--verifier-backend claude --verifier-model claude-opus-5-5</code> for a verifier from a different model family. A full paper can take a while; rerunning the same command reuses finished stages. Metacheck screening needs R 4.5 with metacheck installed; add <code>--no-metacheck</code> to skip it. The <a href="https://github.com/LukasWallrich/reviscope#readme">README</a> has the full options.</p>
+<p>Open <code>runs/my-draft/review.html</code> when it finishes. Drop the two verifier options if you only have Codex, or use <code>--backend claude --model claude-opus-5-5</code> if you only have Claude. Add <code>--supplement appendix.pdf</code> or <code>--preregistration registration.md</code> if you have them. A full paper can take a long time; rerunning the same command reuses finished stages. Metacheck screening needs R 4.5 or later with metacheck installed (plus pandoc and tectonic for Markdown or plain text); add <code>--no-metacheck</code> to skip it. The <a href="https://github.com/LukasWallrich/reviscope#readme">README</a> has the full options.</p>
 
-<div class="note">
-  <p><strong>Where your manuscript goes.</strong> The text is sent to the model service your CLI uses. Unless you run a local GROBID server, metacheck also uploads the file to an online conversion server and queries CrossRef and other scholarly APIs. Use <code>--no-metacheck</code> for material that must not leave your machine or your chosen model service.</p>
-</div>
 
-<h3>Feedback we would value</h3>
-<p>If you run it on a draft, we would like to hear which points you acted on, which were wrong or beside the point, and what an experienced colleague caught that it did not. <a href="https://github.com/LukasWallrich/reviscope/issues">Open an issue</a>; please do not paste unpublished manuscript text into a public issue.</p>
-
-<h3>Other disciplines</h3>
-<p>Review criteria live in plain-text profiles that can inherit from the bundled quantitative social-science modules. The <a href="https://github.com/LukasWallrich/reviscope/tree/main/examples/education_profile">education profile</a> shows how to adapt them; it is a demonstration, not a validated education reviewer.</p>
+<h2 id="contribute">Feedback and contributions</h2>
+<p>If you run it on a draft, I would like to hear which points you acted on, which were wrong or beside the point, and what an experienced colleague caught that it did not. <a href="https://github.com/LukasWallrich/reviscope/issues">Open an issue</a>; please do not paste unpublished manuscript text into a public issue.</p>
+<p><strong>Profiles for other fields are welcome as pull requests.</strong> Review criteria live in profiles, sets of plain-text instructions that can inherit the bundled quantitative social-science modules and add what your field checks for: its designs, measures, reporting standards and the practices that should <em>not</em> be criticised by rote. The <a href="https://github.com/LukasWallrich/reviscope/tree/main/examples/education_profile">education profile</a> shows the structure; it is a demonstration, not a validated education reviewer. <a href="https://github.com/LukasWallrich/reviscope/pulls">Open a pull request</a> with your profile and a short note on how you tried it.</p>
 
 </main>
 
