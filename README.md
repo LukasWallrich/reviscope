@@ -20,12 +20,12 @@ Requires Python 3.11+, and an authenticated Codex CLI or Claude CLI for model-ba
 uv sync --extra dev
 uv run reviscope profiles
 uv run reviscope review paper.pdf \
-  --backend codex --model gpt-6-luna --effort high \
+  --backend codex --model gpt-6.1-sol --effort high \
   --supplement appendix.pdf --preregistration registration.md \
   --out runs/paper
 ```
 
-Independent model stages run concurrently: the specialist modules, then the verification batches (`--parallel`, default 4; `--parallel 1` runs them in sequence). Outputs and cache keys do not depend on this setting. `gpt-6-luna` at high reasoning effort is the default for inexpensive initial testing. This is a testing configuration, not a quality recommendation. `--effort max` is available. `--timeout` is per model call (default 3,600 seconds); long papers and high or max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
+Independent model stages run concurrently: the specialist modules, then the verification batches (`--parallel`, default 4; `--parallel 1` runs them in sequence). Outputs and cache keys do not depend on this setting. `gpt-6.1-sol` at high reasoning effort is the default; `--model gpt-6-luna` is a cheaper option for quick testing. Neither is a validated quality recommendation. `--effort max` is available. `--timeout` is per model call (default 3,600 seconds); long papers and high or max reasoning can take several minutes per stage. Omit supplement/preregistration options when unavailable. PDF, DOCX, Markdown and plain text are supported. Scanned PDFs require prior OCR; the alpha does not silently call a paid OCR service.
 
 Use `--verifier-backend claude --verifier-model claude-opus-5-5` for a different-family verification pass, or select another supported backend/model explicitly. By default, verification uses separate calls to the reviewer model and is labelled `same_model_separate_call`, not independent-model evidence. Model-backed calls use your CLI authentication; bulk validation should be separately budgeted. The application passes source text to the selected model service and saves source text in local run artifacts.
 

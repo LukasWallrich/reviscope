@@ -171,7 +171,7 @@ class ReviewPipeline:
     STAGE_VERSION = "0.5.0a3"  # cache semantics of stages; bump only when a stage's behaviour changes
 
     def __init__(self, backend: Backend | None = None, profile: str | Path | Profile = "social_psychology", verifier_backend: Backend | None = None, progress: Callable[[str], None] | None = None, run_metacheck: bool = True, parallel: int = 4):
-        self.backend = backend or CodexBackend(model="gpt-6-luna", effort="high")
+        self.backend = backend or CodexBackend(model="gpt-6.1-sol", effort="high")
         self.verifier_backend = verifier_backend or self.backend
         if not all(getattr(b, "tools", True) for b in (self.backend, self.verifier_backend)):
             raise ValueError("Review stages run only on tool-enabled backends; tools=False is for judges and normalizers")

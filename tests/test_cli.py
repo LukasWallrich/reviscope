@@ -28,4 +28,4 @@ def test_retired_strategy_flags_are_rejected_and_backend_defaults_are_pinned():
         with pytest.raises(SystemExit):
             parser().parse_args(["review", "paper.md", *retired])
     assert (ClaudeBackend().model, ClaudeBackend().effort) == ("claude-opus-5-5", "high")
-    assert (CodexBackend().model, CodexBackend().effort) == ("gpt-6-luna", "high")
+    assert (CodexBackend().model, CodexBackend().effort) == ("gpt-6.1-sol", "high")

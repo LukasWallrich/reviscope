@@ -371,7 +371,7 @@ class SubprocessBackend(Backend):
     binary: str
 
     def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True):
-        models = {"codex": ("gpt-6-luna", "gpt-6.1-sol"), "claude": ("claude-opus-5-5",)}
+        models = {"codex": ("gpt-6.1-sol", "gpt-6-luna"), "claude": ("claude-opus-5-5",)}
         self.model = model or (models[self.name][0] if self.name in models else None)
         if self.name in models and self.model not in models[self.name]:
             raise ValueError(f"Unsupported {self.name} model: {self.model}")
