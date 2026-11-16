@@ -401,14 +401,19 @@ def _part_of_text(mine: str, theirs: str) -> bool:
 
     A claim may rely on the first sentence of a cell that prints a paragraph. After notation
     normalisation, the claimed text must have at least MIN_PART_WORDS words containing letters,
-    end with . ! or ?, and be followed in the reading by a space. Only the start of the cell
-    counts: a later start would depend on guessing sentence boundaries, which abbreviations
-    (J., et al.) and clauses after a colon make unreliable.
+    end with . ! or ?, and be followed in the reading by a space and a capital letter, digit or
+    opening bracket or quotation mark. The claim's last word must not look like an
+    abbreviation (et al., U.K.): a lower-case continuation or an inner full stop leaves the end
+    of the sentence in doubt. Only the start of the cell counts: a later start would depend on
+    guessing sentence boundaries, which abbreviations and clauses after a colon make unreliable.
     """
     a, b = _printed(mine, spaces=True)[0], _printed(theirs, spaces=True)[0]
     words = [word for word in a.split() if any(char.isalpha() for char in word)]
-    return (len(words) >= MIN_PART_WORDS and a.endswith((".", "!", "?"))
-            and b.startswith(a + " "))
+    if len(words) < MIN_PART_WORDS or not a.endswith((".", "!", "?")) or not b.startswith(a + " "):
+        return False
+    last, following = a.split()[-1][:-1], b[len(a) + 1:len(a) + 2]
+    abbreviation = "." in last or last.lower() in {"al", "etc", "vs", "cf", "eg", "ie"}
+    return not abbreviation and (following.isupper() or following.isdigit() or following in "([\"'")
 
 
 def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:

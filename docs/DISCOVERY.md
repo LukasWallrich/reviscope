@@ -240,7 +240,9 @@ One further rule covers long text cells. A claimed text value also matches when,
 notation normalisation, the cell opens with it and continues after a space: the claim may
 rest on the first sentence of a cell that prints a paragraph. The claimed text needs at
 least four words containing letters and must end with a full stop, question mark or
-exclamation mark. Later sentences of the cell do not count, because finding where they
+exclamation mark; the cell must continue with a capital letter, digit or opening bracket
+or quotation mark, and the claim's last word must not be an abbreviation (et al., U.K.),
+so an abbreviation cannot pass for the end of a sentence. Later sentences of the cell do not count, because finding where they
 start would mean guessing sentence boundaries that abbreviations and colons make
 unreliable. The reason records that only the opening of the cell was claimed.
 Marks and printed units must match too, as must typeface when the claim relies on it.
