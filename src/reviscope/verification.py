@@ -296,21 +296,124 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
     return verified
 
 
-# Dash-like characters that print as a minus sign.
+# Dash-like characters that print as a minus sign, and spelled-out comparison operators.
 _MINUS = dict.fromkeys(map(ord, "\u2212\u2013\u2012\u2010\u2011\ufe63\uff0d"), "-")
+_SYMBOLS = {"\u2264": "<=", "\u2266": "<=", "\u2265": ">=", "\u2267": ">=", "\u2260": "!=", "\u2217": "*"}
+# A text cell may be claimed by its opening sentences: at least this many words with letters.
+MIN_PART_WORDS = 4
 
 
-def _printed(text: str) -> str:
-    """Normalize spacing, minus glyphs and leading zeros without changing numeric notation.
+def _script_runs(text: str) -> tuple[str, bool, bool]:
+    """Rewrite Unicode subscript and superscript runs as _{…} and ^{…}. Also report whether a
+    Unicode subscript was used (its scope is limited to the characters that have subscript
+    glyphs) and whether a subscript letter was used (those exist only in lower case)."""
+    out: list[str] = []
+    marker = None
+    sub_any = sub_letter = False
+    for char in text:
+        kind, _, codes = unicodedata.decomposition(char).partition(" ")
+        script = {"<sub>": "_", "<super>": "^"}.get(kind)
+        if script and codes:
+            plain = "".join(chr(int(code, 16)) for code in codes.split())
+            sub_any |= script == "_"
+            sub_letter |= script == "_" and plain.isalpha()
+            if marker != script:
+                out.append(("}" if marker else "") + script + "{")
+                marker = script
+            out.append(plain)
+            continue
+        if marker:
+            out.append("}")
+            marker = None
+        out.append(char)
+    return "".join(out) + ("}" if marker else ""), sub_any, sub_letter
 
-    Compatibility normalization must preserve numeric glyphs such as superscripts: 10³ and
-    103 are different values. Missing-value labels are values too, not empty readings.
+
+def _printed(text: str, spaces: bool = False) -> tuple[str, bool, bool]:
+    """Canonical notation of a printed cell, and whether it used a Unicode subscript and a
+    Unicode subscript letter.
+
+    Unicode sub- and superscripts become _{…} and ^{…}, a single-character _x or ^x is braced,
+    minus glyphs become -, ≤ ≥ ≠ become <= >= !=, a leading decimal point gets its zero, and
+    whitespace is removed (or collapsed with ``spaces``). Superscripts stay marked, so 10³ is
+    10^{3}, never 103: compatibility normalization runs only after scripts are rewritten. Numbers,
+    signs, stars, letters and other operators are untouched. Missing-value labels are values too,
+    not empty readings.
     """
+    text, sub_any, sub_letter = _script_runs(unicodedata.normalize("NFC", text))
     text = "".join(char if unicodedata.category(char) == "No" else unicodedata.normalize("NFKC", char)
                    for char in text)
-    text = "".join(text.translate(_MINUS).replace("\u2217", "*").split())
+    text = "".join(_SYMBOLS.get(char, char) for char in text.translate(_MINUS))
+    text = " ".join(text.split()) if spaces else "".join(text.split())
+    text = re.sub(r"([_^]) ?([^{\s])", r"\1{\2}", text)
     text = re.sub(r"(?<![\d.])\.(?=\d)", "0.", text)
-    return text
+    return text, sub_any, sub_letter
+
+
+def _subscripts(text: str, flatten: bool = False, fold_case: bool = False) -> str:
+    """Lower-case the contents of _{…} groups (``fold_case``), or drop their markers where the
+    subscript follows a letter (``flatten``: z_{o} → zo, as when subscripts are printed on the
+    line). A subscript after a digit is never flattened."""
+    out: list[str] = []
+    stack: list[str] = []  # per open brace: "keep" or "drop" for a subscript, "" otherwise
+    i = 0
+    while i < len(text):
+        if text.startswith("_{", i):
+            base = out[-1][-1:] if out else ""
+            drop = flatten and bool(base) and unicodedata.category(base)[0] in "LM"
+            stack.append("drop" if drop else "keep")
+            if not drop:
+                out.append("_{")
+            i += 2
+            continue
+        char = text[i]
+        if char == "{":
+            stack.append("")
+        elif char == "}" and stack:
+            if stack.pop() == "drop":
+                i += 1
+                continue
+        inside = any(stack)
+        out.append(char.lower() if fold_case and inside else char)
+        i += 1
+    return "".join(out)
+
+
+def _same_value(mine: str, theirs: str) -> bool:
+    """Whether two readings print the same value in different notation.
+
+    Subscripts are compared on the line (z_{o} as zo) only when a reading cannot show their
+    scope: it prints no subscript markers, or uses Unicode subscripts, which exist only for some
+    characters (z₁₋α cannot subscript the α). When both readings mark scope in full, x_{a}b and
+    x_{ab} stay different.
+    """
+    (a, a_any, a_letter), (b, b_any, b_letter) = _printed(mine), _printed(theirs)
+    fold = a_letter or b_letter
+    a, b = _subscripts(a, fold_case=fold), _subscripts(b, fold_case=fold)
+    if a == b:
+        return True
+    unscoped = a_any or b_any or "_{" not in a or "_{" not in b
+    return unscoped and _subscripts(a, flatten=True) == _subscripts(b, flatten=True)
+
+
+def _part_of_text(mine: str, theirs: str) -> bool:
+    """Whether a claimed text value is the opening sentence or sentences of a longer text cell.
+
+    A claim may rely on the first sentence of a cell that prints a paragraph. After notation
+    normalisation, the claimed text must have at least MIN_PART_WORDS words containing letters,
+    end with . ! or ?, and be followed in the reading by a space and a capital letter, digit or
+    opening bracket or quotation mark. The claim's last word must not look like an
+    abbreviation (et al., U.K.): a lower-case continuation or an inner full stop leaves the end
+    of the sentence in doubt. Only the start of the cell counts: a later start would depend on
+    guessing sentence boundaries, which abbreviations and clauses after a colon make unreliable.
+    """
+    a, b = _printed(mine, spaces=True)[0], _printed(theirs, spaces=True)[0]
+    words = [word for word in a.split() if any(char.isalpha() for char in word)]
+    if len(words) < MIN_PART_WORDS or not a.endswith((".", "!", "?")) or not b.startswith(a + " "):
+        return False
+    last, following = a.split()[-1][:-1], b[len(a) + 1:len(a) + 2]
+    abbreviation = "." in last or last.lower() in {"al", "etc", "vs", "cf", "eg", "ie"}
+    return not abbreviation and (following.isupper() or following.isdigit() or following in "([\"'\u201c\u2018\u00ab")
 
 
 def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:
@@ -323,13 +426,17 @@ def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[s
         return "not_located", f"The separate reader found no single cell at this row and column: {blind.note or 'no reason given'}"
     if not blind.legible:
         return "illegible", f"The separate reader could not read this cell: {blind.note or 'no reason given'}"
+    part = _part_of_text(claimed.value, blind.value)
     differences = [f"{label} claimed “{mine}”, read “{theirs}”" for label, mine, theirs in (
         ("value", claimed.value, blind.value), ("marks", claimed.marks, blind.marks),
-        ("unit", claimed.unit, blind.unit)) if _printed(mine) != _printed(theirs)]
+        ("unit", claimed.unit, blind.unit)) if not (_same_value(mine, theirs) or (label == "value" and part))]
     if claimed.emphasis is not None and claimed.emphasis != blind.emphasis:
         differences.append(f"emphasis claimed {claimed.emphasis}, read {blind.emphasis}")
     if differences:
         return "mismatched", "The separate reading differs: " + "; ".join(differences) + "."
+    if part and not _same_value(claimed.value, blind.value):
+        return "matched", ("The separate reader, given only the table, row and column, read a longer text cell that "
+                           "opens with the claimed sentences, with the same marks and unit.")
     return "matched", "The separate reader, given only the table, row and column, read the same value, marks and unit."
 
 

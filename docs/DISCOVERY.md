@@ -223,9 +223,29 @@ other page. It reports whether the claim rests on PDF table cells (`table_depend
 and adds its own readings of the relied-on cells. For every supported claim with
 readings, a separate call to the verifier backend then reads each cell from the
 attached page images and neighbouring pages. It is given the table, row and column, but
-neither the claimed value nor the claim. Code compares the readings: values after
-normalising minus signs, spaces and a leading decimal point while preserving superscripts;
-marks and printed units must match too, as must typeface when the claim relies on it.
+neither the claimed value nor the claim. Code compares the readings after normalising
+their notation: spacing, minus glyphs, a leading decimal point, ≤ ≥ ≠ written as <= >= !=,
+and sub- and superscripts in either Unicode (zₒ, 10³) or marked form (z_o, z_{1−α},
+10^3), with or without braces. Superscripts stay distinct from plain digits, so 10³ never
+matches 103. A subscript after a letter also matches the same characters printed on the
+line (zo for z_o) when one reading does not show the subscript's scope: it prints no
+subscript markers, or uses Unicode subscripts, which exist only for some characters (z₁₋α
+cannot subscript the α). When both readings mark the scope, x_{a}b and x_{ab} differ.
+Subscript case is ignored when either reading uses a Unicode subscript letter, since those
+exist only in lower case. Numbers, signs, letters, stars and other operators must still
+be identical, so ≤ does not match < and a missing star or a different variable is a
+mismatch.
+
+One further rule covers long text cells. A claimed text value also matches when, after
+notation normalisation, the cell opens with it and continues after a space: the claim may
+rest on the first sentence of a cell that prints a paragraph. The claimed text needs at
+least four words containing letters and must end with a full stop, question mark or
+exclamation mark; the cell must continue with a capital letter, digit or opening bracket
+or quotation mark, and the claim's last word must not be an abbreviation (et al., U.K.),
+so an abbreviation cannot pass for the end of a sentence. Later sentences of the cell do not count, because finding where they
+start would mean guessing sentence boundaries that abbreviations and colons make
+unreliable. The reason records that only the opening of the cell was claimed.
+Marks and printed units must match too, as must typeface when the claim relies on it.
 A unit is a symbol or abbreviation printed in the cell, its row or column header, or an
 applicable table note (%, ms), recorded as printed. Scale ranges (1–7) and score descriptions
 (item means) are not units. The schemas and all three prompts share this definition. Missing or different units

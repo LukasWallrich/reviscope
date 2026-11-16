@@ -61,6 +61,76 @@ def test_cell_comparison(claimed, read, outcome):
     assert compare_reading(claimed, read)[0] == outcome
 
 
+@pytest.mark.parametrize("claimed,read", [
+    ("(aₒ + aᵣ)/√2 > q₁₋β²", "(a_o + a_r)/√2 > q_{1−β²}"),          # Unicode scripts vs _{…}, ^ inside the group
+    ("μ̂ᵣ − μ̂ₒ ≤ q₁₋β√wₒ", "μ̂_r − μ̂_o ≤ q_{1−β}√w_o"),
+    ("share of λₛ or λₗ > 0.6", "share of λ_S or λ_L > 0.6"),      # subscript letters print only in lower case
+    ("k = 0.6μ̂ₒ", "k = 0.6 μ̂_o"),                                    # spacing
+    ("max(ao, ar) > q1−β", "max(a_o, a_r) > q_{1−β}"),              # subscripts printed on the line
+    ("x_{i}", "x_i"),                                                 # braces
+    ("p ≤ .05", "p <= 0.05"),
+    ("r ≠ 0", "r != 0"),
+    ("10³", "10^3"),
+    ("10⁻³", "10^{-3}"),
+])
+def test_notation_only_differences_match(claimed, read):
+    assert compare_reading(reading(value=claimed), blind(value=read))[0] == "matched"
+
+
+@pytest.mark.parametrize("claimed,read", [
+    ("q_{1−β} = 1.64", "q_{1−β} = 1.46"),       # different number
+    ("a_o ≤ 2", "a_o < 2"),                     # ≤ is not <
+    ("a_o ≥ 2", "a_o > 2"),
+    ("0.31*", "0.31"),                          # star printed with the value
+    ("max(a_o, a_r)", "max(a_o, a_s)"),         # different variable
+    ("a_o − a_r", "a_o + a_r"),                 # different sign
+    ("λ_S", "λ_s"),                             # case is printed when neither side uses subscript letters
+    ("x²", "x2"),                               # superscripts are never flattened
+    ("10_3", "103"),                            # a subscript after a digit is not flattened
+    ("q_{1−β}", "q_{1+β}"),
+    ("q_{1−β}", "q_{1−β²}"),
+    ("x_{a}b", "x_{ab}"),                       # both readings mark the subscript's scope
+])
+def test_different_values_stay_mismatched(claimed, read):
+    assert compare_reading(reading(value=claimed), blind(value=read))[0] == "mismatched"
+
+
+CELL_TEXT = "Prefer outcomes that can show no difference. Report both intervals; justify the bound."
+
+
+@pytest.mark.parametrize("claimed,read,outcome", [
+    ("Prefer outcomes that can show no difference.", CELL_TEXT, "matched"),           # opening sentence
+    ("Prefer outcomes that can show no difference. Report both intervals; justify the bound.",
+     CELL_TEXT + " Then decide.", "matched"),                                          # opening sentences
+    ("Report both intervals; justify the bound.", CELL_TEXT, "mismatched"),            # not at the start
+    ("justify the bound.", CELL_TEXT, "mismatched"),                                   # a clause after a semicolon
+    ("the treatment improves later outcomes.",
+     "Do not conclude: the treatment improves later outcomes.", "mismatched"),         # a clause after a colon
+    ("Smith ran before the study.", "J. Smith ran before the study. More text.", "mismatched"),  # after an initial
+    ("Prefer outcomes that can show", CELL_TEXT, "mismatched"),                        # not a complete sentence
+    ("Prefer outcomes that can show a difference.", CELL_TEXT, "mismatched"),
+    ("Show no difference.", "Show no difference. Then report it.", "mismatched"),      # fewer than four words
+    ("Prefer outcomes that can show no difference.", "Prefer outcomes that can show no difference.5",
+     "mismatched"),                                                                    # no sentence boundary
+    ("0.1 0.2 0.3 0.4.", "0.1 0.2 0.3 0.4. 0.5", "mismatched"),                         # numbers are not words
+    ("Results agree with Smith et al.", "Results agree with Smith et al. in both samples.", "mismatched"),
+    ("Effects were larger in the U.K.", "Effects were larger in the U.K. Then they fell.", "mismatched"),
+    ("Prefer outcomes that can show no difference.",
+     "Prefer outcomes that can show no difference. and more", "mismatched"),           # lower-case continuation
+    ("Prefer outcomes that can show no difference.",
+     "Prefer outcomes that can show no difference. “Then report it.”", "matched"),     # curly opening quote
+])
+def test_opening_sentences_of_a_longer_text_cell(claimed, read, outcome):
+    result = compare_reading(reading(value=claimed), blind(value=read))
+    assert result[0] == outcome
+    if outcome == "matched":
+        assert "opens with the claimed sentences" in result[1]
+
+
+def test_numeric_prefix_is_not_a_part_of_text():
+    assert compare_reading(reading(value="0.5"), blind(value="0.52"))[0] == "mismatched"
+
+
 def test_table_gate_holds_supported_claims_without_confirmed_cells():
     base = Finding(id="f", module="m", claim="c", rationale="r", remedy="x", status="llm_supported")
     matched = TableCheck(reading=reading(), origin="discovery", outcome="matched", reason="same")
