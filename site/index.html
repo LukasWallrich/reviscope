@@ -102,9 +102,17 @@ ol.steps li::before {
 .note { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 0.9rem 1.1rem; border-radius: 0 4px 4px 0; margin: 1.2rem 0; }
 .note p:last-child { margin-bottom: 0; }
 pre {
+  position: relative;
   background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px;
-  padding: 0.9rem 1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55;
+  padding: 0.9rem 4.8rem 0.9rem 1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55;
 }
+.copy {
+  position: absolute; top: 0.5rem; right: 0.5rem;
+  font: 500 0.75rem/1 Inter, system-ui, sans-serif; color: var(--accent);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 0.35rem 0.55rem; cursor: pointer;
+}
+.copy:hover { border-color: var(--accent); }
 code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.88em; }
 p code, li code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 3px; white-space: nowrap; }
 footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.9rem; }
@@ -186,13 +194,7 @@ footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--r
 
 <h2 id="evidence">Evaluation is ongoing</h2>
 
-<p>ReviScope is under active development, and I do not yet know how useful its feedback is. The checks so far guide development; none of them is a validation.</p>
-<ul>
-  <li><strong>Planted errors.</strong> Earlier versions were run on two papers from <a href="https://www.paullitvak.com/p/how-well-does-ai-peer-review-work">Paul Litvak's benchmark</a> of errors planted in psychology papers (<a href="https://github.com/Dawes-Institute/ai-peer-review-benchmark">data</a>), and compared with a single prompt to the same model. This tests one narrow part of review, and some of the planted targets are <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/benchmark-validity-audit/synthesis.md">questionable as errors</a>.</li>
-  <li><strong>Human reviews.</strong> Comparisons with the published reviews of openly reviewed Meta-Psychology submissions, with criticisms judged point by point by AI models (not yet by human experts).</li>
-  <li><strong>Author ratings.</strong> Whether an author finds the points correct and would act on them, so far on my own drafts.</li>
-</ul>
-<p>Whether the extra stages add value over a single careful prompt is one of the questions being tested. A held-out set of papers is reserved for validation. Until that has run, treat any impression of quality, good or bad, as anecdotal. <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/PIPELINE_VALIDATION_PLAN.md">Validation plan</a> · <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/SPECIALIST_DEVELOPMENT.md">development record</a>.</p>
+<p>I do not yet know how useful ReviScope is in general, and simple prompts to current models can already produce good reviews. Its verification step is likely to remove some false flags, and it has proven useful on my own papers. A held-out set of papers is reserved for validation (<a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/PIPELINE_VALIDATION_PLAN.md">plan</a>); suggestions for, and collaborations on, that validation are welcome.</p>
 
 <h2 id="try">Try it</h2>
 
@@ -225,21 +227,25 @@ its README, then review my manuscript at PATH/TO/draft.pdf.
 cd reviscope
 uv sync --extra dev
 
-# Offline demo: no model, no credentials (output is a fixture, not a review)
-uv run reviscope review examples/demo_manuscript.md \
-  --backend fixture --no-metacheck --out runs/demo
-
-# A review of your draft, with a verifier from a different model family
 uv run reviscope review draft.pdf \
   --backend codex --model gpt-6.1-sol --effort high \
   --verifier-backend claude --verifier-model claude-opus-5-5 \
-  --out runs/my-draft</code></pre>
+  --out runs/my-draft
 
-<p>Open <code>runs/my-draft/review.html</code> when it finishes. Drop the two verifier options if you only have Codex, or use <code>--backend claude --model claude-opus-5-5</code> if you only have Claude. Add <code>--supplement appendix.pdf</code> or <code>--preregistration registration.md</code> if you have them. A full paper can take a long time; rerunning the same command reuses finished stages. Metacheck screening needs R 4.5 or later with metacheck installed (plus pandoc and tectonic for Markdown or plain text); add <code>--no-metacheck</code> to skip it. The <a href="https://github.com/LukasWallrich/reviscope#readme">README</a> has the full options.</p>
+# Optional additions, placed before --out:
+#   --supplement appendix.pdf           supplementary material (repeat for several files)
+#   --preregistration registration.md   preregistration or analysis plan (repeatable)
+#   --no-metacheck                      skip metacheck screening and its uploads
+#   --profile social_psychology         review criteria: a bundled profile or a folder
+#   --verifier-effort high              verifier reasoning effort (defaults to --effort)
+#   --parallel 4                        model calls run at the same time
+#   --timeout 3600                      seconds allowed per model call</code></pre>
+
+<p>Open <code>runs/my-draft/review.html</code> when it finishes. Drop the two verifier options if you only have Codex, or use <code>--backend claude --model claude-opus-5-5</code> if you only have Claude. A full paper can take a long time; rerunning the same command reuses finished stages. Metacheck screening needs R 4.5 or later with metacheck installed (plus pandoc and tectonic for Markdown or plain text). The <a href="https://github.com/LukasWallrich/reviscope#readme">README</a> has the details.</p>
 
 
 <h2 id="contribute">Feedback and contributions</h2>
-<p>If you run it on a draft, I would like to hear which points you acted on, which were wrong or beside the point, and what an experienced colleague caught that it did not. <a href="https://github.com/LukasWallrich/reviscope/issues">Open an issue</a>; please do not paste unpublished manuscript text into a public issue.</p>
+<p>If you run it on a draft, I would like to hear which parts of the feedback you found most useful, where the tool overreached and what it missed. <a href="https://github.com/LukasWallrich/reviscope/issues">Open an issue</a>; please do not paste unpublished manuscript text into a public issue.</p>
 <p><strong>Profiles for other fields are welcome as pull requests.</strong> Review criteria live in profiles, sets of plain-text instructions that can inherit the bundled quantitative social-science modules and add what your field checks for: its designs, measures, reporting standards and the practices that should <em>not</em> be criticised by rote. The <a href="https://github.com/LukasWallrich/reviscope/tree/main/examples/education_profile">education profile</a> shows the structure; it is a demonstration, not a validated education reviewer. <a href="https://github.com/LukasWallrich/reviscope/pulls">Open a pull request</a> with your profile and a short note on how you tried it.</p>
 
 </main>
@@ -250,5 +256,17 @@ uv run reviscope review draft.pdf \
   </div>
 </footer>
 
+<script>
+document.querySelectorAll("pre").forEach(function (pre) {
+  var b = document.createElement("button");
+  b.className = "copy"; b.type = "button"; b.textContent = "Copy";
+  b.addEventListener("click", function () {
+    navigator.clipboard.writeText(pre.querySelector("code").innerText).then(function () {
+      b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1500);
+    }, function () { b.textContent = "Select and copy"; });
+  });
+  pre.appendChild(b);
+});
+</script>
 </body>
 </html>
