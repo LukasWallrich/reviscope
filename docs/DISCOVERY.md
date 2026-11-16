@@ -223,9 +223,19 @@ other page. It reports whether the claim rests on PDF table cells (`table_depend
 and adds its own readings of the relied-on cells. For every supported claim with
 readings, a separate call to the verifier backend then reads each cell from the
 attached page images and neighbouring pages. It is given the table, row and column, but
-neither the claimed value nor the claim. Code compares the readings: values after
-normalising minus signs, spaces and a leading decimal point while preserving superscripts;
-marks and printed units must match too, as must typeface when the claim relies on it.
+neither the claimed value nor the claim. Code compares the readings after normalising
+notation only: spacing, minus glyphs, a leading decimal point, ≤ ≥ ≠ written as <= >= !=,
+and sub- and superscripts in either Unicode (zₒ, 10³) or marked form (z_o, z_{1−α},
+10^3), with or without braces. Superscripts stay distinct from plain digits, so 10³ never
+matches 103. A subscript after a letter also matches the same characters printed on the
+line (zo for z_o), and subscript case is ignored when either reading uses a Unicode
+subscript letter, since those exist only in lower case. Numbers, signs, letters, stars
+and other operators must still be identical, so ≤ does not match < and a missing star or
+a different variable is a mismatch. A claimed text value of at least four words that ends
+a sentence also matches a longer text cell containing it verbatim at the start or after
+the end of an earlier sentence: a claim may rest on one sentence of a cell that prints a
+paragraph, and the reason records that only part of the cell was claimed.
+Marks and printed units must match too, as must typeface when the claim relies on it.
 A unit is a symbol or abbreviation printed in the cell, its row or column header, or an
 applicable table note (%, ms), recorded as printed. Scale ranges (1–7) and score descriptions
 (item means) are not units. The schemas and all three prompts share this definition. Missing or different units
