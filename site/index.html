@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReviScope</title>
+<meta name="description" content="ReviScope is early, unvalidated research software that gives structured, quotation-anchored feedback on quantitative social-science manuscripts. Use it for development feedback on your own drafts.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --text: #22201c;
+  --muted: #6a645a;
+  --rule: #e4ded3;
+  --accent: #2f5d62;
+  --accent-soft: #e3eeec;
+  --warn: #8a5a12;
+  --warn-soft: #fbf1df;
+  --code-bg: #f1ede6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171614;
+    --surface: #1f1e1b;
+    --text: #e9e5dd;
+    --muted: #a39d92;
+    --rule: #35322d;
+    --accent: #7fb7b0;
+    --accent-soft: #1f3331;
+    --warn: #e3b46a;
+    --warn-soft: #2e2618;
+    --code-bg: #26241f;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171614; --surface: #1f1e1b; --text: #e9e5dd; --muted: #a39d92;
+  --rule: #35322d; --accent: #7fb7b0; --accent-soft: #1f3331;
+  --warn: #e3b46a; --warn-soft: #2e2618; --code-bg: #26241f;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.65 "Source Serif 4", Georgia, serif;
+}
+.wrap { max-width: 46rem; margin: 0 auto; padding: 0 16px; }
+header.top {
+  border-bottom: 1px solid var(--rule);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+header.top .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; padding-bottom: 14px; gap: 1rem; }
+header.top .name { font-weight: 600; letter-spacing: 0.01em; }
+nav a { color: var(--muted); text-decoration: none; margin-left: 1.1rem; }
+nav a:hover { color: var(--accent); }
+.hero { padding: 3.5rem 0 1.5rem; }
+.status {
+  display: inline-block;
+  font: 600 0.75rem/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--warn); background: var(--warn-soft);
+  padding: 0.45rem 0.7rem; border-radius: 3px;
+}
+h1 { font-size: 2.6rem; line-height: 1.12; font-weight: 600; margin: 1.1rem 0 0.8rem; letter-spacing: -0.01em; }
+.lede { font-size: 1.25rem; line-height: 1.5; color: var(--text); margin: 0 0 1.2rem; }
+.lede + p { color: var(--muted); }
+h2 {
+  font: 600 0.8rem/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+  margin: 3.2rem 0 1rem; padding-top: 1.4rem; border-top: 1px solid var(--rule);
+}
+h3 { font-size: 1.15rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+p, ul, ol { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.25rem; }
+li { margin-bottom: 0.4rem; }
+a { color: var(--accent); text-underline-offset: 2px; }
+strong { font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 1.6rem 0 0.5rem; font-family: Inter, system-ui, sans-serif; font-size: 0.95rem; }
+.btn { display: inline-block; padding: 0.6rem 1rem; border-radius: 4px; text-decoration: none; border: 1px solid var(--accent); }
+.btn.primary { background: var(--accent); color: var(--bg); }
+.btn.secondary { color: var(--accent); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1.1rem 1.2rem; }
+.card h3 { margin-top: 0; font-size: 1.05rem; }
+.card ul { margin: 0; }
+.card.is h3 { color: var(--accent); }
+.card.isnt h3 { color: var(--warn); }
+ol.steps { list-style: none; padding: 0; counter-reset: s; }
+ol.steps li { counter-increment: s; position: relative; padding-left: 2.4rem; margin-bottom: 0.9rem; }
+ol.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 0.1rem;
+  width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font: 600 0.8rem/1.6rem Inter, system-ui, sans-serif; text-align: center;
+}
+.note { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 0.9rem 1.1rem; border-radius: 0 4px 4px 0; margin: 1.2rem 0; }
+.note p:last-child { margin-bottom: 0; }
+pre {
+  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px;
+  padding: 0.9rem 1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.55;
+}
+code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.88em; }
+p code, li code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 3px; white-space: nowrap; }
+footer { margin-top: 4rem; padding: 1.5rem 0 3rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.9rem; }
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  h1 { font-size: 2rem; }
+  .lede { font-size: 1.12rem; }
+  .split { grid-template-columns: 1fr; }
+  nav a:not(.gh) { display: none; }
+  .hero { padding-top: 2.2rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="name">🔍 ReviScope</span>
+    <nav>
+      <a href="#what">What it is</a>
+      <a href="#how">How it works</a>
+      <a href="#try">Try it</a>
+      <a class="gh" href="https://github.com/LukasWallrich/reviscope">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section class="hero">
+  <span class="status">Early research software · not validated</span>
+  <h1>A structured second read for quantitative social-science manuscripts</h1>
+  <p class="lede">ReviScope runs a set of focused AI review modules over a manuscript and returns a list of specific, checkable points: each one tied to a quoted passage, with a suggested response.</p>
+  <p>It is meant for authors who want development feedback on a draft: things to check, clarify or argue more carefully before others read it. It does not judge whether a paper is good, and it has not been validated against human peer review.</p>
+  <div class="cta">
+    <a class="btn primary" href="#try">Try it on a draft</a>
+    <a class="btn secondary" href="https://github.com/LukasWallrich/reviscope/issues">Tell us what helped or misled you</a>
+  </div>
+</section>
+
+<h2 id="what">What it is, and what it is not</h2>
+
+<div class="split">
+  <div class="card is">
+    <h3>Use it for</h3>
+    <ul>
+      <li>Feedback on your own draft before submission or circulation</li>
+      <li>Prompts to re-check statistics, tables, claims and citations</li>
+      <li>Spotting places where a reader may stumble or over-read a result</li>
+      <li>Experimenting with discipline-specific review criteria</li>
+    </ul>
+  </div>
+  <div class="card isnt">
+    <h3>Do not use it for</h3>
+    <ul>
+      <li>Deciding whether a paper should be published or funded</li>
+      <li>Replacing a qualified human reviewer</li>
+      <li>Scoring or ranking manuscripts or researchers</li>
+      <li>Confidential manuscripts you are not authorised to share with a model provider</li>
+    </ul>
+  </div>
+</div>
+
+<p>Treat every point as a question to look into, not a verdict. The reviews can miss serious problems, state a criticism that does not hold, or sound more confident than they should. An empty or short review does not mean a paper is sound.</p>
+
+<h2 id="how">How a review is built</h2>
+
+<p>Instead of one long prompt, ReviScope splits the work so that each step has a narrow job and leaves a record. The default profile covers quantitative social psychology.</p>
+
+<ol class="steps">
+  <li><strong>Screening.</strong> The <a href="https://github.com/scienceverse/metacheck">metacheck</a> R package runs deterministic checks (reported statistics, references, preregistration and open-practice statements) and passes its results on as unverified leads.</li>
+  <li><strong>Specialist modules.</strong> Separate modules review contribution, design, measurement, statistical inference, interpretation and consistency, alongside a whole-paper overview. A blind-spot pass then looks for what they missed. Modules can search the literature, recompute statistics in a sandbox and look at page images of tables.</li>
+  <li><strong>Verification.</strong> A separate call checks each candidate point, ideally with a different model family. A point is published only if the verifier supports it and it quotes the manuscript exactly; points the verifier cannot settle are listed separately as unconfirmed.</li>
+  <li><strong>Editorial and reader passes.</strong> Overlapping points are merged and given a severity. A final pass rewrites them for clarity and proportion, without adding claims.</li>
+</ol>
+
+<p>You receive a readable review (each finding shows the manuscript passage, then the problem, then a suggested response) and a separate audit record with the verification notes, set-aside points and every tool call.</p>
+
+<h2 id="evidence">What we know so far</h2>
+
+<p>Very little, and we would rather say so plainly. Development so far has used a small set of openly reviewed papers and the maintainer's own drafts. On those, the pipeline has not been shown to find more than a single careful prompt to the same model; what it adds is structure: quotation anchoring, a separate verification step and an inspectable record. Whether that makes the feedback more useful to authors is the open question.</p>
+<p>A held-out validation set has been set aside and not yet run. Until it is, treat any impression of quality, good or bad, as anecdotal. <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/PIPELINE_VALIDATION_PLAN.md">Validation plan</a> · <a href="https://github.com/LukasWallrich/reviscope/blob/main/docs/SPECIALIST_DEVELOPMENT.md">development record</a>.</p>
+
+<h2 id="try">Try it</h2>
+
+<p>You need Python 3.11+, <a href="https://docs.astral.sh/uv/">uv</a>, and a logged-in <strong>Codex CLI</strong> or <strong>Claude CLI</strong>. Model calls run through your own CLI subscription or account. PDF, DOCX, Markdown and plain text are supported.</p>
+
+<pre><code>git clone https://github.com/LukasWallrich/reviscope.git
+cd reviscope
+uv sync --extra dev
+
+# Offline demo: no model, no credentials (output is a fixture, not a review)
+uv run reviscope review examples/demo_manuscript.md --backend fixture --out runs/demo
+
+# A real review of your draft
+uv run reviscope review draft.pdf \
+  --backend codex --model gpt-6-luna --effort high \
+  --out runs/my-draft</code></pre>
+
+<p>Open <code>runs/my-draft/review.html</code> when it finishes. Add <code>--supplement</code> or <code>--preregistration</code> if you have them, and <code>--verifier-backend claude --verifier-model claude-opus-5-5</code> for a verifier from a different model family. A full paper can take a while; rerunning the same command reuses finished stages. Metacheck screening needs R 4.5 with metacheck installed; add <code>--no-metacheck</code> to skip it. The <a href="https://github.com/LukasWallrich/reviscope#readme">README</a> has the full options.</p>
+
+<div class="note">
+  <p><strong>Where your manuscript goes.</strong> The text is sent to the model service your CLI uses. Unless you run a local GROBID server, metacheck also uploads the file to an online conversion server and queries CrossRef and other scholarly APIs. Use <code>--no-metacheck</code> for material that must not leave your machine or your chosen model service.</p>
+</div>
+
+<h3>Feedback we would value</h3>
+<p>If you run it on a draft, we would like to hear which points you acted on, which were wrong or beside the point, and what an experienced colleague caught that it did not. <a href="https://github.com/LukasWallrich/reviscope/issues">Open an issue</a>; please do not paste unpublished manuscript text into a public issue.</p>
+
+<h3>Other disciplines</h3>
+<p>Review criteria live in plain-text profiles that can inherit from the bundled quantitative social-science modules. The <a href="https://github.com/LukasWallrich/reviscope/tree/main/examples/education_profile">education profile</a> shows how to adapt them; it is a demonstration, not a validated education reviewer.</p>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>ReviScope is MIT licensed and maintained by <a href="https://github.com/LukasWallrich">Lukas Wallrich</a>. It builds on ideas from <a href="https://github.com/Davidvandijcke/coarse">coarse</a> by David Van Dijcke and <a href="https://github.com/dhagmann/paper-review">paper-review</a> by David Hagmann, and uses <a href="https://github.com/scienceverse/metacheck">metacheck</a> for screening. See the <a href="https://github.com/LukasWallrich/reviscope/blob/main/THIRD_PARTY_NOTICES.md">credits and provenance</a>.</p>
+  </div>
+</footer>
+
+</body>
+</html>
