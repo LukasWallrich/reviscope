@@ -299,21 +299,23 @@ def verify_findings(findings: Iterable[Finding], sources: Iterable[SourceDocumen
 # Dash-like characters that print as a minus sign, and spelled-out comparison operators.
 _MINUS = dict.fromkeys(map(ord, "\u2212\u2013\u2012\u2010\u2011\ufe63\uff0d"), "-")
 _SYMBOLS = {"\u2264": "<=", "\u2266": "<=", "\u2265": ">=", "\u2267": ">=", "\u2260": "!=", "\u2217": "*"}
-# A text cell may be claimed by complete sentences of it: at least this many words, ending a sentence.
+# A text cell may be claimed by its opening sentences: at least this many words with letters.
 MIN_PART_WORDS = 4
 
 
-def _script_runs(text: str) -> tuple[str, bool]:
+def _script_runs(text: str) -> tuple[str, bool, bool]:
     """Rewrite Unicode subscript and superscript runs as _{…} and ^{…}. Also report whether a
-    subscript letter was used: those exist only in lower case, so their case is not printed."""
+    Unicode subscript was used (its scope is limited to the characters that have subscript
+    glyphs) and whether a subscript letter was used (those exist only in lower case)."""
     out: list[str] = []
     marker = None
-    sub_letter = False
+    sub_any = sub_letter = False
     for char in text:
         kind, _, codes = unicodedata.decomposition(char).partition(" ")
         script = {"<sub>": "_", "<super>": "^"}.get(kind)
         if script and codes:
             plain = "".join(chr(int(code, 16)) for code in codes.split())
+            sub_any |= script == "_"
             sub_letter |= script == "_" and plain.isalpha()
             if marker != script:
                 out.append(("}" if marker else "") + script + "{")
@@ -324,11 +326,12 @@ def _script_runs(text: str) -> tuple[str, bool]:
             out.append("}")
             marker = None
         out.append(char)
-    return "".join(out) + ("}" if marker else ""), sub_letter
+    return "".join(out) + ("}" if marker else ""), sub_any, sub_letter
 
 
-def _printed(text: str, spaces: bool = False) -> tuple[str, bool]:
-    """Canonical notation of a printed cell, and whether it used a Unicode subscript letter.
+def _printed(text: str, spaces: bool = False) -> tuple[str, bool, bool]:
+    """Canonical notation of a printed cell, and whether it used a Unicode subscript and a
+    Unicode subscript letter.
 
     Unicode sub- and superscripts become _{…} and ^{…}, a single-character _x or ^x is braced,
     minus glyphs become -, ≤ ≥ ≠ become <= >= !=, a leading decimal point gets its zero, and
@@ -337,14 +340,14 @@ def _printed(text: str, spaces: bool = False) -> tuple[str, bool]:
     signs, stars, letters and other operators are untouched. Missing-value labels are values too,
     not empty readings.
     """
-    text, sub_letter = _script_runs(unicodedata.normalize("NFC", text))
+    text, sub_any, sub_letter = _script_runs(unicodedata.normalize("NFC", text))
     text = "".join(char if unicodedata.category(char) == "No" else unicodedata.normalize("NFKC", char)
                    for char in text)
     text = "".join(_SYMBOLS.get(char, char) for char in text.translate(_MINUS))
     text = " ".join(text.split()) if spaces else "".join(text.split())
     text = re.sub(r"([_^]) ?([^{\s])", r"\1{\2}", text)
     text = re.sub(r"(?<![\d.])\.(?=\d)", "0.", text)
-    return text, sub_letter
+    return text, sub_any, sub_letter
 
 
 def _subscripts(text: str, flatten: bool = False, fold_case: bool = False) -> str:
@@ -377,25 +380,35 @@ def _subscripts(text: str, flatten: bool = False, fold_case: bool = False) -> st
 
 
 def _same_value(mine: str, theirs: str) -> bool:
-    """Whether two readings print the same value in different notation."""
-    (a, a_letter), (b, b_letter) = _printed(mine), _printed(theirs)
+    """Whether two readings print the same value in different notation.
+
+    Subscripts are compared on the line (z_{o} as zo) only when a reading cannot show their
+    scope: it prints no subscript markers, or uses Unicode subscripts, which exist only for some
+    characters (z₁₋α cannot subscript the α). When both readings mark scope in full, x_{a}b and
+    x_{ab} stay different.
+    """
+    (a, a_any, a_letter), (b, b_any, b_letter) = _printed(mine), _printed(theirs)
     fold = a_letter or b_letter
     a, b = _subscripts(a, fold_case=fold), _subscripts(b, fold_case=fold)
-    return a == b or _subscripts(a, flatten=True) == _subscripts(b, flatten=True)
+    if a == b:
+        return True
+    unscoped = a_any or b_any or "_{" not in a or "_{" not in b
+    return unscoped and _subscripts(a, flatten=True) == _subscripts(b, flatten=True)
 
 
 def _part_of_text(mine: str, theirs: str) -> bool:
-    """Whether a claimed text value is one or more complete sentences of a longer text cell.
+    """Whether a claimed text value is the opening sentence or sentences of a longer text cell.
 
-    A claim may rely on one sentence of a cell that prints a paragraph. The claimed text must
-    have at least MIN_PART_WORDS words, end a sentence, and appear verbatim at the start of the
-    reading or after the end of a sentence; numeric cells can never match a part this way.
+    A claim may rely on the first sentence of a cell that prints a paragraph. After notation
+    normalisation, the claimed text must have at least MIN_PART_WORDS words containing letters,
+    end with . ! or ?, and be followed in the reading by a space. Only the start of the cell
+    counts: a later start would depend on guessing sentence boundaries, which abbreviations
+    (J., et al.) and clauses after a colon make unreliable.
     """
     a, b = _printed(mine, spaces=True)[0], _printed(theirs, spaces=True)[0]
-    if len(a.split()) < MIN_PART_WORDS or not a.endswith((".", "!", "?")) or len(b) <= len(a):
-        return False
-    return any(b[i:].startswith(a) and (i + len(a) == len(b) or b[i + len(a)] == " ")
-               for i in [0] + [m.end() for m in re.finditer(r"[.!?] ", b)])
+    words = [word for word in a.split() if any(char.isalpha() for char in word)]
+    return (len(words) >= MIN_PART_WORDS and a.endswith((".", "!", "?"))
+            and b.startswith(a + " "))
 
 
 def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:
@@ -418,7 +431,7 @@ def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[s
         return "mismatched", "The separate reading differs: " + "; ".join(differences) + "."
     if part and not _same_value(claimed.value, blind.value):
         return "matched", ("The separate reader, given only the table, row and column, read a longer text cell that "
-                           "contains the claimed text as complete sentences, with the same marks and unit.")
+                           "opens with the claimed sentences, with the same marks and unit.")
     return "matched", "The separate reader, given only the table, row and column, read the same value, marks and unit."
 
 

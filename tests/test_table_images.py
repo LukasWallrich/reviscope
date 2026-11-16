@@ -89,6 +89,7 @@ def test_notation_only_differences_match(claimed, read):
     ("10_3", "103"),                            # a subscript after a digit is not flattened
     ("q_{1−β}", "q_{1+β}"),
     ("q_{1−β}", "q_{1−β²}"),
+    ("x_{a}b", "x_{ab}"),                       # both readings mark the subscript's scope
 ])
 def test_different_values_stay_mismatched(claimed, read):
     assert compare_reading(reading(value=claimed), blind(value=read))[0] == "mismatched"
@@ -97,30 +98,31 @@ def test_different_values_stay_mismatched(claimed, read):
 CELL_TEXT = "Prefer outcomes that can show no difference. Report both intervals; justify the bound."
 
 
-@pytest.mark.parametrize("claimed,outcome", [
-    ("Prefer outcomes that can show no difference.", "matched"),                  # leading complete sentence
-    ("Report both intervals; justify the bound.", "matched"),                     # later complete sentence
-    ("Prefer outcomes that can show", "mismatched"),                              # not a complete sentence
-    ("Prefer outcomes that can show a difference.", "mismatched"),
-    ("Show no difference.", "mismatched"),                                        # too short to stand alone
-    ("justify the bound.", "mismatched"),                                         # a clause after a semicolon
+@pytest.mark.parametrize("claimed,read,outcome", [
+    ("Prefer outcomes that can show no difference.", CELL_TEXT, "matched"),           # opening sentence
+    ("Prefer outcomes that can show no difference. Report both intervals; justify the bound.",
+     CELL_TEXT + " Then decide.", "matched"),                                          # opening sentences
+    ("Report both intervals; justify the bound.", CELL_TEXT, "mismatched"),            # not at the start
+    ("justify the bound.", CELL_TEXT, "mismatched"),                                   # a clause after a semicolon
+    ("the treatment improves later outcomes.",
+     "Do not conclude: the treatment improves later outcomes.", "mismatched"),         # a clause after a colon
+    ("Smith ran before the study.", "J. Smith ran before the study. More text.", "mismatched"),  # after an initial
+    ("Prefer outcomes that can show", CELL_TEXT, "mismatched"),                        # not a complete sentence
+    ("Prefer outcomes that can show a difference.", CELL_TEXT, "mismatched"),
+    ("Show no difference.", "Show no difference. Then report it.", "mismatched"),      # fewer than four words
+    ("Prefer outcomes that can show no difference.", "Prefer outcomes that can show no difference.5",
+     "mismatched"),                                                                    # no sentence boundary
+    ("0.1 0.2 0.3 0.4.", "0.1 0.2 0.3 0.4. 0.5", "mismatched"),                         # numbers are not words
 ])
-def test_complete_sentences_of_a_longer_text_cell(claimed, outcome):
-    result = compare_reading(reading(value=claimed), blind(value=CELL_TEXT))
+def test_opening_sentences_of_a_longer_text_cell(claimed, read, outcome):
+    result = compare_reading(reading(value=claimed), blind(value=read))
     assert result[0] == outcome
     if outcome == "matched":
-        assert "complete sentences" in result[1]
-
-
-def test_a_clause_after_a_colon_is_not_a_sentence():
-    claimed = reading(value="the treatment improves later outcomes.")
-    assert compare_reading(claimed, blind(value="Do not conclude: the treatment improves later outcomes."))[0] == "mismatched"
+        assert "opens with the claimed sentences" in result[1]
 
 
 def test_numeric_prefix_is_not_a_part_of_text():
     assert compare_reading(reading(value="0.5"), blind(value="0.52"))[0] == "mismatched"
-    assert compare_reading(reading(value="Prefer outcomes that can show no difference.", marks="a"),
-                           blind(value=CELL_TEXT))[0] == "mismatched"
 
 
 def test_table_gate_holds_supported_claims_without_confirmed_cells():
