@@ -117,6 +117,8 @@ CELL_TEXT = "Prefer outcomes that can show no difference. Report both intervals;
     ("Effects were larger in the U.K.", "Effects were larger in the U.K. Then they fell.", "mismatched"),
     ("Prefer outcomes that can show no difference.",
      "Prefer outcomes that can show no difference. and more", "mismatched"),           # lower-case continuation
+    ("Prefer outcomes that can show no difference.",
+     "Prefer outcomes that can show no difference. “Then report it.”", "matched"),     # curly opening quote
 ])
 def test_opening_sentences_of_a_longer_text_cell(claimed, read, outcome):
     result = compare_reading(reading(value=claimed), blind(value=read))

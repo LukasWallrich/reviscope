@@ -413,7 +413,7 @@ def _part_of_text(mine: str, theirs: str) -> bool:
         return False
     last, following = a.split()[-1][:-1], b[len(a) + 1:len(a) + 2]
     abbreviation = "." in last or last.lower() in {"al", "etc", "vs", "cf", "eg", "ie"}
-    return not abbreviation and (following.isupper() or following.isdigit() or following in "([\"'")
+    return not abbreviation and (following.isupper() or following.isdigit() or following in "([\"'\u201c\u2018\u00ab")
 
 
 def compare_reading(claimed: TableReading, blind: CellReading | None) -> tuple[str, str]:
