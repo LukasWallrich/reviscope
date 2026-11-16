@@ -11,7 +11,7 @@ from typing import Callable, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from .backend import REVIEW_GUARD, Backend, CodexBackend, StagedImages
+from .backend import REVIEW_GUARD, Backend, CodexBackend, StagedImages, terminate_running
 from .ingest import ingest
 from . import page_images
 from .render import finding_order, remedy_shown, render_all, report_items, to_markdown
@@ -268,8 +268,14 @@ class ReviewPipeline:
                 self._prefetched[key] = self._cached(out, name, inputs, model_type, fn, backend)
             except BaseException as exc:
                 self._prefetched[key] = exc
-        with ThreadPoolExecutor(max_workers=self.parallel) as pool:
+        pool = ThreadPoolExecutor(max_workers=self.parallel)
+        try:
             list(pool.map(run_one, jobs))
+        except BaseException:  # interrupted: stop queued stages and the model CLIs that worker threads wait on
+            pool.shutdown(wait=False, cancel_futures=True)
+            terminate_running()
+            raise
+        pool.shutdown()
 
     def _metacheck(self, manuscript: Path, out: Path, modules: list[str]) -> tuple[MetacheckRecord, str, dict[str, str]]:
         """Screening record, its fingerprint and the leads per review module. Screening never
@@ -301,6 +307,8 @@ class ReviewPipeline:
                            backend_version=stage.backend_version if stage else backend.version)
 
     def run(self, manuscript: str | Path, *, supplements: list[str | Path] | None = None, preregistrations: list[str | Path] | None = None, output_dir: str | Path = "review-run") -> ReviewRun:
+        for backend in dict.fromkeys((self.backend, self.verifier_backend)):  # a missing CLI or unsafe policy stops the run before any stage
+            backend.preflight()
         out = Path(output_dir).resolve()
         out.mkdir(parents=True, exist_ok=True)
         sources = [ingest(manuscript)]

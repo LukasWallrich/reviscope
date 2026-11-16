@@ -191,3 +191,91 @@ def test_cli_version_is_provenance_not_part_of_the_backend_identity(monkeypatch)
     after = CodexBackend("gpt-6-luna", effort="high")
     assert after.identity == identity and (version, after.version) == ("codex-cli 1.0.0", "codex-cli 2.0.0")
     assert CodexBackend("gpt-6.1-sol", effort="high").identity != identity
+
+
+def _detached_child(marker: Path) -> str:
+    """Shell snippet starting a child in a session of its own, as Claude Code does for its sandboxed shell."""
+    import sys
+
+    code = f"import os, time; os.setsid(); time.sleep(3); open({str(marker)!r}, 'w')"
+    return f"{sys.executable} -c \"{code}\" &"
+
+
+def test_timeout_also_kills_children_that_left_the_process_group(tmp_path):
+    marker = tmp_path / "detached-alive"
+    backend = ScriptBackend(f"{_detached_child(marker)} sleep 30", timeout=1)
+    with pytest.raises(TimeoutError):
+        backend.generate("task", "evidence", Answer)
+    time.sleep(3.5)
+    assert not marker.exists()
+
+
+def test_interrupt_during_parallel_stages_stops_every_running_cli(tmp_path):
+    import os
+    import signal
+    import threading
+
+    markers = [tmp_path / f"alive-{i}" for i in range(3)]
+    backends = [ScriptBackend(f"{_detached_child(marker)} sleep 30") for marker in markers]
+    jobs = [(f"stage-{i}", {"i": i}, Answer, (lambda b=b: b.generate("task", "evidence", Answer)), b) for i, b in enumerate(backends)]
+    pipeline = ReviewPipeline(FixtureBackend(), parallel=3)
+    threading.Timer(1, os.kill, (os.getpid(), signal.SIGINT)).start()
+    started = time.monotonic()
+    with pytest.raises(KeyboardInterrupt):
+        pipeline._prefetch(tmp_path, jobs)
+    assert time.monotonic() - started < 10  # does not wait for the 30-second calls
+    time.sleep(3.5)
+    assert not any(marker.exists() for marker in markers)
+
+
+def test_managed_policy_drop_ins_and_codex_home_are_checked(tmp_path, monkeypatch):
+    from reviscope import backend as backend_module
+
+    drop_ins = tmp_path / "managed-settings.d"
+    drop_ins.mkdir()
+    monkeypatch.setattr(backend_module, "MANAGED_POLICY", {"claude": (drop_ins,), "codex": ()})
+    before = backend_module.policy_hash("claude")
+    (drop_ins / "10-team.json").write_text(json.dumps({"sandbox": {"excludedCommands": ["python3"]}}))
+    assert backend_module.policy_hash("claude") != before
+    with pytest.raises(backend_module.PolicyError, match="10-team.json"):
+        backend_module.check_managed_policy("claude")
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    (codex_home / "requirements.toml").write_text('sandbox_mode = "danger-full-access"\n')
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+    with pytest.raises(backend_module.PolicyError, match="requirements.toml"):
+        backend_module.check_managed_policy("codex")
+
+
+def test_config_directories_outside_home_are_hidden_and_credentials_go_only_to_their_cli(tmp_path, monkeypatch):
+    for name in ("CODEX_HOME", "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY", "HTTPS_PROXY"):
+        monkeypatch.delenv(name, raising=False)
+    baseline_codex, baseline_claude = CodexBackend("gpt-6-luna").command(tmp_path), ClaudeBackend().command(tmp_path)
+    monkeypatch.setenv("CODEX_HOME", str(Path.home() / ".codex-alt"))  # inside home: already hidden
+    assert CodexBackend("gpt-6-luna").command(tmp_path) == baseline_codex
+    monkeypatch.setenv("CODEX_HOME", "/srv/codex")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", "/srv/claude")
+    profile = next(part for part in CodexBackend("gpt-6-luna").command(tmp_path) if part.startswith("permissions.reviscope="))
+    assert '"/srv/codex"="deny"' in profile
+    claude = ClaudeBackend().command(tmp_path)
+    settings = json.loads(claude[claude.index("--settings") + 1])
+    assert "/srv/claude" in settings["sandbox"]["filesystem"]["denyRead"] and "Read(//srv/claude/**)" in settings["permissions"]["deny"]
+    assert claude != baseline_claude
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:3128")
+    codex_env, claude_env = CodexBackend("gpt-6-luna").environment(tmp_path), ClaudeBackend().environment(tmp_path)
+    assert "ANTHROPIC_API_KEY" not in codex_env and "CLAUDE_CONFIG_DIR" not in codex_env and codex_env["CODEX_HOME"] == "/srv/codex"
+    assert claude_env["ANTHROPIC_API_KEY"] == "test-key" and "CODEX_HOME" not in claude_env
+    assert codex_env["HTTPS_PROXY"] == claude_env["HTTPS_PROXY"] == "http://proxy.example:3128"
+
+
+def test_a_missing_cli_stops_the_run_before_any_stage(tmp_path, monkeypatch):
+    from reviscope.cli import main
+
+    monkeypatch.setenv("PATH", str(tmp_path))  # no claude or codex here
+    manuscript = tmp_path / "paper.md"
+    manuscript.write_text("# Paper\n\nParticipants were recruited from the university pool.\n")
+    with pytest.raises(FileNotFoundError, match="claude CLI"):
+        ReviewPipeline(FixtureBackend(), verifier_backend=ClaudeBackend()).run(manuscript, output_dir=tmp_path / "out")
+    assert not (tmp_path / "out").exists()
+    assert main(["review", str(manuscript), "--backend", "claude", "--out", str(tmp_path / "cli-out"), "--no-metacheck"]) == 1

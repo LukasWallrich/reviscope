@@ -41,15 +41,22 @@ REVIEW_DOMAINS = ("pubpeer.com", "sciety.org", "publons.com", "prereview.org", "
                   "hypothes.is", "openreview.net", "peercommunityin.org", "rapidreviews.io")
 
 TOOL_OUTPUT_LIMIT = 4000
-ENV_ALLOWLIST = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "CODEX_HOME", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "LANG", "LC_ALL"}
+# Environment passed to every CLI: core variables plus proxy and certificate settings, without which
+# the CLI cannot reach its service behind an institutional proxy. Each backend adds its own
+# authentication and configuration variables (`env_keys`); the sandboxed shells receive less.
+ENV_ALLOWLIST = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL",
+                 "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "https_proxy", "http_proxy", "no_proxy",
+                 "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS"}
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>\\\])]+")
 
 
 # Administrator policy files that the CLIs apply even in restricted modes and that can widen the sandbox.
+# A directory stands for the drop-in files in it (Claude Code merges managed-settings.d/*.json).
 MANAGED_POLICY = {
-    "claude": (Path("/Library/Application Support/ClaudeCode/managed-settings.json"), Path("/etc/claude-code/managed-settings.json")),
-    "codex": (Path("/etc/codex/requirements.toml"), Path("/etc/codex/managed_config.toml"), Path.home() / ".codex/requirements.toml",
-              Path.home() / ".codex/managed_config.toml"),
+    "claude": (Path("/Library/Application Support/ClaudeCode/managed-settings.json"),
+               Path("/Library/Application Support/ClaudeCode/managed-settings.d"),
+               Path("/etc/claude-code/managed-settings.json"), Path("/etc/claude-code/managed-settings.d")),
+    "codex": (Path("/etc/codex/requirements.toml"), Path("/etc/codex/managed_config.toml")),
 }
 
 
@@ -57,12 +64,29 @@ class PolicyError(RuntimeError):
     pass
 
 
+def codex_home() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+
+
+def managed_policy_files(binary: str) -> list[Path]:
+    """Policy files present for this CLI, drop-in directories expanded, in a stable order."""
+    entries = list(MANAGED_POLICY.get(binary, ()))
+    if binary == "codex":
+        entries += [codex_home() / "requirements.toml", codex_home() / "managed_config.toml"]
+    files = []
+    for entry in entries:
+        if entry.is_dir():
+            files += sorted(path for path in entry.glob("*.json") if path.is_file())
+        elif entry.is_file():
+            files.append(entry)
+    return files
+
+
 def policy_hash(binary: str) -> str:
     """Hash of the managed policy files present for this CLI; part of the cache identity."""
     digest = hashlib.sha256()
-    for path in MANAGED_POLICY.get(binary, ()):
-        if path.is_file():
-            digest.update(str(path).encode() + b"\0" + path.read_bytes())
+    for path in managed_policy_files(binary):
+        digest.update(str(path).encode() + b"\0" + path.read_bytes())
     return digest.hexdigest()[:12]
 
 
@@ -110,9 +134,7 @@ def _codex_widening(value: Any, where: str = "") -> list[str]:
 
 def check_managed_policy(binary: str) -> None:
     """Refuse a tool-enabled call when a managed policy file widens the shell sandbox."""
-    for path in MANAGED_POLICY.get(binary, ()):
-        if not path.is_file():
-            continue
+    for path in managed_policy_files(binary):
         try:
             text = path.read_text(encoding="utf-8")
             problems = _claude_widening(json.loads(text)) if binary == "claude" else _codex_widening(tomllib.loads(text))
@@ -164,6 +186,9 @@ class Backend(ABC):
     @property
     def identity(self) -> str:
         return f"{self.name}:{self.model or 'default'}:{self.effort or 'default'}"
+
+    def preflight(self) -> None:
+        """Raise before a run starts when this backend cannot run its calls."""
 
     @property
     def version(self) -> str | None:
@@ -336,12 +361,64 @@ def cli_version(binary: str) -> str:
         return "unavailable"
 
 
-def _kill_group(process: subprocess.Popen[str]) -> tuple[str, str]:
-    """Kill the CLI's whole process group and return what it printed."""
+def _descendants(pid: int) -> list[int]:
+    """Process IDs below `pid`, from one `ps` snapshot (Linux and macOS)."""
     try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
+        listing = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    children: dict[int, list[int]] = {}
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and all(part.isdigit() for part in parts):
+            children.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found, stack = [], [pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            found.append(child)
+            stack.append(child)
+    return found
+
+
+def _kill_tree(pid: int) -> None:
+    """Kill the CLI's process group and every process below it. Claude Code starts its sandboxed
+    shell in a session of its own, which survives a kill of the CLI's group alone."""
+    own_group = os.getpgrp()
+    targets = _descendants(pid)
+    groups = {pid}
+    for child in targets:
+        try:
+            groups.add(os.getpgid(child))
+        except (ProcessLookupError, PermissionError):
+            pass
+    for group in groups - {own_group}:
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    for child in targets:
+        try:
+            os.kill(child, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
+# Model CLIs currently running, so an interrupt in the main thread can stop calls made by worker threads.
+_RUNNING: set[subprocess.Popen[str]] = set()
+_RUNNING_LOCK = threading.Lock()
+
+
+def terminate_running() -> None:
+    """Kill every model CLI still running, with its sandboxed processes."""
+    with _RUNNING_LOCK:
+        processes = list(_RUNNING)
+    for process in processes:
+        _kill_tree(process.pid)
+
+
+def _kill_group(process: subprocess.Popen[str]) -> tuple[str, str]:
+    """Kill the CLI's process tree and return what it printed."""
+    _kill_tree(process.pid)
     try:
         stdout, stderr = process.communicate(timeout=10)
     except (subprocess.TimeoutExpired, ValueError, OSError):
@@ -354,6 +431,8 @@ def _execute(command: list[str], prompt: str, cwd: str, env: dict[str, str], tim
     on any other exception or interrupt, kill the group and re-raise with that output attached."""
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True, cwd=cwd, env=env, start_new_session=True)
+    with _RUNNING_LOCK:
+        _RUNNING.add(process)
     try:
         stdout, stderr = process.communicate(prompt, timeout=timeout)
         return process.returncode, stdout, stderr
@@ -362,13 +441,17 @@ def _execute(command: list[str], prompt: str, cwd: str, env: dict[str, str], tim
         return None, stdout, stderr
     except BaseException as exc:
         stdout, _ = _kill_group(process)
-        exc.add_note(f"killed model subprocess group {process.pid}")
+        exc.add_note(f"killed model subprocess tree {process.pid}")
         exc.partial_stdout = stdout  # type: ignore[attr-defined]
         raise
+    finally:
+        with _RUNNING_LOCK:
+            _RUNNING.discard(process)
 
 
 class SubprocessBackend(Backend):
     binary: str
+    env_keys: frozenset[str] = frozenset()  # authentication and configuration variables of this CLI
 
     def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True):
         models = {"codex": ("gpt-6.1-sol", "gpt-6-luna"), "claude": ("claude-opus-5-5",)}
@@ -386,7 +469,7 @@ class SubprocessBackend(Backend):
         raise NotImplementedError
 
     def environment(self, tmp: Path) -> dict[str, str]:
-        env = {key: value for key, value in os.environ.items() if key in ENV_ALLOWLIST}
+        env = {key: value for key, value in os.environ.items() if key in ENV_ALLOWLIST | self.env_keys}
         env.update({"NO_COLOR": "1", "TMPDIR": str(tmp)})
         return env
 
@@ -405,6 +488,18 @@ class SubprocessBackend(Backend):
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return [], stdout
 
+    def check_policy(self) -> None:
+        """Refuse a tool-enabled call whose sandbox could be weaker than intended; checked before every call."""
+        if self.tools:
+            check_managed_policy(self.binary)
+
+    def preflight(self) -> None:
+        """Fail before a run starts when the CLI is missing or check_policy refuses."""
+        executable = self.command(Path("/per-call-directory"))[0]
+        if not (shutil.which(executable) or Path(executable).is_file()):
+            raise FileNotFoundError(f"the {self.name} CLI ({executable}) is not installed or not on PATH")
+        self.check_policy()
+
     def _attach(self, command: list[str], paths: list[Path]) -> None:
         """Add attached images to the command line; backends that send them otherwise do nothing."""
 
@@ -418,9 +513,8 @@ class SubprocessBackend(Backend):
         self._tool_calls.extend(call.model_copy(update={"sequence": offset + call.sequence}) for call in calls)
 
     def _run(self, prompt: str, response_model: type[T], images: StagedImages | None = None) -> str:
-        if self.tools:
-            check_managed_policy(self.binary)
-        elif images:
+        self.check_policy()
+        if images and not self.tools:
             raise ValueError("tool-free calls never receive page images")
         started = datetime.now(timezone.utc)
         # A short path under /tmp: Claude Code falls back to a shared temp directory for long TMPDIR paths.
@@ -500,10 +594,21 @@ def _relative(calls: list[ToolCall], tmp: Path) -> list[ToolCall]:
     return [call.model_copy(update={"path": call.path.removeprefix(prefix)}) if call.path else call for call in calls]
 
 
+def _config_outside_home(variable: str) -> str | None:
+    """A CLI configuration directory (credentials included) set by `variable` outside the home directory."""
+    value = os.environ.get(variable)
+    if not value:
+        return None
+    path, home = Path(value).expanduser().resolve(), Path.home().resolve()
+    return None if path == home or home in path.parents else str(path)
+
+
 def codex_permissions() -> str:
-    """Shell permission profile: read the filesystem except the home directory, write only the
-    per-call working directory, no network."""
-    return (f'permissions.reviscope={{extends=":read-only", filesystem={{{json.dumps(str(Path.home()))}="deny", '
+    """Shell permission profile: read the filesystem except the home directory (and CODEX_HOME when it
+    lies elsewhere), write only the per-call working directory, no network."""
+    denied = [str(Path.home())] + [path for path in [_config_outside_home("CODEX_HOME")] if path]
+    deny = "".join(f'{json.dumps(path)}="deny", ' for path in denied)
+    return (f'permissions.reviscope={{extends=":read-only", filesystem={{{deny}'
             f'":workspace_roots"={{"."="write"}}}}, network={{enabled=false}}}}')
 
 
@@ -530,6 +635,7 @@ class CodexBackend(SubprocessBackend):
     that must read only the supplied text."""
 
     name, binary = "codex", "codex"
+    env_keys = frozenset({"CODEX_HOME"})
 
     def command(self, tmp: Path) -> list[str]:
         cmd = [(codex_executable() or "codex") if self.tools else "codex", "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--strict-config",
@@ -548,11 +654,12 @@ class CodexBackend(SubprocessBackend):
             cmd += ["-c", f'model_reasoning_effort="{self.effort}"']
         return [*cmd, "-"]
 
-    def _run(self, prompt: str, response_model: type[T], images: StagedImages | None = None) -> str:
+    def check_policy(self) -> None:
         if self.tools and codex_executable() is None:
             raise PolicyError("on Linux the Codex shell sandbox hides the home directory, so tool-enabled calls need a codex "
-                              "binary installed outside it and on PATH (for example a system-wide npm install)")
-        return super()._run(prompt, response_model, images)
+                              "binary installed outside it and on PATH, for example with `sudo npm install -g @openai/codex` "
+                              "(installs under /usr/local) or the standalone codex binary copied to /usr/local/bin")
+        super().check_policy()
 
     def _attach(self, command: list[str], paths: list[Path]) -> None:
         command[2:2] = [part for path in paths for part in ("--image", str(path))]
@@ -565,15 +672,17 @@ class CodexBackend(SubprocessBackend):
 
 
 def claude_settings() -> str:
-    """Bash sandbox: no reads under the home directory, no network, no credential variables, refuse
-    to start without the sandbox. WebFetch is refused for review-hosting domains, and Read under the
-    home directory as well as outside the working directory."""
+    """Bash sandbox: no reads under the home directory (or CLAUDE_CONFIG_DIR when it lies elsewhere),
+    no network, no credential variables, refuse to start without the sandbox. WebFetch is refused for
+    review-hosting domains, and Read under the home directory as well as outside the working directory."""
+    config = _config_outside_home("CLAUDE_CONFIG_DIR")
     return json.dumps({
         "sandbox": {"enabled": True, "failIfUnavailable": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
-                    "filesystem": {"denyRead": ["~/"]},
+                    "filesystem": {"denyRead": ["~/", *([config] if config else [])]},
                     "network": {"strictAllowlist": True, "allowedDomains": []},
                     "credentials": {"envVars": [{"name": name, "mode": "deny"} for name in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")]}},
-        "permissions": {"deny": [*(f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS), "Read(~/**)"]}})
+        "permissions": {"deny": [*(f"WebFetch(domain:{domain})" for domain in REVIEW_DOMAINS), "Read(~/**)",
+                                 *([f"Read(/{config}/**)"] if config else [])]}})
 
 
 class ClaudeBackend(SubprocessBackend):
@@ -585,6 +694,7 @@ class ClaudeBackend(SubprocessBackend):
     normalizers that must read only the supplied text."""
 
     name, binary = "claude", "claude"
+    env_keys = frozenset({"ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR"})
 
     def command(self, tmp: Path) -> list[str]:
         cmd = ["claude", "-p", "--restricted", "--safe-mode", "--no-session-persistence", "--strict-mcp-config", "--permission-prompts", "none"]

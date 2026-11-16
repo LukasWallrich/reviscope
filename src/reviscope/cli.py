@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .backend import ClaudeBackend, CodexBackend, FixtureBackend
+from .backend import ClaudeBackend, CodexBackend, FixtureBackend, PolicyError
 from .pipeline import ReviewPipeline
 from .criticism_judge import register as register_criticism_judge
 from .evaluation import register as register_evaluation
@@ -77,7 +77,7 @@ def _review_command(args: argparse.Namespace) -> int:
         run = ReviewPipeline(backend, args.profile, verifier_backend=verifier, progress=progress,
                              run_metacheck=not args.no_metacheck, parallel=args.parallel).run(
             args.manuscript, supplements=args.supplement, preregistrations=args.preregistration, output_dir=args.out)
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, PolicyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(f"Wrote {'partial' if run.partial else 'complete'} review to {args.out}")
@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         return args.func(args)
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, PolicyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
