@@ -5,16 +5,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .backend import OPENCODE_MODELS, ClaudeBackend, CodexBackend, FixtureBackend, OpenCodeBackend, PolicyError
+from .backend import ClaudeBackend, CodexBackend, FixtureBackend, OpenCodeBackend, PolicyError
 from .pipeline import ReviewPipeline
 from .criticism_judge import register as register_criticism_judge
 from .evaluation import register as register_evaluation
 from .normalization import register as register_normalization
 from .ranking import register as register_ranking
 from .profiles import available_profiles
-
-
-MODELS = ["gpt-6-luna", "gpt-6.1-sol", "claude-opus-5-5", *OPENCODE_MODELS]
 
 
 def _backend(name: str, model: str | None, args: argparse.Namespace, effort: str):
@@ -38,10 +35,11 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--parallel", type=int, default=4,
                         help="model stages run concurrently: independent modules, then verification batches (default 4)")
     review.add_argument("--backend", choices=["codex", "claude", "opencode", "fixture"], default="codex")
-    review.add_argument("--model", choices=MODELS)
+    review.add_argument("--model", help="codex: gpt-6.1-sol (default) or gpt-6-luna; claude: claude-opus-5-5; "
+                        "opencode: any provider/model that `opencode models` lists (default openrouter/z-ai/glm-5.3-flash)")
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
     review.add_argument("--verifier-backend", choices=["codex", "claude", "opencode"], help="Optional independent verification backend")
-    review.add_argument("--verifier-model", choices=MODELS)
+    review.add_argument("--verifier-model", help="model for --verifier-backend, as for --model")
     review.add_argument("--verifier-effort", choices=["low", "medium", "high", "xhigh", "max"],
                         help="verification reasoning effort (defaults to --effort)")
     review.add_argument("--timeout", type=int, default=3600, help="per-model-call timeout in seconds (default: 3600)")
