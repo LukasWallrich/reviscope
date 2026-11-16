@@ -5,9 +5,12 @@ import functools
 import hashlib
 import json
 import os
+import platform
 import re
+import shlex
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -65,6 +68,11 @@ MANAGED_POLICY = {
                Path("/Library/Application Support/ClaudeCode/managed-settings.d"),
                Path("/etc/claude-code/managed-settings.json"), Path("/etc/claude-code/managed-settings.d")),
     "codex": (Path("/etc/codex/requirements.toml"), Path("/etc/codex/managed_config.toml")),
+    # OpenCode merges these over every other configuration source, ReviScope's included.
+    "opencode": (Path("/etc/opencode/opencode.json"), Path("/etc/opencode/opencode.jsonc"),
+                 Path("/Library/Application Support/opencode/opencode.json"),
+                 Path("/Library/Application Support/opencode/opencode.jsonc"),
+                 Path("/Library/Managed Preferences/ai.opencode.managed.plist")),
 }
 
 
@@ -81,6 +89,8 @@ def managed_policy_files(binary: str) -> list[Path]:
     entries = list(MANAGED_POLICY.get(binary, ()))
     if binary == "codex":
         entries += [codex_home() / "requirements.toml", codex_home() / "managed_config.toml"]
+    if binary == "opencode":
+        entries.append(Path("/Library/Managed Preferences") / Path.home().name / "ai.opencode.managed.plist")
     files = []
     for entry in entries:
         if entry.is_dir():
@@ -467,7 +477,7 @@ class SubprocessBackend(Backend):
 
     def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True,
                  shell_network: bool = False):
-        models = {"codex": ("gpt-6.1-sol", "gpt-6-luna"), "claude": ("claude-opus-5-5",)}
+        models = {"codex": ("gpt-6.1-sol", "gpt-6-luna"), "claude": ("claude-opus-5-5",), "opencode": tuple(OPENCODE_MODELS)}
         self.model = model or (models[self.name][0] if self.name in models else None)
         if self.name in models and self.model not in models[self.name]:
             raise ValueError(f"Unsupported {self.name} model: {self.model}")
@@ -516,6 +526,9 @@ class SubprocessBackend(Backend):
             raise FileNotFoundError(f"the {self.name} CLI ({executable}) is not installed or not on PATH")
         self.check_policy()
 
+    def _prepare(self, tmp: Path) -> None:
+        """Write files the CLI needs in the call directory before it starts; most backends need none."""
+
     def _attach(self, command: list[str], paths: list[Path]) -> None:
         """Add attached images to the command line; backends that send them otherwise do nothing."""
 
@@ -537,6 +550,7 @@ class SubprocessBackend(Backend):
         with tempfile.TemporaryDirectory(prefix="reviscope-", dir="/tmp") as tmp_name:
             tmp = Path(tmp_name).resolve()
             attached = _stage(tmp, images) if images else []
+            self._prepare(tmp)
             if images and images.materials_index:
                 prompt += "\n\n" + images.materials_index
             if attached:
@@ -763,6 +777,219 @@ class ClaudeBackend(SubprocessBackend):
 
     def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
         return parse_claude_events(stdout, started) if self.tools else ([], stdout)
+
+
+# OpenCode models ReviScope accepts, with the reasoning variants each offers (--variant); --effort must name one.
+# A list, not a pattern: OpenCode can reach any OpenRouter model, and the provider whitelist in
+# opencode_config keeps every call, title and summary calls included, on the selected one.
+OPENCODE_MODELS = {"openrouter/deepseek/deepseek-v4-flash": ("high", "xhigh")}
+OPENCODE_STATE = ".opencode-state"  # OpenCode's own home, configuration and data, inside the call directory; hidden from the shell
+SANDBOX_SHELL = "sandbox-shell"
+SECCOMP_FILE = "seccomp.bpf"
+# webfetch deny patterns for loopback and private hosts. OpenCode matches them against the URL as written,
+# so a host name that resolves to a local address, or a redirect, still gets through (see README).
+LOCAL_URL_PATTERNS = ("*://localhost*", "*://127.*", "*://0.*", "*://10.*", "*://169.254.*", "*://192.168.*",
+                      *(f"*://172.{n}.*" for n in range(16, 32)), "*://[*")
+
+
+def opencode_permission(tools: bool) -> dict[str, Any]:
+    """OpenCode permission rules; the last matching rule wins. With tools: the shell (sandboxed by bubblewrap,
+    see opencode_sandbox_args), web search and web fetch, nothing else. The file tools (read, edit, write,
+    glob, grep, list) run inside OpenCode itself, outside any sandbox, and check paths without resolving
+    symlinks, so they stay denied; external_directory then governs only the sandboxed shell. Run mode
+    rejects anything that would ask. OpenCode's config schema accepts only allow/ask/deny under the key
+    "webfetch", but rules match permission names as wildcards, so URL rules go under "webfetch*"."""
+    if not tools:
+        return {"*": "deny"}
+    webfetch = {"*": "allow", **{f"*{domain}*": "deny" for domain in REVIEW_DOMAINS}, **{p: "deny" for p in LOCAL_URL_PATTERNS}}
+    return {"*": "deny", "bash": "allow", "external_directory": "allow", "websearch": "allow", "webfetch*": webfetch}
+
+
+def opencode_config(tmp: Path, model: str, tools: bool) -> dict[str, Any]:
+    """Complete OpenCode configuration, passed in OPENCODE_CONFIG_CONTENT. User and project configuration
+    are not loaded (opencode_environment), so this is all OpenCode sees apart from a managed config,
+    which check_policy refuses."""
+    provider, model_id = model.split("/", 1)
+    config: dict[str, Any] = {
+        "$schema": "https://opencode.ai/config.json", "model": model, "small_model": model,
+        "enabled_providers": [provider], "provider": {provider: {"whitelist": [model_id]}},
+        "permission": opencode_permission(tools), "mcp": {}, "plugin": [], "instructions": [],
+        "autoupdate": False, "share": "disabled", "snapshot": False, "lsp": False, "formatter": False}
+    if tools:
+        config["shell"] = str(tmp / OPENCODE_STATE / SANDBOX_SHELL)
+    return config
+
+
+def _seccomp_filter() -> bytes:
+    """Classic BPF for bubblewrap's --seccomp: refuse Unix-domain sockets (so the shell cannot reach D-Bus,
+    agents or daemons through socket files on the read-only file system) and io_uring (which can open
+    sockets without the socket syscall); kill foreign-architecture syscalls; allow the rest."""
+    native = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}  # AUDIT_ARCH, __NR_socket
+    if platform.machine() not in native:
+        raise PolicyError(f"the OpenCode shell sandbox supports x86_64 and aarch64 Linux, not {platform.machine()}")
+    arch, socket_nr = native[platform.machine()]
+    load, jeq, jge, ret = 0x20, 0x15, 0x35, 0x06
+    allow, refuse, kill = 0x7FFF0000, 0x00050000 | 1, 0x80000000  # SECCOMP_RET_ALLOW, ERRNO(EPERM), KILL_PROCESS
+    program = [
+        (load, 0, 0, 4), (jeq, 1, 0, arch), (ret, 0, 0, kill),  # foreign architecture
+        (load, 0, 0, 0), (jge, 5, 0, 0x40000000),  # x32 syscalls
+        (jeq, 4, 0, 425),  # io_uring_setup (same number on both architectures)
+        (jeq, 0, 2, socket_nr), (load, 0, 0, 16), (jeq, 1, 0, 1),  # socket(AF_UNIX, ...)
+        (ret, 0, 0, allow), (ret, 0, 0, refuse)]
+    return b"".join(struct.pack("=HBBI", *instruction) for instruction in program)
+
+
+def opencode_sandbox_args(tmp: Path) -> list[str]:
+    """bubblewrap arguments for one shell command. Everything is read-only except the call directory;
+    the home directory (where OpenCode keeps auth.json), an XDG data or config directory moved outside it,
+    /tmp, /var/tmp and /run (sockets of the session bus, agents and daemons) are replaced by empty
+    directories; OpenCode's own state in the call directory is hidden; staged page images and materials are
+    mounted read-only. No network namespace is shared, the environment is cleared, and the process sees
+    only its own PID namespace, so neither OpenCode's environment (API keys) nor other processes are visible."""
+    hidden = [str(Path.home().resolve()), *(p for p in (_config_outside_home("XDG_DATA_HOME"), _config_outside_home("XDG_CONFIG_HOME")) if p)]
+    hidden += [path for path in ("/tmp", "/var/tmp", "/run") if Path(path).is_dir() and not Path(path).is_symlink()]
+    args = ["bwrap", "--die-with-parent", "--new-session", "--unshare-all", "--clearenv",
+            "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
+    for path in dict.fromkeys(hidden):
+        args += ["--tmpfs", path]
+    args += ["--bind", str(tmp), str(tmp), "--tmpfs", str(tmp / OPENCODE_STATE)]
+    for name in (IMAGE_DIR, MATERIALS_DIR):
+        args += ["--ro-bind-try", str(tmp / name), str(tmp / name)]
+    return args
+
+
+def opencode_sandbox_env(tmp: Path) -> list[str]:
+    """The shell's whole environment: PATH and locale, with HOME and TMPDIR in the call directory."""
+    env = {"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"), "HOME": str(tmp), "TMPDIR": str(tmp),
+           "LANG": os.environ.get("LANG", "C.UTF-8"), **({"LC_ALL": os.environ["LC_ALL"]} if os.environ.get("LC_ALL") else {})}
+    return [part for key, value in env.items() for part in ("--setenv", key, value)]
+
+
+def bubblewrap_works() -> str | None:
+    """None when an unprivileged bubblewrap sandbox starts here, otherwise the reason it does not."""
+    if not sys.platform.startswith("linux"):
+        return f"the OpenCode shell sandbox uses bubblewrap, which needs Linux (this is {sys.platform})"
+    if not shutil.which("bwrap"):
+        return "the OpenCode shell sandbox needs bubblewrap (`bwrap`), for example `sudo apt install bubblewrap`"
+    try:
+        result = subprocess.run(["bwrap", "--unshare-all", "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "true"],
+                                capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"bubblewrap could not start: {exc}"
+    return None if result.returncode == 0 else f"bubblewrap cannot create a sandbox here: {result.stderr.strip()[:300]}"
+
+
+def parse_opencode_events(stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
+    """Tool calls and final text from `opencode run --format json`. OpenCode prints a tool call once it has
+    finished; a call still running at a timeout leaves no record."""
+    calls: list[ToolCall] = []
+    final = ""
+    kinds = {"websearch": "search", "webfetch": "fetch", "bash": "exec", "read": "view"}
+    for event in _events(stdout):
+        part = event.get("part") if isinstance(event.get("part"), dict) else {}
+        if event.get("type") == "text":
+            final = part.get("text") or final
+        elif event.get("type") == "tool_use":
+            state = part.get("state") if isinstance(part.get("state"), dict) else {}
+            arguments = state.get("input") if isinstance(state.get("input"), dict) else {}
+            name = part.get("tool", "unknown")
+            error = state.get("status") == "error"
+            output = state.get("error") if error else state.get("output", "")
+            metadata = state.get("metadata") if isinstance(state.get("metadata"), dict) else {}
+            if name == "bash" and not error and metadata.get("exit") not in (0, None):
+                error = True
+            url = arguments.get("url") if isinstance(arguments.get("url"), str) else None
+            calls.append(ToolCall(backend="opencode", sequence=len(calls), timestamp=started, name=name, kind=kinds.get(name, "other"),
+                                  query=arguments.get("query"), url=url, command=arguments.get("command"),
+                                  path=arguments.get("filePath") if name == "read" else None,
+                                  opened_urls=[url] if name == "webfetch" and url else [],
+                                  output=_truncate(output or ""), result_urls=_urls(output or "") if name in kinds and kinds[name] in {"search", "fetch"} else [],
+                                  error=error))
+    return calls, final
+
+
+class OpenCodeBackend(SubprocessBackend):
+    """OpenCode (`opencode run`) with an OpenRouter model. With tools, calls get web search (Exa), web fetch
+    and a shell whose every command runs in a bubblewrap sandbox (opencode_sandbox_args) on Linux; the file
+    tools are denied. User, project and global configuration, plugins, MCP servers, instructions files and the
+    session database are left behind in a per-call state directory. Page images cannot be attached: the
+    supported model reads text only. tools=False is for judges and normalizers that must read only the
+    supplied text."""
+
+    name, binary = "opencode", "opencode"
+    env_keys = frozenset({"OPENROUTER_API_KEY"})
+
+    def __init__(self, model: str | None = None, timeout: int = 3600, effort: str | None = None, tools: bool = True,
+                 shell_network: bool = False):
+        if shell_network:
+            raise ValueError("--shell-network is not available with OpenCode: its bubblewrap sandbox can block the network "
+                             "but cannot limit the shell to a list of hosts")
+        super().__init__(model, timeout, effort, tools)
+        if self.effort not in OPENCODE_MODELS[self.model]:
+            raise ValueError(f"{self.model} supports --effort {' or '.join(OPENCODE_MODELS[self.model])}, not {self.effort}")
+
+    def command(self, tmp: Path) -> list[str]:
+        # --title skips the extra model call that names the session.
+        return ["opencode", "run", "--pure", "--format", "json", "--title", "reviscope", "--model", self.model, "--variant", self.effort]
+
+    def config(self, tmp: Path) -> dict[str, Any]:
+        return opencode_config(tmp, self.model, self.tools)
+
+    def environment(self, tmp: Path) -> dict[str, str]:
+        state = tmp / OPENCODE_STATE
+        env = {**super().environment(tmp), "HOME": str(state / "home"), "XDG_CONFIG_HOME": str(state / "config"),
+               "XDG_DATA_HOME": str(state / "data"), "XDG_CACHE_HOME": str(state / "cache"), "XDG_STATE_HOME": str(state / "state"),
+               "OPENCODE_CONFIG_CONTENT": json.dumps(self.config(tmp)), "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+               "OPENCODE_DISABLE_CLAUDE_CODE": "1", "OPENCODE_DISABLE_EXTERNAL_SKILLS": "1", "OPENCODE_DISABLE_AUTOUPDATE": "1",
+               "OPENCODE_DISABLE_LSP_DOWNLOAD": "1", "OPENCODE_DISABLE_DEFAULT_PLUGINS": "1", "OPENCODE_PURE": "1"}
+        if self.tools:
+            env.update({"OPENCODE_ENABLE_EXA": "1", "OPENCODE_WEBSEARCH_PROVIDER": "exa"})
+        return env
+
+    @property
+    def identity(self) -> str:
+        """As for the other CLIs, plus the configuration and sandbox, which OpenCode takes from files and
+        environment values rather than the command line."""
+        placeholder = Path("/per-call-directory")
+        config = json.dumps([self.command(placeholder), sorted(self.environment(placeholder)), self.guard, self.config(placeholder),
+                             opencode_sandbox_args(placeholder) if self.tools else []])
+        return f"{Backend.identity.fget(self)}:{hashlib.sha256(config.encode()).hexdigest()[:12]}:policy-{policy_hash(self.binary)}"
+
+    def check_policy(self) -> None:
+        """Refuse any call while a managed OpenCode configuration exists: OpenCode merges it over ReviScope's
+        settings, so it could replace the sandboxed shell, widen permissions or add plugins and MCP servers.
+        Tool-enabled calls also need a working bubblewrap sandbox."""
+        files = managed_policy_files(self.binary)
+        if files:
+            raise PolicyError(f"managed OpenCode configuration {', '.join(map(str, files))} overrides ReviScope's settings; "
+                              "OpenCode calls refuse to run under it")
+        if self.tools and (problem := bubblewrap_works()):
+            raise PolicyError(problem)
+
+    def _prepare(self, tmp: Path) -> None:
+        state = tmp / OPENCODE_STATE
+        for name in ("home", "config", "data", "cache", "state"):
+            (state / name).mkdir(parents=True, exist_ok=True)
+        if not self.tools:
+            return
+        seccomp = state / SECCOMP_FILE
+        seccomp.write_bytes(_seccomp_filter())
+        shell = "/bin/bash" if Path("/bin/bash").is_file() else "/bin/sh"
+        script = state / SANDBOX_SHELL
+        # OpenCode runs each command as `<shell> -c COMMAND`, in the working directory the model chose.
+        script.write_text("#!/bin/sh\n[ \"$1\" = -c ] || { echo 'sandbox-shell: expected -c COMMAND' >&2; exit 126; }\n"
+                          f"exec {shlex.join(opencode_sandbox_args(tmp) + opencode_sandbox_env(tmp))} --chdir \"$PWD\" --seccomp 3 -- {shell} -c \"$2\" 3< {shlex.quote(str(seccomp))}\n",
+                          encoding="utf-8")
+        script.chmod(0o500)
+
+    def _stdin(self, prompt: str, paths: list[Path]) -> str:
+        if paths:
+            raise NotImplementedError(f"{self.model} reads text only, so OpenCode calls cannot attach page images; "
+                                      "review PDF sources with the Codex or Claude backend")
+        return prompt
+
+    def _parse(self, stdout: str, started: datetime) -> tuple[list[ToolCall], str]:
+        return parse_opencode_events(stdout, started)
 
 
 class FixtureBackend(Backend):

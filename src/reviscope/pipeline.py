@@ -357,7 +357,7 @@ class ReviewPipeline:
         if len(evidence) > 150_000:
             run.coverage.append(f"Long-context review: {len(evidence):,} extracted characters were supplied without truncation; backend context limits may cause explicit stage failures.")
         manuscript_chars = sum(len(source.text.strip()) for source in sources if source.kind == "manuscript")
-        insufficient = self.backend.name in {"codex", "claude"} and manuscript_chars < 1000 and not any(source.kind != "manuscript" for source in sources)
+        insufficient = self.backend.name in {"codex", "claude", "opencode"} and manuscript_chars < 1000 and not any(source.kind != "manuscript" for source in sources)
         self._study_map(run, out, input_hash, evidence)
         if insufficient:
             run.partial = True

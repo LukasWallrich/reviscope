@@ -5,13 +5,24 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .backend import ClaudeBackend, CodexBackend, FixtureBackend, PolicyError
+from .backend import OPENCODE_MODELS, ClaudeBackend, CodexBackend, FixtureBackend, OpenCodeBackend, PolicyError
 from .pipeline import ReviewPipeline
 from .criticism_judge import register as register_criticism_judge
 from .evaluation import register as register_evaluation
 from .normalization import register as register_normalization
 from .ranking import register as register_ranking
 from .profiles import available_profiles
+
+
+MODELS = ["gpt-6-luna", "gpt-6.1-sol", "claude-opus-5-5", *OPENCODE_MODELS]
+
+
+def _backend(name: str, model: str | None, args: argparse.Namespace, effort: str):
+    if name == "claude":
+        return ClaudeBackend(model, args.timeout, effort, shell_network=args.shell_network)
+    if name == "opencode":
+        return OpenCodeBackend(model, args.timeout, effort, shell_network=args.shell_network)
+    return CodexBackend(model or "gpt-6.1-sol", args.timeout, effort, shell_network=args.shell_network)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -26,11 +37,11 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--profile", default="social_psychology", help="bundled profile id or profile directory (default: social_psychology)")
     review.add_argument("--parallel", type=int, default=4,
                         help="model stages run concurrently: independent modules, then verification batches (default 4)")
-    review.add_argument("--backend", choices=["codex", "claude", "fixture"], default="codex")
-    review.add_argument("--model", choices=["gpt-6-luna", "gpt-6.1-sol", "claude-opus-5-5"])
+    review.add_argument("--backend", choices=["codex", "claude", "opencode", "fixture"], default="codex")
+    review.add_argument("--model", choices=MODELS)
     review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
-    review.add_argument("--verifier-backend", choices=["codex", "claude"], help="Optional independent verification backend")
-    review.add_argument("--verifier-model", choices=["gpt-6-luna", "gpt-6.1-sol", "claude-opus-5-5"])
+    review.add_argument("--verifier-backend", choices=["codex", "claude", "opencode"], help="Optional independent verification backend")
+    review.add_argument("--verifier-model", choices=MODELS)
     review.add_argument("--verifier-effort", choices=["low", "medium", "high", "xhigh", "max"],
                         help="verification reasoning effort (defaults to --effort)")
     review.add_argument("--timeout", type=int, default=3600, help="per-model-call timeout in seconds (default: 3600)")
@@ -58,16 +69,9 @@ def _review_command(args: argparse.Namespace) -> int:
     if args.backend == "fixture":
         backend = FixtureBackend()
         print("WARNING: fixture backend creates deterministic demo output; it is not an AI review.", file=sys.stderr)
-    elif args.backend == "claude":
-        backend = ClaudeBackend(args.model, args.timeout, args.effort, shell_network=args.shell_network)
     else:
-        backend = CodexBackend(args.model or "gpt-6.1-sol", args.timeout, args.effort, shell_network=args.shell_network)
-    verifier = None
-    verifier_effort = args.verifier_effort or args.effort
-    if args.verifier_backend == "claude":
-        verifier = ClaudeBackend(args.verifier_model, args.timeout, verifier_effort, shell_network=args.shell_network)
-    elif args.verifier_backend == "codex":
-        verifier = CodexBackend(args.verifier_model or "gpt-6.1-sol", args.timeout, verifier_effort, shell_network=args.shell_network)
+        backend = _backend(args.backend, args.model, args, args.effort)
+    verifier = _backend(args.verifier_backend, args.verifier_model, args, args.verifier_effort or args.effort) if args.verifier_backend else None
     try:
         output_dir = Path(args.out).resolve()
         output_dir.mkdir(parents=True, exist_ok=True)
