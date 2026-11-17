@@ -838,14 +838,16 @@ def opencode_config(tmp: Path, model: str, tools: bool) -> dict[str, Any]:
     return config
 
 
+SECCOMP_ARCH = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}  # AUDIT_ARCH, __NR_socket
+
+
 def _seccomp_filter() -> bytes:
     """Classic BPF for bubblewrap's --seccomp: refuse Unix-domain sockets (so the shell cannot reach D-Bus,
     agents or daemons through socket files on the read-only file system) and io_uring (which can open
     sockets without the socket syscall); kill foreign-architecture syscalls; allow the rest."""
-    native = {"x86_64": (0xC000003E, 41), "aarch64": (0xC00000B7, 198)}  # AUDIT_ARCH, __NR_socket
-    if platform.machine() not in native:
+    if platform.machine() not in SECCOMP_ARCH:
         raise PolicyError(f"the OpenCode shell sandbox supports x86_64 and aarch64 Linux, not {platform.machine()}")
-    arch, socket_nr = native[platform.machine()]
+    arch, socket_nr = SECCOMP_ARCH[platform.machine()]
     load, jeq, jge, ret = 0x20, 0x15, 0x35, 0x06
     allow, refuse, kill = 0x7FFF0000, 0x00050000 | 1, 0x80000000  # SECCOMP_RET_ALLOW, ERRNO(EPERM), KILL_PROCESS
     program = [
@@ -887,6 +889,8 @@ def bubblewrap_works() -> str | None:
     """None when an unprivileged bubblewrap sandbox starts here, otherwise the reason it does not."""
     if not sys.platform.startswith("linux"):
         return f"the OpenCode shell sandbox uses bubblewrap, which needs Linux (this is {sys.platform})"
+    if platform.machine() not in SECCOMP_ARCH:
+        return f"the OpenCode shell sandbox supports x86_64 and aarch64 Linux, not {platform.machine()}"
     if not shutil.which("bwrap"):
         return "the OpenCode shell sandbox needs bubblewrap (`bwrap`), for example `sudo apt install bubblewrap`"
     try:
@@ -971,7 +975,14 @@ def opencode_catalogue() -> dict[str, Any]:
         try:
             return json.loads(cache.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            raise RuntimeError(f"could not load OpenCode's model catalogue from {OPENCODE_CATALOGUE}: {exc}") from exc
+            raise ValueError(f"could not load OpenCode's model catalogue from {OPENCODE_CATALOGUE}: {exc}") from exc
+
+
+def _credential_name(key: object) -> bool:
+    """A provider credential variable named by the downloaded catalogue. Names that would undo the call's
+    isolation (home, XDG and OpenCode settings, the proxy and certificate settings, PATH) are refused."""
+    return (isinstance(key, str) and re.fullmatch(r"[A-Z][A-Z0-9_]*", key) is not None and key not in ENV_ALLOWLIST
+            and not key.startswith(("XDG_", "OPENCODE_", "LD_", "NODE_", "BUN_")))
 
 
 @functools.cache
@@ -992,12 +1003,15 @@ def opencode_model(model: str) -> OpenCodeModel:
         for directory in ("home", "config", "data", "cache", "state"):
             (state / directory).mkdir()
         env = {key: value for key, value in os.environ.items() if key in ENV_ALLOWLIST} | opencode_state_env(state) | {"NO_COLOR": "1"}
-        names = tuple(catalogue[provider].get("env") or ())
+        names = tuple(key for key in catalogue[provider].get("env") or () if _credential_name(key))
         env |= {key: os.environ[key] for key in names if os.environ.get(key)}
         if auth := opencode_auth(provider):
             env["OPENCODE_AUTH_CONTENT"] = auth
-        result = subprocess.run(["opencode", "models", provider, "--verbose", "--pure"], cwd=state, env=env,
-                                capture_output=True, text=True, timeout=120)
+        try:
+            result = subprocess.run(["opencode", "models", provider, "--verbose", "--pure"], cwd=state, env=env,
+                                    capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            raise ValueError(f"`opencode models {provider}` did not finish within 120 s") from exc
     if result.returncode:
         raise ValueError(f"OpenCode cannot use provider {provider!r}: set {' or '.join(names) or 'its credentials'} "
                          f"or log in with `opencode auth login` ({re.sub(r'\x1b\[[0-9;]*m', '', result.stderr).strip()[-200:]})")

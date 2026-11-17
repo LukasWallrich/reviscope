@@ -14,7 +14,12 @@ from .ranking import register as register_ranking
 from .profiles import available_profiles
 
 
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
+
+
 def _backend(name: str, model: str | None, args: argparse.Namespace, effort: str):
+    if name != "opencode" and effort not in EFFORTS:  # OpenCode checks the model's own variant names
+        raise ValueError(f"--backend {name} supports --effort {', '.join(EFFORTS)}, not {effort}")
     if name == "claude":
         return ClaudeBackend(model, args.timeout, effort, shell_network=args.shell_network)
     if name == "opencode":
@@ -37,11 +42,10 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--backend", choices=["codex", "claude", "opencode", "fixture"], default="codex")
     review.add_argument("--model", help="codex: gpt-6.1-sol (default) or gpt-6-luna; claude: claude-opus-5-5; "
                         "opencode: any provider/model that `opencode models` lists (default openrouter/z-ai/glm-5.3-flash)")
-    review.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], default="high")
+    review.add_argument("--effort", default="high", help="low, medium, high (default), xhigh or max; for opencode, one of the model's variants")
     review.add_argument("--verifier-backend", choices=["codex", "claude", "opencode"], help="Optional independent verification backend")
     review.add_argument("--verifier-model", help="model for --verifier-backend, as for --model")
-    review.add_argument("--verifier-effort", choices=["low", "medium", "high", "xhigh", "max"],
-                        help="verification reasoning effort (defaults to --effort)")
+    review.add_argument("--verifier-effort", help="verification reasoning effort, as for --effort (defaults to --effort)")
     review.add_argument("--timeout", type=int, default=3600, help="per-model-call timeout in seconds (default: 3600)")
     review.add_argument("--out", default="review-run")
     review.add_argument("--quiet", action="store_true")

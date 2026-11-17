@@ -1,5 +1,6 @@
 import json
 import time
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -453,7 +454,7 @@ def test_opencode_refuses_managed_configuration(tmp_path, monkeypatch, opencode_
     backend_module.OpenCodeBackend(tools=False).check_policy()  # tool-free calls run no shell
 
 
-@pytest.mark.skipif(not Path("/usr/bin/bwrap").exists(), reason="needs bubblewrap")
+@pytest.mark.skipif(not shutil.which("bwrap"), reason="needs bubblewrap")
 def test_opencode_sandbox_shell_blocks_home_network_sockets_and_outside_writes(tmp_path, opencode_catalogue):
     """Runs the generated sandbox shell exactly as OpenCode does (`<shell> -c COMMAND`); no model call."""
     import socket
@@ -522,3 +523,18 @@ def test_structured_output_skips_bracketed_prose_before_the_answer():
     assert _validate(Answer, output).decisions == ["a"]
     with pytest.raises(Exception, match="decisions"):
         _validate(Answer, 'See [1, 2]. {"choices": ["a"]}')  # the error describes the intended object
+
+
+def test_catalogue_cannot_name_isolation_variables_as_credentials():
+    from reviscope.backend import _credential_name
+
+    assert _credential_name("OPENROUTER_API_KEY")
+    for key in ("HOME", "PATH", "XDG_CONFIG_HOME", "OPENCODE_CONFIG_CONTENT", "LD_PRELOAD", "HTTPS_PROXY", "lower", 1):
+        assert not _credential_name(key)
+
+
+def test_effort_outside_the_shared_levels_is_left_to_opencode(capsys):
+    from reviscope.cli import main
+
+    assert main(["review", "paper.txt", "--backend", "codex", "--effort", "minimal"]) == 1
+    assert "supports --effort low" in capsys.readouterr().err
