@@ -10,6 +10,7 @@ import re
 import shlex
 import shutil
 import signal
+import stat
 import struct
 import subprocess
 import sys
@@ -234,6 +235,19 @@ class Backend(ABC):
         calls = self._tool_calls
         self._tool_calls = []
         return calls
+
+
+def _read_regular_file(path: Path) -> str | None:
+    """Text of `path` if it is a regular file, opened without following a symlink, so a file swapped in
+    after a check cannot be read instead; None otherwise."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0))
+    except OSError:
+        return None
+    with os.fdopen(fd, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            return None
+        return handle.read().decode("utf-8")
 
 
 def _json_values(value: str) -> list[Any]:
@@ -589,8 +603,8 @@ class SubprocessBackend(Backend):
             calls = _relative(calls, tmp)
             # Only Codex writes this file. The call directory is writable by the model's shell, so another
             # backend's output file, or a symlink, could substitute arbitrary file contents for the answer.
-            output = (output_path.read_text(encoding="utf-8") if self.name == "codex" and output_path.is_file()
-                      and not output_path.is_symlink() else final)
+            output = _read_regular_file(output_path) if self.name == "codex" else None
+            output = final if output is None else output
         self._record(calls)
         if returncode is None:
             raise TimeoutError(f"{self.name} timed out after {self.timeout} s ({len(calls)} tool calls recorded)")

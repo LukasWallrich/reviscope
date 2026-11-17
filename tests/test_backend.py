@@ -1,5 +1,6 @@
 import json
 import time
+import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -561,3 +562,15 @@ def test_only_codex_answers_through_the_output_file(tmp_path, monkeypatch, openc
 
     monkeypatch.setattr(backend_module, "_execute", execute)
     assert backend_module.OpenCodeBackend(tools=False).generate("Answer.", "", Answer).value == 1
+
+
+def test_output_file_is_read_only_as_a_regular_file(tmp_path):
+    from reviscope.backend import _read_regular_file
+
+    (tmp_path / "secret").write_text("secret")
+    (tmp_path / "link").symlink_to(tmp_path / "secret")
+    os.mkfifo(tmp_path / "fifo")
+    assert _read_regular_file(tmp_path / "secret") == "secret"
+    assert _read_regular_file(tmp_path / "link") is None
+    assert _read_regular_file(tmp_path / "fifo") is None
+    assert _read_regular_file(tmp_path / "missing") is None
