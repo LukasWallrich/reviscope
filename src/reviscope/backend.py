@@ -236,22 +236,39 @@ class Backend(ABC):
         return calls
 
 
-def _extract_json(value: str) -> Any:
+def _json_values(value: str) -> list[Any]:
+    """The whole response as JSON, else every JSON object or array embedded in it, outermost first.
+    Prose before the answer can contain bracketed fragments such as a confidence interval."""
     value = value.strip()
     if value.startswith("```"):
         value = value.split("\n", 1)[1].rsplit("```", 1)[0]
     try:
-        return json.loads(value)
+        return [json.loads(value)]
     except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
+        decoder, found, end = json.JSONDecoder(), [], 0
         for i, char in enumerate(value):
-            if char in "{[":
+            if char in "{[" and i >= end:
                 try:
-                    obj, _ = decoder.raw_decode(value[i:])
-                    return obj
+                    obj, length = decoder.raw_decode(value[i:])
                 except json.JSONDecodeError:
-                    pass
-        raise
+                    continue
+                found.append(obj)
+                end = i + length
+        if not found:
+            raise
+        return found
+
+
+def _validate(response_model: type[T], output: str) -> T:
+    """The first embedded JSON value that matches the schema. If none does, the error for the
+    largest value, which is most likely the intended answer."""
+    errors = []
+    for candidate in _json_values(output):
+        try:
+            return response_model.model_validate(candidate)
+        except Exception as exc:
+            errors.append((len(json.dumps(candidate)), exc))
+    raise max(errors, key=lambda e: e[0])[1]
 
 
 def _text(value: Any) -> str:
@@ -586,12 +603,12 @@ class SubprocessBackend(Backend):
         prompt = f"{self.guard}\n\nTASK\n{instruction}\n\nJSON SCHEMA\n{schema}\n\nUNTRUSTED EVIDENCE BEGIN\n{evidence}\nUNTRUSTED EVIDENCE END"
         output = self._run(prompt, response_model, images)
         try:
-            return response_model.model_validate(_extract_json(output))
+            return _validate(response_model, output)
         except Exception as first:
             repair = (f"{prompt}\n\nYOUR PREVIOUS RESPONSE TO THIS TASK FAILED SCHEMA VALIDATION\nERROR\n{first}\n"
                       f"PREVIOUS RESPONSE\n{output}\n\nReturn the complete corrected JSON value only, fixing every field the error names.")
             try:
-                return response_model.model_validate(_extract_json(self._run(repair, response_model, images)))
+                return _validate(response_model, self._run(repair, response_model, images))
             except Exception as second:
                 raise ValueError(f"Invalid structured response after one repair: {second}") from first
 

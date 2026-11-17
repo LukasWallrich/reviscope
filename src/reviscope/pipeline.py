@@ -112,6 +112,19 @@ def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str)
 
 
+def _id_errors(returned: list[str], expected: object, complete: bool, label: str = "finding_id") -> list[str]:
+    """Violations of the ID contract of a batched answer: duplicates, unknown IDs and, if `complete`, omissions."""
+    wanted = set(expected)  # type: ignore[call-overload]
+    counts: dict[str, int] = {}
+    for value in returned:
+        counts[value] = counts.get(value, 0) + 1
+    errors = [f"{label} {value} appears {n} times; return exactly one entry for it" for value, n in counts.items() if n > 1]
+    errors += [f"{label} {value} is not among the supplied IDs; use the supplied IDs exactly" for value in counts if value not in wanted]
+    if complete:
+        errors += [f"{label} {value} is missing; return an entry for it" for value in sorted(wanted - set(counts))]
+    return errors
+
+
 def _hash(value: object) -> str:
     return hashlib.sha256(_canonical(value).encode()).hexdigest()
 
@@ -238,10 +251,20 @@ class ReviewPipeline:
                             materials_index=linked_materials.index_text(run.materials) if materials else "")
 
     @staticmethod
-    def _generate(backend: Backend, instruction: str, evidence: str, model_type: type[BaseModel], images: StagedImages | None) -> BaseModel:
-        if images is None:  # offline test backends predate the images argument
-            return backend.generate(instruction, evidence, model_type)
-        return backend.generate(instruction, evidence, model_type, images=images)
+    def _generate(backend: Backend, instruction: str, evidence: str, model_type: type[BaseModel], images: StagedImages | None,
+                  check: Callable[[BaseModel], list[str]] | None = None) -> BaseModel:
+        """One model call. When `check` names violations (such as missing or unknown finding IDs), one retry
+        lists them with the previous answer; the caller still rejects an answer that violates them again."""
+        def call(text: str) -> BaseModel:
+            if images is None:  # offline test backends predate the images argument
+                return backend.generate(text, evidence, model_type)
+            return backend.generate(text, evidence, model_type, images=images)
+        value = call(instruction)
+        errors = check(value) if check else []
+        if errors:
+            value = call(instruction + "\n\nYOUR PREVIOUS ANSWER TO THIS TASK VIOLATED THESE REQUIREMENTS\n- " + "\n- ".join(errors[:50])
+                         + "\nPREVIOUS ANSWER\n" + value.model_dump_json() + "\nReturn the complete corrected answer, keeping every correct entry.")
+        return value
 
     def _cached(self, out: Path, name: str, inputs: object, model_type: type[BaseModel], fn: Callable[[], BaseModel], backend: Backend | None = None) -> tuple[BaseModel, StageRecord]:
         """Run or reuse one model stage. Tool calls are stored in a sidecar next to the artifact."""
@@ -461,7 +484,10 @@ class ReviewPipeline:
         inputs = {
             "upstream": _hash([f.model_dump() for f in batch]), "evidence": _hash(evidence),
             "instruction_hash": _hash(REVIEW_GUARD + verification_instruction), **self._image_inputs(run, images)}
-        return compact, verification_instruction, inputs, lambda: self._generate(self.verifier_backend, verification_instruction, evidence, VerificationResponse, images)
+        ids, complete = [f.id for f in batch], self.verifier_backend.name != "fixture"
+        return compact, verification_instruction, inputs, lambda: self._generate(
+            self.verifier_backend, verification_instruction, evidence, VerificationResponse, images,
+            lambda v: _id_errors([d.finding_id for d in v.decisions], ids, complete))
 
     @staticmethod
     def _table_instruction(run: ReviewRun) -> str:
@@ -562,10 +588,19 @@ class ReviewPipeline:
                 decisions = EditorialResponse(decisions=[], reconciled_overview=None)
                 stage = StageRecord(name="editorial", status="completed")
             else:
+                def check_editorial(value: BaseModel) -> list[str]:
+                    errors = _id_errors([d.finding_id for d in value.decisions], [f.id for f in run.findings], True)  # type: ignore[attr-defined]
+                    overview = value.reconciled_overview  # type: ignore[attr-defined]
+                    if overview is None:
+                        errors.append("reconciled_overview is missing")
+                    elif (run.study_map.design_summary is not None and overview.design_summary is None) or \
+                            (run.study_map.contribution_summary is not None and overview.contribution_summary is None):
+                        errors.append("reconciled_overview erased the preliminary design or contribution summary; revise it instead")
+                    return errors
                 instruction = self.profile.editorial_prompt + "\nSEVERITY GUIDANCE\n" + _canonical(self.profile.metadata.get("severity_guidance", {})) + "\nReturn a decision for every finding. disposition must be keep or merge: every supported finding is published, on its own or merged into a finding that makes the same point. A merge requires target_id. The number of published findings is not limited. Assign final severity and a positive integer priority for every keep decision, with all findings in view; lower priority numbers come first within each severity. Critical means a demonstrated error that invalidates a central result. Major means a supported issue that could change a central conclusion or its interpretation, an internal inconsistency affecting a reported result, or missing analysis or information without which a central claim cannot be assessed. Minor means a local, presentational or reporting issue without such consequence. Missing information is major only when a central claim cannot be assessed without it. Discovery severity is provisional and retained for audit. Severity never overrides verification status. The manuscript supplies context for the reconciled overview and proportionality, not a replacement verification pass. Keep distinct, proportionately stated supported findings under the editorial rules; do not override factual verification on a fresh substantive reading. If you identify a factual disagreement with verification, keep the finding and explain the disagreement in the reason, which is recorded for audit. Also return reconciled_overview: revise the preliminary design summary, contribution summary, and strengths only as needed to remove or qualify statements contradicted by supported findings. Preserve accurate statements and do not invent facts. Do not change verification status, finding IDs, or substantive text.\nPRELIMINARY STUDY MAP\n" + _canonical(run.study_map.model_dump()) + "\nFINDINGS\n" + _canonical(editorial_input)
                 decisions, stage = self._cached(out, "editorial", {"upstream": _hash(editorial_input),
                     "evidence": _hash(evidence), "instruction_hash": _hash(REVIEW_GUARD + instruction)}, EditorialResponse,
-                    lambda: self.backend.generate(instruction, evidence, EditorialResponse))
+                    lambda: self._generate(self.backend, instruction, evidence, EditorialResponse, None, check_editorial))
                 editorial_stage = stage
             editorial_rows = decisions.decisions  # type: ignore[attr-defined]
             if not insufficient and self.backend.name != "fixture" and decisions.reconciled_overview is None:  # type: ignore[union-attr]
@@ -690,10 +725,12 @@ class ReviewPipeline:
         instruction = (reader.READER_PROMPT + "\nREVIEW AS DRAFTED\n" + draft + "\nITEMS\n" + _canonical(payload)
                        + "\nCURRENT OVERVIEW\n" + _canonical(run.study_map.model_dump(include={"design_summary", "contribution_summary", "strengths"})))
         stage = None
+        shown_ids = {finding.id for _, finding, _ in items}
         try:
             response, stage = self._cached(out, "reader", {"draft": _hash(draft), "items": _hash(payload), "evidence": _hash(evidence),
                                                            "instruction_hash": _hash(REVIEW_GUARD + reader.READER_PROMPT)},
-                                           reader.ReaderResponse, lambda: self.backend.generate(instruction, evidence, reader.ReaderResponse))
+                                           reader.ReaderResponse, lambda: self._generate(self.backend, instruction, evidence, reader.ReaderResponse, None,
+                                               lambda v: _id_errors([r.id for r in v.revisions], shown_ids, False, "id")))
             ids = [r.id for r in response.revisions]
             shown_ids = {finding.id for _, finding, _ in items}
             if len(ids) != len(set(ids)) or not set(ids) <= shown_ids:
@@ -776,7 +813,8 @@ class ReviewPipeline:
             stage = None
             try:
                 result, stage = self._cached(out, stage_name, inputs, CellReadingResponse,
-                                             lambda: self._generate(self.verifier_backend, BLIND_READING, _canonical(asked), CellReadingResponse, images),
+                                             lambda: self._generate(self.verifier_backend, BLIND_READING, _canonical(asked), CellReadingResponse, images,
+                                                                    lambda v: _id_errors([r.request_id for r in v.readings], [row["request_id"] for row in asked], False, "request_id")),
                                              self.verifier_backend)
                 returned = [r.request_id for r in result.readings]
                 if len(returned) != len(set(returned)) or not set(returned) <= {row["request_id"] for row in asked}:
@@ -850,7 +888,8 @@ class ReviewPipeline:
             result, stage = self._cached(out, name + "-sources", {
                 "upstream": _hash(rows), "evidence": _hash(evidence),
                 "instruction_hash": _hash(REVIEW_GUARD + task_instruction), **self._image_inputs(run, images)}, VerificationResponse,
-                lambda: self._generate(self.verifier_backend, task_instruction, evidence, VerificationResponse, images), self.verifier_backend)
+                lambda: self._generate(self.verifier_backend, task_instruction, evidence, VerificationResponse, images,
+                                       lambda v: _id_errors([d.finding_id for d in v.decisions], retry_ids, True)), self.verifier_backend)
             returned = [d.finding_id for d in result.decisions]
             if len(returned) != len(set(returned)) or set(returned) != retry_ids:
                 raise ValueError("Source follow-up returned duplicate, missing or unknown finding IDs")
