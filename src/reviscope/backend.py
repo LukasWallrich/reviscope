@@ -587,7 +587,10 @@ class SubprocessBackend(Backend):
                 raise
             calls, final = self._parse(stdout, started)
             calls = _relative(calls, tmp)
-            output = output_path.read_text(encoding="utf-8") if output_path.is_file() else final
+            # Only Codex writes this file. The call directory is writable by the model's shell, so another
+            # backend's output file, or a symlink, could substitute arbitrary file contents for the answer.
+            output = (output_path.read_text(encoding="utf-8") if self.name == "codex" and output_path.is_file()
+                      and not output_path.is_symlink() else final)
         self._record(calls)
         if returncode is None:
             raise TimeoutError(f"{self.name} timed out after {self.timeout} s ({len(calls)} tool calls recorded)")

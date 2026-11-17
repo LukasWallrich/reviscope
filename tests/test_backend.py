@@ -538,3 +538,26 @@ def test_effort_outside_the_shared_levels_is_left_to_opencode(capsys):
 
     assert main(["review", "paper.txt", "--backend", "codex", "--effort", "minimal"]) == 1
     assert "supports --effort low" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("planted", ["file", "symlink"])
+def test_only_codex_answers_through_the_output_file(tmp_path, monkeypatch, opencode_catalogue, planted):
+    """The model's shell can write to the call directory, so a planted last-message.json (or a symlink to a
+    file the sandbox hides) must not replace the answer that OpenCode printed."""
+    from pydantic import BaseModel
+    from reviscope import backend as backend_module
+
+    class Answer(BaseModel):
+        value: int
+
+    secret = tmp_path / "secret.json"
+    secret.write_text('{"value": 666}')
+    monkeypatch.setattr(backend_module.OpenCodeBackend, "check_policy", lambda self: None)
+
+    def execute(command, prompt, cwd, env, timeout):
+        target = Path(cwd) / "last-message.json"
+        target.symlink_to(secret) if planted == "symlink" else target.write_text('{"value": 666}')
+        return 0, json.dumps({"type": "text", "part": {"text": '{"value": 1}'}}) + "\n", ""
+
+    monkeypatch.setattr(backend_module, "_execute", execute)
+    assert backend_module.OpenCodeBackend(tools=False).generate("Answer.", "", Answer).value == 1
