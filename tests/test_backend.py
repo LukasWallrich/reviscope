@@ -1,5 +1,7 @@
 import json
 import time
+import os
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -279,3 +281,296 @@ def test_a_missing_cli_stops_the_run_before_any_stage(tmp_path, monkeypatch):
         ReviewPipeline(FixtureBackend(), verifier_backend=ClaudeBackend()).run(manuscript, output_dir=tmp_path / "out")
     assert not (tmp_path / "out").exists()
     assert main(["review", str(manuscript), "--backend", "claude", "--out", str(tmp_path / "cli-out"), "--no-metacheck"]) == 1
+
+
+def _opencode_events() -> str:
+    def tool(name, status, arguments, output="", metadata=None, error=None):
+        state = {"status": status, "input": arguments, "output": output, "metadata": metadata or {}, "title": name}
+        if error:
+            state["error"] = error
+        return {"type": "tool_use", "sessionID": "ses_1", "part": {"type": "tool", "tool": name, "callID": "c", "state": state}}
+    events = [
+        {"type": "step_start", "part": {"type": "step-start"}},
+        tool("websearch", "completed", {"query": "Cohen 1992 power primer"}, "Title: A power primer\nURL: https://pubmed.ncbi.nlm.nih.gov/19565683/"),
+        tool("bash", "completed", {"command": "python3 -c 'print(1/3)'"}, "0.333\n", {"exit": 0}),
+        tool("bash", "completed", {"command": "curl https://example.com"}, "curl: (6) Could not resolve host", {"exit": 6}),
+        tool("webfetch", "error", {"url": "https://pubpeer.com/"}, error="denied by pattern *pubpeer.com*"),
+        {"type": "text", "part": {"type": "text", "text": "Working on it."}},
+        {"type": "text", "part": {"type": "text", "text": '{"value": 3}'}},
+    ]
+    return "\n".join(json.dumps(event) for event in events) + "\nnot json\n"
+
+
+def test_opencode_event_stream_yields_tool_calls_and_final_text():
+    from reviscope.backend import parse_opencode_events
+
+    calls, final = parse_opencode_events(_opencode_events(), NOW)
+    assert [c.kind for c in calls] == ["search", "exec", "exec", "fetch"] and [c.sequence for c in calls] == [0, 1, 2, 3]
+    assert calls[0].query == "Cohen 1992 power primer" and calls[0].result_urls == ["https://pubmed.ncbi.nlm.nih.gov/19565683/"]
+    assert not calls[1].error and calls[1].output == "0.333\n"
+    assert calls[2].error  # non-zero exit status
+    assert calls[3].url == "https://pubpeer.com/" and calls[3].error and "denied" in calls[3].output
+    assert final == '{"value": 3}'
+
+
+@pytest.fixture
+def opencode_catalogue(monkeypatch):
+    """Offline stand-in for OpenCode's model catalogue: one text-only and one image-capable model."""
+    from reviscope import backend as backend_module
+
+    models = {"openrouter/deepseek/deepseek-v4-flash": backend_module.OpenCodeModel(("OPENROUTER_API_KEY",), ("none", "high", "xhigh"), False),
+              "openrouter/z-ai/glm-5.3-flash": backend_module.OpenCodeModel(("OPENROUTER_API_KEY",), ("low", "high", "max"), True),
+              "local/plain": backend_module.OpenCodeModel(("LOCAL_KEY",), (), False)}
+
+    def lookup(model):
+        if model not in models:
+            raise ValueError(f"OpenCode does not list {model}")
+        return models[model]
+    monkeypatch.setattr(backend_module, "opencode_model", lookup)
+    monkeypatch.setattr(backend_module, "opencode_auth", lambda provider: None)
+    return models
+
+
+def test_opencode_isolates_configuration_and_allows_only_shell_and_web_tools(tmp_path, monkeypatch, opencode_catalogue):
+    from reviscope.backend import OPENCODE_STATE, OpenCodeBackend
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "other-key")
+    backend = OpenCodeBackend()
+    assert backend.model == "openrouter/z-ai/glm-5.3-flash"
+    command, env = backend.command(tmp_path), backend.environment(tmp_path)
+    assert command[:2] == ["opencode", "run"] and "--pure" in command and command[command.index("--format") + 1] == "json"
+    assert command[command.index("--variant") + 1] == "high" and "--title" in command
+    state = tmp_path / OPENCODE_STATE
+    for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"):
+        assert Path(env[key]).parent == state  # never the user's ~/.config/opencode or auth.json
+    assert env["OPENCODE_DISABLE_PROJECT_CONFIG"] == env["OPENCODE_DISABLE_CLAUDE_CODE"] == env["OPENCODE_PURE"] == "1"
+    assert env["OPENROUTER_API_KEY"] == "test-key" and "ANTHROPIC_API_KEY" not in env
+    config = json.loads(env["OPENCODE_CONFIG_CONTENT"])
+    permission = config["permission"]
+    assert list(permission)[0] == "*" and permission["*"] == "deny"  # read, edit, write, glob, grep, list, task, skill
+    assert {key for key, value in permission.items() if value == "allow"} == {"bash", "external_directory", "websearch"}
+    assert permission["webfetch*"]["*"] == "allow" and permission["webfetch*"][f"*{REVIEW_DOMAINS[0]}*"] == "deny"
+    assert permission["webfetch*"]["*://127.*"] == "deny"
+    assert config["shell"] == str(state / "sandbox-shell") and config["mcp"] == {} and config["plugin"] == []
+    assert config["small_model"] == config["model"] and config["provider"]["openrouter"]["whitelist"] == ["z-ai/glm-5.3-flash"]
+    assert "shell commands" in backend.guard  # the file tools are gone; say how to read files instead
+    judge = OpenCodeBackend(tools=False)
+    judge_config = json.loads(judge.environment(tmp_path)["OPENCODE_CONFIG_CONTENT"])
+    assert judge_config["permission"] == {"*": "deny"} and "shell" not in judge_config
+    assert "OPENCODE_ENABLE_EXA" not in judge.environment(tmp_path) and judge.identity != backend.identity
+    with pytest.raises(ValueError, match="shell-network"):
+        OpenCodeBackend(shell_network=True)
+    with pytest.raises(ValueError, match="none, high, xhigh"):
+        OpenCodeBackend("openrouter/deepseek/deepseek-v4-flash", effort="low")
+    with pytest.raises(ValueError, match="does not list"):
+        OpenCodeBackend("openrouter/unknown/model")
+    plain = OpenCodeBackend("local/plain", effort="max")  # no reasoning variants: run without one
+    assert plain.effort == "default" and "--variant" not in plain.command(tmp_path) and "LOCAL_KEY" in plain.env_keys
+
+
+def test_opencode_attaches_images_only_for_image_models_and_passes_only_its_providers_login(tmp_path, monkeypatch, opencode_catalogue):
+    from reviscope import backend as backend_module
+
+    image = tmp_path / "page-images" / "p1.png"
+    command = backend_module.OpenCodeBackend().command(tmp_path)
+    backend_module.OpenCodeBackend()._attach(command, [image])
+    assert command[2:4] == ["--file", str(image)]
+    with pytest.raises(NotImplementedError, match="does not accept images"):
+        backend_module.OpenCodeBackend("openrouter/deepseek/deepseek-v4-flash")._attach([], [image])
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    (tmp_path / "opencode").mkdir()
+    (tmp_path / "opencode" / "auth.json").write_text(json.dumps({"openrouter": {"type": "api", "key": "k1"}, "zai": {"type": "api", "key": "k2"}}))
+    monkeypatch.undo()  # restore the real opencode_auth, keep XDG_DATA_HOME below
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    assert json.loads(backend_module.opencode_auth("openrouter")) == {"openrouter": {"type": "api", "key": "k1"}}
+    assert backend_module.opencode_auth("anthropic") is None
+
+
+def test_opencode_sandbox_hides_home_state_and_temp_and_mounts_staged_files_read_only(tmp_path, monkeypatch):
+    from reviscope.backend import OPENCODE_STATE, TOOL_OUTPUT_DIR, opencode_sandbox_args
+
+    monkeypatch.setenv("XDG_DATA_HOME", "/srv/xdg-data")
+    args = opencode_sandbox_args(tmp_path)
+    tmpfs = {args[i + 1] for i, arg in enumerate(args) if arg == "--tmpfs"}
+    assert {str(Path.home().resolve()), "/srv/xdg-data", "/tmp", str(tmp_path / OPENCODE_STATE)} <= tmpfs
+    assert "--unshare-all" in args and "--clearenv" in args and "--share-net" not in args
+    assert args[args.index("--ro-bind") + 1:args.index("--ro-bind") + 3] == ["/", "/"]
+    assert args.index("--tmpfs") > args.index("--ro-bind")  # hidden paths are mounted over the read-only root
+    bind = args.index("--bind")
+    assert args[bind + 1:bind + 3] == [str(tmp_path)] * 2 and args.index(str(tmp_path / OPENCODE_STATE)) > bind
+    assert ["--ro-bind-try", str(tmp_path / "materials"), str(tmp_path / "materials")] == args[-3:]
+    truncated = str(tmp_path / OPENCODE_STATE / TOOL_OUTPUT_DIR)  # full text of truncated tool output stays readable
+    assert args.index(truncated) > args.index(str(tmp_path / OPENCODE_STATE)) and args[args.index(truncated) - 1] == "--ro-bind-try"
+
+
+def test_opencode_seccomp_filter_refuses_unix_sockets_and_io_uring():
+    import platform
+    import struct
+
+    from reviscope.backend import _seccomp_filter
+
+    if platform.machine() not in {"x86_64", "aarch64"}:
+        pytest.skip("seccomp filter is built for x86_64 and aarch64")
+    program = [struct.unpack("=HBBI", _seccomp_filter()[i:i + 8]) for i in range(0, len(_seccomp_filter()), 8)]
+
+    def run(nr: int, arg0: int = 0, arch: int | None = None) -> int:
+        data = {0: nr, 4: arch if arch is not None else program[1][3], 16: arg0}
+        pc, accumulator = 0, 0
+        while True:
+            code, jt, jf, k = program[pc]
+            if code == 0x20:
+                accumulator = data[k]
+            elif code == 0x06:
+                return k
+            elif code in (0x15, 0x35):
+                taken = accumulator == k if code == 0x15 else accumulator >= k
+                pc += jt if taken else jf
+            pc += 1
+
+    socket_nr = 41 if platform.machine() == "x86_64" else 198
+    allow, eperm = 0x7FFF0000, 0x00050001
+    assert run(socket_nr, 1) == eperm and run(socket_nr, 2) == allow and run(425) == eperm
+    assert run(0x40000000 + 41) == eperm and run(0) == allow and run(0, arch=0x40000003) == 0x80000000
+
+
+def test_opencode_refuses_managed_configuration(tmp_path, monkeypatch, opencode_catalogue):
+    from reviscope import backend as backend_module
+
+    managed = tmp_path / "opencode.json"
+    monkeypatch.setattr(backend_module, "MANAGED_POLICY", {"opencode": (managed,)})
+    monkeypatch.setattr(backend_module, "bubblewrap_works", lambda: None)
+    backend = backend_module.OpenCodeBackend()
+    before = backend.identity
+    backend.check_policy()
+    managed.write_text('{"shell": "/bin/bash"}')
+    assert backend.identity != before
+    for tools in (True, False):
+        with pytest.raises(backend_module.PolicyError, match="managed OpenCode configuration"):
+            backend_module.OpenCodeBackend(tools=tools).generate("task", "evidence", Answer)
+    monkeypatch.setattr(backend_module, "MANAGED_POLICY", {"opencode": ()})
+    monkeypatch.setattr(backend_module, "bubblewrap_works", lambda: "bubblewrap is missing")
+    with pytest.raises(backend_module.PolicyError, match="bubblewrap is missing"):
+        backend_module.OpenCodeBackend().check_policy()
+    backend_module.OpenCodeBackend(tools=False).check_policy()  # tool-free calls run no shell
+
+
+@pytest.mark.skipif(not shutil.which("bwrap"), reason="needs bubblewrap")
+def test_opencode_sandbox_shell_blocks_home_network_sockets_and_outside_writes(tmp_path, opencode_catalogue):
+    """Runs the generated sandbox shell exactly as OpenCode does (`<shell> -c COMMAND`); no model call."""
+    import socket
+    import subprocess
+    import tempfile
+
+    from reviscope.backend import OpenCodeBackend, bubblewrap_works
+
+    if bubblewrap_works():
+        pytest.skip(bubblewrap_works())
+    call = Path(tempfile.mkdtemp(prefix="reviscope-test-", dir="/tmp"))
+    try:
+        (call / "materials").mkdir()
+        (call / "materials" / "data.csv").write_text("a\n1\n")
+        backend = OpenCodeBackend()
+        backend._prepare(call)
+        server = socket.socket(socket.AF_UNIX)
+        server.bind(str(call / "host.sock"))
+        server.listen()
+        secret = Path.home() / ".reviscope-test-secret"
+        checks = {
+            "home": f"cat {secret}", "key": 'test -n "$OPENROUTER_API_KEY"', "outside": "touch /usr/local/reviscope-test",
+            "materials": "touch materials/new", "network": "python3 -c 'import socket; socket.create_connection((\"1.1.1.1\", 443), timeout=3)'",
+            "socket": "python3 -c 'import socket; s = socket.socket(socket.AF_UNIX); s.connect(\"host.sock\")'",
+            "state": "find .opencode-state -mindepth 1 | grep -v -x -e .opencode-state/data -e .opencode-state/data/opencode -e '.opencode-state/data/opencode/tool-output.*'", "tmp": "test -e " + str(tmp_path)}
+        script = "".join(f'if {command} >/dev/null 2>&1; then echo "{name} ALLOWED"; fi\n' for name, command in checks.items())
+        (call / ".opencode-state" / "data" / "opencode" / "tool-output" / "tool_1").write_text("saved\n")
+        checks["tool-output write"] = "touch .opencode-state/data/opencode/tool-output/new"
+        script = "".join(f'if {command} >/dev/null 2>&1; then echo "{name} ALLOWED"; fi\n' for name, command in checks.items())
+        script += 'cat .opencode-state/data/opencode/tool-output/tool_1 && echo written > here.txt && cat materials/data.csv'
+        secret.write_text("secret")
+        try:
+            result = subprocess.run([str(call / ".opencode-state" / "sandbox-shell"), "-c", script], cwd=call, capture_output=True, text=True,
+                                    env={**backend.environment(call), "OPENROUTER_API_KEY": "test-key"}, timeout=60)
+        finally:
+            secret.unlink()
+            server.close()
+        assert "ALLOWED" not in result.stdout, result.stdout + result.stderr
+        assert result.stdout.strip() == "saved\na\n1" and (call / "here.txt").read_text() == "written\n"
+    finally:
+        import shutil
+
+        shutil.rmtree(call, ignore_errors=True)
+
+
+def test_cli_builds_opencode_backends_and_rejects_its_unsupported_options(tmp_path, capsys, opencode_catalogue):
+    from reviscope.cli import _backend, main, parser
+
+    args = parser().parse_args(["review", "paper.md", "--backend", "opencode", "--verifier-backend", "opencode"])
+    backend = _backend(args.backend, args.model, args, args.effort)
+    assert backend.name == "opencode" and backend.model == "openrouter/z-ai/glm-5.3-flash" and backend.tools
+    manuscript = tmp_path / "paper.md"
+    manuscript.write_text("# Paper\n")
+    assert main(["review", str(manuscript), "--backend", "opencode", "--shell-network", "--out", str(tmp_path / "out")]) == 1
+    assert "shell-network" in capsys.readouterr().err and not (tmp_path / "out").exists()
+
+
+def test_structured_output_skips_bracketed_prose_before_the_answer():
+    from pydantic import BaseModel, ValidationError
+    from reviscope.backend import _validate
+
+    class Answer(BaseModel):
+        decisions: list[str]
+
+    output = 'The interval [0.312, 1.048] excludes zero.\n{"decisions": ["a"]}'
+    assert _validate(Answer, output).decisions == ["a"]
+    with pytest.raises(ValidationError, match="decisions"):
+        _validate(Answer, 'See [1, 2]. {"choices": ["a"]}')  # the error describes the intended object
+
+
+def test_catalogue_cannot_name_isolation_variables_as_credentials():
+    from reviscope.backend import _credential_name
+
+    assert _credential_name("OPENROUTER_API_KEY")
+    for key in ("HOME", "PATH", "XDG_CONFIG_HOME", "OPENCODE_CONFIG_CONTENT", "LD_PRELOAD", "HTTPS_PROXY", "lower", 1):
+        assert not _credential_name(key)
+
+
+def test_effort_outside_the_shared_levels_is_left_to_opencode(capsys):
+    from reviscope.cli import main
+
+    assert main(["review", "paper.txt", "--backend", "codex", "--effort", "minimal"]) == 1
+    assert "supports --effort low" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("planted", ["file", "symlink"])
+def test_only_codex_answers_through_the_output_file(tmp_path, monkeypatch, opencode_catalogue, planted):
+    """The model's shell can write to the call directory, so a planted last-message.json (or a symlink to a
+    file the sandbox hides) must not replace the answer that OpenCode printed."""
+    from pydantic import BaseModel
+    from reviscope import backend as backend_module
+
+    class Answer(BaseModel):
+        value: int
+
+    secret = tmp_path / "secret.json"
+    secret.write_text('{"value": 666}')
+    monkeypatch.setattr(backend_module.OpenCodeBackend, "check_policy", lambda self: None)
+
+    def execute(command, prompt, cwd, env, timeout):
+        target = Path(cwd) / "last-message.json"
+        target.symlink_to(secret) if planted == "symlink" else target.write_text('{"value": 666}')
+        return 0, json.dumps({"type": "text", "part": {"text": '{"value": 1}'}}) + "\n", ""
+
+    monkeypatch.setattr(backend_module, "_execute", execute)
+    assert backend_module.OpenCodeBackend(tools=False).generate("Answer.", "", Answer).value == 1
+
+
+def test_output_file_is_read_only_as_a_regular_file(tmp_path):
+    from reviscope.backend import _read_regular_file
+
+    (tmp_path / "secret").write_text("secret")
+    (tmp_path / "link").symlink_to(tmp_path / "secret")
+    os.mkfifo(tmp_path / "fifo")
+    assert _read_regular_file(tmp_path / "secret") == "secret"
+    assert _read_regular_file(tmp_path / "link") is None
+    assert _read_regular_file(tmp_path / "fifo") is None
+    assert _read_regular_file(tmp_path / "missing") is None

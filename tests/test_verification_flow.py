@@ -53,7 +53,7 @@ class EvidenceBackend(Backend):
                                     for e in row["external_evidence"]],
                 "remedy_status": "supported", "remedy_rationale": "Proportionate."} for row in rows]})
         if kind == "EditorialResponse":
-            rows = json.loads(instruction.split("FINDINGS\n")[1])
+            rows = json.loads(instruction.split("FINDINGS\n")[1].split("\n\nYOUR PREVIOUS ANSWER")[0])
             return response_model.model_validate({"decisions": [{"finding_id": row["id"],
                 "disposition": "keep", "reason": "Distinct.", "target_id": None, "severity": row["severity"]} for row in rows],
                 "reconciled_overview": {"design_summary": "Overview sentinel.", "contribution_summary": "c", "strengths": []}})
@@ -295,3 +295,32 @@ def test_concurrent_stages_keep_their_own_tool_calls_and_match_a_sequential_run(
     sequential = ReviewPipeline(ConcurrentBackend(count=2), run_metacheck=False, parallel=1).run(source, output_dir=tmp_path / "b")
     assert [f.id for f in concurrent.candidates] == [f.id for f in sequential.candidates]
     assert [s.name for s in concurrent.stages] == [s.name for s in sequential.stages]
+
+
+@pytest.mark.parametrize("stage", ["VerificationResponse", "EditorialResponse"])
+def test_id_violations_get_one_retry_naming_them(tmp_path, stage):
+    """A batched answer that omits or invents IDs is retried once with the violations listed."""
+    class SloppyBackend(EvidenceBackend):
+        def __init__(self, times):
+            super().__init__(count=3)
+            self.times = times
+
+        def generate(self, instruction, evidence, response_model):
+            result = super().generate(instruction, evidence, response_model)
+            if response_model.__name__ == stage and self.times:
+                self.times -= 1
+                result.decisions[0].finding_id = "invented"
+                result.decisions.pop()
+            return result
+
+    backend = SloppyBackend(times=1)
+    run = ReviewPipeline(backend, run_metacheck=False).run(manuscript(tmp_path), output_dir=tmp_path / "once")
+    assert not run.partial
+    retries = [i for kind, i, _ in backend.calls if kind == stage and "VIOLATED THESE REQUIREMENTS" in i]
+    assert len(retries) == 1
+    assert "finding_id invented is not among the supplied IDs" in retries[0] and "is missing" in retries[0]
+
+    backend = SloppyBackend(times=2)  # a second violation still fails the stage
+    run = ReviewPipeline(backend, run_metacheck=False).run(manuscript(tmp_path), output_dir=tmp_path / "twice")
+    assert run.partial
+    assert sum(kind == stage for kind, _, _ in backend.calls) == 2

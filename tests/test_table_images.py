@@ -418,6 +418,8 @@ def test_attached_pages_keep_their_source_labels_at_the_cli_boundary(tmp_path, m
             attached = [command[i + 1] for i, arg in enumerate(command) if arg == "--image"]
             assert attached == [str(Path(cwd) / "page-images" / name) for name in names]
         assert "1. page-images/source-a/p001.png\n2. page-images/source-b/p001.png" in text
+        if backend.name == "claude":  # Claude's answer is the result event; only Codex writes an output file
+            return 0, json.dumps({"type": "result", "result": '{"value": 1}'}) + "\n", ""
         (Path(cwd) / "last-message.json").write_text('{"value": 1}')
         return 0, "", ""
 
