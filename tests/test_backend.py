@@ -513,7 +513,7 @@ def test_cli_builds_opencode_backends_and_rejects_its_unsupported_options(tmp_pa
 
 
 def test_structured_output_skips_bracketed_prose_before_the_answer():
-    from pydantic import BaseModel
+    from pydantic import BaseModel, ValidationError
     from reviscope.backend import _validate
 
     class Answer(BaseModel):
@@ -521,7 +521,7 @@ def test_structured_output_skips_bracketed_prose_before_the_answer():
 
     output = 'The interval [0.312, 1.048] excludes zero.\n{"decisions": ["a"]}'
     assert _validate(Answer, output).decisions == ["a"]
-    with pytest.raises(Exception, match="decisions"):
+    with pytest.raises(ValidationError, match="decisions"):
         _validate(Answer, 'See [1, 2]. {"choices": ["a"]}')  # the error describes the intended object
 
 
